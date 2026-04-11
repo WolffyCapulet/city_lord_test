@@ -1,2 +1,4909 @@
 # city_lord_test
 city lord's texting txt for everyone text this game
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>城主村莊測試版 v0.1.0.1</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#172235;
+      --panel2:#1d2b40;
+      --line:#334155;
+      --text:#eef2ff;
+      --muted:#cbd5e1;
+      --accent:#f59e0b;
+      --good:#34d399;
+      --bad:#f87171;
+      --blue:#60a5fa;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1324,#0f172a 30%,#101826);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+    button,select{font:inherit}
+    .wrap{max-width:1500px;margin:0 auto;padding:12px;}
+    .layout{display:grid;grid-template-columns:180px minmax(0,1fr) 330px;gap:12px;align-items:start;margin-top:12px}
+    .nav-rail{display:flex;flex-direction:column;gap:8px;position:sticky;top:10px}
+    .nav-btn{width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);cursor:pointer}
+    .nav-btn:hover{border-color:var(--accent);background:rgba(245,158,11,.10)}
+    .nav-btn.active{border-color:var(--accent);background:rgba(245,158,11,.16);box-shadow:0 0 0 1px rgba(245,158,11,.2) inset}
+    .main-stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+    .main-page-panel.page-hidden{display:none !important}
+    @media (max-width:1250px){.layout{grid-template-columns:160px minmax(0,1fr)}.sidebar{grid-column:1 / -1;position:static}}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}.nav-rail{position:static;flex-direction:row;flex-wrap:wrap}.sidebar{position:static}}
+    .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 26px rgba(0,0,0,.2)}
+    .panel + .panel{margin-top:12px}
+    .header h1{margin:0;font-size:26px}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .top-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px}
+    @media (max-width:1200px){.top-grid{grid-template-columns:repeat(3,1fr)}}
+    @media (max-width:700px){.top-grid{grid-template-columns:repeat(2,1fr)}}
+    .stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px;min-height:92px}
+    .stat strong{font-size:18px}
+    .bar{height:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:6px}
+    .fill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#10b981)}
+    .fill.exp{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+    .fill.action{background:linear-gradient(90deg,#60a5fa,#a78bfa)}
+    .fill.fire{background:linear-gradient(90deg,#fb7185,#f59e0b)}
+    .pill-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .pill{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px}
+    .sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .main-two-col{display:grid;grid-template-columns:minmax(320px,430px) minmax(0,1fr);gap:12px;margin-top:12px;align-items:start}
+    .right-stack{display:flex;flex-direction:column;gap:12px}
+    .log-panel{min-width:0}
+    @media (max-width:900px){.sub-grid{grid-template-columns:1fr}.main-two-col{grid-template-columns:1fr}}
+    .compact-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.compact-actions button, .row button[data-craft]{line-height:1.35}
+    @media (max-width:900px){.compact-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    button{background:#0f172a;color:var(--text);border:1px solid #475569;border-radius:10px;padding:8px 10px;cursor:pointer}
+    button:hover,select:hover{border-color:var(--accent)}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    select{background:#0f172a;color:var(--text);border:1px solid #475569;border-radius:10px;padding:7px 8px}
+    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .section-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+    .info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .mini{padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
+    .worker,.plot{padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);margin-top:8px}
+    .workers-grid,.plot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px;margin-top:8px}
+    .worker,.plot{margin-top:0;padding:6px 8px;min-height:84px}
+    .worker .bar,.plot .bar{max-width:100%;width:100%;height:10px;margin-top:4px}
+    .plot .bar{height:8px}
+    .worker-status,.plot-header{display:flex;justify-content:space-between;gap:6px;margin-bottom:4px;align-items:flex-start}
+    .worker-label,.plot-label{font-weight:700;font-size:13px}
+    .plot-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .plot-actions .tiny-btn{padding:5px 8px;font-size:12px}
+    .plot-note{font-size:12px;color:var(--muted);line-height:1.3}
+    .quick-assign-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:10px}
+    .qa-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+    .qa-controls{display:flex;align-items:center;gap:6px}
+    .job-count{min-width:28px;text-align:center;font-weight:700}
+    .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+    .sidebar{position:sticky;top:10px}
+    .resource-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .resource-group{margin-top:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);overflow:hidden}
+    .resource-summary{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:transparent;border:0;border-radius:0;font-weight:700;text-align:left}
+    .resource-summary:hover{background:rgba(255,255,255,.04);border-color:transparent}
+    .resource-arrow{font-size:12px;color:var(--muted)}
+    .resource-body{padding:0 8px 8px}
+    .resource-body.closed{display:none}
+    .resource-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .resource-item{padding:7px 8px;border-radius:9px;border:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.75);font-size:13px;display:flex;flex-direction:column;gap:3px;min-height:48px;justify-content:center}
+    .resource-item.clickable{cursor:pointer}
+    .resource-item.clickable:hover{border-color:var(--accent);background:rgba(30,41,59,.95)}
+    .resource-item .meta{font-size:11px;color:var(--muted)}
+    .log{max-height:520px;overflow:auto}
+    .log-item{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+    .active{border-color:var(--accent)!important;box-shadow:0 0 0 1px rgba(245,158,11,.32) inset}
+    .good{color:var(--good)}
+    .bad{color:var(--bad)}
+    .tiny-btn{padding:5px 8px;font-size:12px}
+
+    .craft-queue{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .queue-pill{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px}
+    .queue-pill.clickable{cursor:pointer;user-select:none}
+    .queue-pill.clickable:hover{border-color:var(--accent);background:rgba(245,158,11,.10)}
+    #buildingButtons button, #researchArea button, [data-build], #payDebtBtn, #claimTaxBtn{pointer-events:auto; position:relative; z-index:2}
+    details summary{cursor:pointer;padding:4px 0}
+    details summary:hover{color:var(--accent)}
+    .lane-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .lane-card{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03)}
+    .lane-label{font-size:12px;color:var(--muted);min-height:32px}
+    .merchant-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+    .merchant-item{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px}
+    .merchant-item input[type="number"]{width:72px;background:#0f172a;color:var(--text);border:1px solid #475569;border-radius:8px;padding:4px 6px}
+
+    .merchant-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}
+
+    .tab-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .tab-btn.active{outline:2px solid var(--accent);background:rgba(245,158,11,.18)}
+    .research-card{padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px;min-width:220px}
+    .research-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}
+
+    .order-card{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px}
+
+    .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+    .modal-backdrop.show{display:flex}
+    .modal-card{width:min(480px,100%);background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 20px 40px rgba(0,0,0,.35)}
+    .modal-card h3{margin:0 0 10px}
+    .check-row{display:flex;align-items:flex-start;gap:8px;margin-top:10px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  
+    .action-modal-grid{display:grid;grid-template-columns:1fr;gap:10px}
+    .action-quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .action-quick button.active{outline:2px solid var(--accent);background:rgba(245,158,11,.18)}
+    .modal-desc{max-height:280px;overflow:auto;white-space:pre-wrap;line-height:1.45}
+    .queue-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .queue-toggle{padding:4px 8px;font-size:12px}
+    .queue-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .queue-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03)}
+    .queue-row .ops{display:flex;gap:4px;flex-wrap:wrap}
+    .book-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin:8px 0 0}
+    .book-card{padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px}
+    .tag{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section class="panel header">
+    <div class="header-top">
+      <div>
+        <h1 id="gameTitle">城主村莊測試版 v0.1.0.1</h1>
+        <div class="muted small" id="gameVersionNote">v0.1.0.1：書籍改製作、烹飪/研磨分開、礦物粉末與鞣劑、製作介面整理。</div>
+      </div>
+      <div class="header-actions">
+        <button id="saveBtn" class="tiny-btn">存檔</button>
+        <button id="resetBtn" class="tiny-btn">重置</button>
+      </div>
+    </div>
+    <div class="top-grid">
+      <div class="stat">
+        <div>金幣</div>
+        <strong id="gold">0</strong>
+        <div class="small muted">打工收入隨主等級提升</div>
+      </div>
+      <div class="stat">
+        <div>主等級 <strong id="level">1</strong></div>
+        <div class="bar"><div id="expBar" class="fill exp"></div></div>
+        <div class="small muted"><span id="exp">0</span> / <span id="expNext">5</span> EXP</div>
+      </div>
+      <div class="stat">
+        <div>智力 <strong id="intelligence">0</strong></div>
+        <div class="small muted">閱讀與研究可提升</div>
+        <div class="small">手動週期：<span id="cycleTime">10.00</span> 秒</div>
+      </div>
+      <div class="stat">
+        <div>體力 <strong id="stamina">100</strong> / <span id="maxStamina">100</span></div>
+        <div class="bar"><div id="staminaBar" class="fill"></div></div>
+        <div class="small muted">休息 5/秒，閒置 0.1/秒（受體力等級加成）</div>
+      </div>
+      <div class="stat">
+        <div>體力等級 <strong id="staminaLevel">1</strong></div>
+        <div class="bar"><div id="staminaExpBar" class="fill exp"></div></div>
+        <div class="small muted"><span id="staminaExp">0</span> / <span id="staminaExpNext">5</span></div>
+      </div>
+      <div class="stat">
+        <div>管理等級 <strong id="managementLevel">1</strong></div>
+        <div class="bar"><div id="managementBar" class="fill exp"></div></div>
+        <div class="small muted"><span id="managementExp">0</span> / <span id="managementExpNext">5</span></div>
+      </div>
+    </div>
+    <div class="pill-wrap" id="skillPills"></div>
+    <div class="row" style="margin-top:8px">
+      <span class="pill">住房：<span id="housingUsed">0</span> / <span id="housingCap">0</span></span>
+      <span class="pill">薪資倒數：<span id="salaryTimer">300</span> 秒</span>
+      <span class="pill">欠薪：<span id="salaryDebt">0</span></span>
+      <span class="pill">篝火：<span id="campfireSec">0</span> 秒</span>
+      <span class="pill" id="castlePill">城池等級：Lv.<span id="castleLevel">1</span></span>
+      <span class="pill" id="safetyPill">安全值：<span id="safetyValue">0</span></span>
+      <span class="pill" id="taxPill">累積稅收：<span id="taxIncome">0</span> 金</span>
+      <span class="pill" id="tradePill">貿易等級：Lv.<span id="tradeLevel">1</span></span>
+      <span class="pill" id="reputationPill">聲望：<span id="reputationValue">0</span></span>
+      <button id="claimTaxBtn" class="tiny-btn">領取稅收</button>
+      <span class="pill" id="townStagePill">城鎮階段：<span id="researchUnlockText">荒地</span></span>
+    </div>
+    <div style="margin-top:10px" id="actionLanes" class="lane-grid">
+      <div class="lane-card">
+        <div class="lane-label" id="productionText">生產線：目前沒有進行中的動作。</div>
+        <div class="bar"><div id="productionBar" class="fill action"></div></div>
+        <div id="productionQueue" class="craft-queue"></div>
+      </div>
+      <div class="lane-card">
+        <div class="lane-label" id="craftText">製作線：目前沒有進行中的動作。</div>
+        <div class="bar"><div id="craftBar" class="fill action"></div></div>
+        <div id="craftQueueTop" class="craft-queue"></div>
+      </div>
+      <div class="lane-card">
+        <div class="lane-label" id="researchText">研究線：目前沒有進行中的動作。</div>
+        <div class="bar"><div id="researchBar" class="fill exp"></div></div>
+        <div id="researchQueue" class="craft-queue"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <nav class="panel nav-rail" id="mainNav">
+      <button class="nav-btn" data-main-nav="production">生產與製作</button>
+      <button class="nav-btn" data-main-nav="farm">農牧</button>
+      <button class="nav-btn" data-main-nav="trade">買賣與商人</button>
+      <button class="nav-btn" data-main-nav="build">建設與研究</button>
+      <button class="nav-btn" data-main-nav="workers">工人與崗位</button>
+      <button class="nav-btn" data-main-nav="log">事件紀錄</button>
+    </nav>
+    <div class="main-stack">
+      <section class="panel main-page-panel" data-main-page="production">
+        <div class="section-title">
+          <h2 style="margin:0">動手工作與製作加工</h2>
+          <div class="row">
+            <button id="restBtn" class="tiny-btn">開始休息</button>
+          </div>
+        </div>
+        <div class="small muted">工作與製作可分線同時進行。製作中再點其他配方可排入最多 3 格等待隊列。</div>
+        <h3 style="margin:12px 0 8px">手動工作</h3>
+        <div class="compact-actions">
+          <button data-work="labor">打工<br><span class="small">2體</span></button>
+          <button data-work="lumber">伐木<br><span class="small">3體</span></button>
+          <button data-work="mining">挖礦<br><span class="small">5體</span></button>
+          <button data-work="fishing">釣魚<br><span class="small">2體</span></button>
+          <button data-work="hunting">狩獵<br><span class="small">5體</span></button>
+          <button data-work="forest">森林採集<br><span class="small">3體</span></button>
+          <button data-work="shore">海邊採集<br><span class="small">3體</span></button>
+          <button data-work="digging">挖掘<br><span class="small">4體</span></button>
+        </div>
+        <div class="small muted" style="margin-top:8px">點一次後會持續工作，直到你切換、停止、或體力不足。稀有掉落會提高本次工作與普通經驗。</div>
+        
+        <h3 style="margin:16px 0 8px">製作與加工</h3>
+        <div class="small muted">目前連作：<span id="autoCraftLabel">無</span></div>
+        
+        <details open>
+          <summary>基礎加工</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-craft="plank">木板</button>
+            <button data-craft="stoneBrick">石磚</button>
+            <button data-craft="brickFirewood">燒磚（柴火）</button>
+            <button data-craft="brickCoal">燒磚（煤炭）</button>
+            <button data-craft="glassFirewood">燒玻璃（柴火）</button>
+            <button data-craft="glassCoal">燒玻璃（煤炭）</button>
+            <button data-craft="bottle">玻璃瓶</button>
+          </div>
+        </details>
+        <details>
+          <summary>烹飪</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-craft="sashimi">生魚片</button>
+            <button data-craft="grilledMeat">烤肉</button>
+            <button data-craft="grilledFish">烤魚</button>
+            <button data-craft="grilledSausage">烤香腸</button>
+            <button data-craft="bearStew">燉熊掌</button>
+            <button data-craft="applePie">蘋果派</button>
+            <button data-craft="clamSoup">蛤肉湯</button>
+          </div>
+        </details>
+        <details>
+          <summary>研磨</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-craft="flour">小麥粉</button>
+            <button data-craft="boneMeal">骨粉</button>
+            <button data-craft="compost">肥料堆</button>
+            <button data-craft="wheatSeedBundle">小麥種子</button>
+            <button data-craft="coalPowder">碳粉</button>
+            <button data-craft="copperPowder">銅粉</button>
+            <button data-craft="ironPowder">鐵粉</button>
+            <button data-craft="silverPowder">銀粉</button>
+            <button data-craft="goldPowder">金粉</button>
+            <button data-craft="magnetitePowder">磁石粉</button>
+            <button data-craft="crystalPowder">水晶粉</button>
+            <button data-craft="gemPowder">寶石粉</button>
+          </div>
+        </details>
+        <details>
+          <summary>冶煉與工具</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-craft="ironFirewood">冶鐵（柴火）</button>
+            <button data-craft="ironCoal">冶鐵（煤炭）</button>
+            <button data-craft="copperFirewood">冶銅（柴火）</button>
+            <button data-craft="copperCoal">冶銅（煤炭）</button>
+            <button data-craft="leather">皮革</button>
+            <button data-craft="softLeather">柔軟皮革</button>
+            <button data-craft="stoneAxeTool">石斧</button>
+            <button data-craft="stonePickTool">石鎬</button>
+            <button data-craft="shovelTool">石鏟</button>
+            <button data-craft="stoneCarvingKnifeTool">石刻木刀</button>
+            <button data-craft="stoneHammerTool">石鎚子</button>
+            <button data-craft="stonePotTool">石鍋子</button>
+            <button data-craft="stoneHoeTool">石鋤頭</button>
+            <button data-craft="stonePitchforkTool">石草叉</button>
+            <button data-craft="fishingRodTool">石釣竿</button>
+            <button data-craft="copperAxeTool">銅斧</button>
+            <button data-craft="copperPickTool">銅鎬</button>
+            <button data-craft="copperShovelTool">銅鏟</button>
+            <button data-craft="copperCarvingKnifeTool">銅刻木刀</button>
+            <button data-craft="copperHammerTool">銅鎚子</button>
+            <button data-craft="copperPotTool">銅鍋子</button>
+            <button data-craft="copperHoeTool">銅鋤頭</button>
+            <button data-craft="copperPitchforkTool">銅草叉</button>
+            <button data-craft="copperFishingRodTool">銅釣竿</button>
+            <button data-craft="ironFishingRodTool">鐵釣竿</button>
+          </div>
+        </details>
+        <details>
+          <summary>煉金與文具</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-craft="herbTonic">鞣劑</button>
+            <button data-craft="staminaPotion">體力藥劑</button>
+            <button data-craft="paper">紙張</button>
+            <button data-craft="ink">墨水</button>
+            <button data-craft="note">破舊筆記</button>
+            <button data-craft="manual">入門教程</button>
+          </div>
+        </details>
+        <details>
+          <summary>製革與裁縫</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-craft="cottonThread">棉線</button>
+            <button data-craft="cottonCloth">棉布</button>
+            <button data-craft="grassThread">草線</button>
+            <button data-craft="grassCloth">草布</button>
+            <button data-craft="clothes">衣服</button>
+            <button data-craft="fishNetTool">魚網</button>
+          </div>
+        </details>
+        <details>
+          <summary>獵物分解與開殼</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-process="rabbit">分解兔子</button>
+            <button data-process="chicken">分解雞</button>
+            <button data-process="boar">分解野豬</button>
+            <button data-process="deer">分解鹿</button>
+            <button data-process="wolf">分解野狼</button>
+            <button data-process="brownBear">分解棕熊</button>
+            <button data-process="blackBear">分解黑熊</button>
+            <button data-process="dairyCow">分解乳牛</button>
+            <button data-process="bull">分解公牛</button>
+            <button data-process="shellfish">開貝類</button>
+          </div>
+        </details>
+
+      </section>
+
+      <section class="panel main-page-panel" data-main-page="farm">
+        <div class="section-title">
+          <h2 style="margin:0">耕種</h2>
+          <div class="row">
+            <span class="pill">耕種技能：Lv.<span id="farmingLevel">1</span></span>
+            <span class="pill">種子返還率：<span id="seedReturnRate">10</span>%</span>
+          </div>
+        </div>
+        <div class="row">
+          <button id="seedSelectBtn" type="button">手動種植：未選擇</button>
+          <button id="plantBtn" type="button">種下目前選擇</button>
+          <button id="farmerSeedBtn" class="tiny-btn" type="button">農夫自動種植：自動</button>
+          <button id="farmerAutoFertilizeBtn" class="tiny-btn" type="button">農夫自動施肥：關</button>
+        </div>
+        <div class="small muted" style="margin-top:6px">樹果類成長較久，但收成時可取得蘋果、木頭、樹枝、樹葉，且較高機率返還種子。骨粉可縮短 5% 成長時間，肥料堆可縮短 10% 成長時間。水渠可加快農田生長，風車可提高種子返還率。</div>
+        <div id="plots"></div>
+      </section>
+
+      <section class="panel main-page-panel" data-main-page="farm">
+        <div class="section-title">
+          <h2 style="margin:0">牧場</h2>
+          <div class="row">
+            <span class="pill">牧場 Lv.<span id="ranchLevel">0</span></span>
+            <span class="pill">牧場工人：<span id="ranchWorkers">0</span></span>
+          </div>
+        </div>
+        <div class="small muted">工人可在牧場照料與繁殖已擁有的活體動物。雞會生蛋，也有機會增加羽毛與雞隻；其他動物需要至少 2 隻才有機會繁殖。</div>
+        <div id="pastureArea" style="margin-top:8px"></div>
+      </section>
+    
+      <section class="panel log-panel main-page-panel" data-main-page="log">
+        <div class="section-title">
+          <h2 style="margin:0">事件紀錄</h2>
+          <div class="row">
+            <button id="logAllBtn" class="tiny-btn">全部</button>
+            <button id="logImportantBtn" class="tiny-btn">重要訊息</button>
+            <button id="logLootBtn" class="tiny-btn">獲取訊息</button>
+            <button id="logWorkerBtn" class="tiny-btn">工人訊息</button>
+          </div>
+        </div>
+        <div id="log" class="log"></div>
+      </section>
+
+      <section class="panel main-page-panel" data-main-page="trade">
+        <div class="section-title">
+          <h2 style="margin:0">買賣與商人</h2>
+          <div class="small muted">買入材料、賣出庫存，並透過布告欄完成商人收購訂單。</div>
+        </div>
+        <div id="merchantArea" style="margin-top:8px"></div>
+      </section>
+
+      <section class="panel main-page-panel" data-main-page="build">
+        <div class="section-title">
+          <h2 style="margin:0">建築、住房與研究</h2>
+          <div class="row"><button id="payDebtBtn" class="tiny-btn">支付欠薪</button></div>
+        </div>
+        <details open>
+          <summary>住房與城防</summary>
+          <div class="row" style="margin-top:8px">
+            <button data-build="cabin">小木屋 +2人</button>
+            <button data-build="stoneHouse">中石屋 +5人</button>
+            <button data-build="wall">城牆段</button>
+          </div>
+          <div class="small muted" style="margin-top:6px">工人需要住房空位才能招募；建造城牆可提高城池經驗，城池等級越高越安全，也會提高商人到訪率與消費金額。</div>
+        </details>
+        <details open>
+          <summary>功能建築升級</summary>
+          <div id="buildingButtons" class="row" style="margin-top:8px"></div>
+          <div class="small muted" style="margin-top:6px">水井加速回體；水渠加速農田生長並提高作物產量；圖書室加速閱讀與研究；磨坊加速各類研磨配方；風車提高種子返還率並進一步強化磨坊效率；煉金小屋加速煉金；鐵匠鋪加速冶煉與工具；裁縫小屋加速皮革；城鎮中心提高人民工作速度與商人到訪率；牧場提高繁殖速度與雞蛋產量。</div>
+        </details>
+        <details open>
+          <summary>研究</summary>
+          <div id="researchArea" style="margin-top:8px"></div>
+          <div class="small muted" style="margin-top:6px">智力達門檻可研究。完成後解鎖工具配方，工具做出後會進入倉庫。</div>
+        </details>
+      </section>
+
+      <section class="panel main-page-panel" data-main-page="workers">
+        <div class="section-title">
+          <h2 style="margin:0">工人與崗位</h2>
+          <div class="row">
+            <button id="recruitBtn">招募工人（40金）</button>
+            <span class="pill">平均週期：<span id="workerCycle">15.00</span> 秒</span>
+          </div>
+        </div>
+        <div class="small muted">可手動指派工人到對應工作崗位。工人也能打工、工匠製作、廚師烹飪與牧場繁殖；農夫會自動種植倉庫內的種子並收成成熟作物，開啟後也會自動施肥。工人工作需消耗體力，會自動吃倉庫食物並嘗試裝備工具與衣服。</div>
+        <div class="small muted" style="margin-top:8px">工匠、食物與工具優先順序可直接在下方各工人卡片中個別設定。</div>
+        <div id="quickAssignArea"></div>
+        <div id="workers"></div>
+      </section>
+    </div>
+
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="resource-head">
+          <h2 style="margin:0">資源倉庫</h2>
+          <button id="toggleResourcesBtn" class="tiny-btn">收合全部</button>
+        </div>
+        <div class="small muted" style="margin-top:8px">分類可展開或收合。食物與燃料可直接點一下使用；骨粉與肥料堆可在農地上施用。</div>
+        <div class="bar"><div id="campfireBar" class="fill fire"></div></div>
+        <div id="resources"></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div id="actionModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="actionModalTitle">
+    <h3 id="actionModalTitle">操作</h3>
+    <div id="actionModalDesc" class="small muted modal-desc"></div>
+    <div class="action-modal-grid">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <label class="small muted">次數 / 份數 <input id="actionQtyInput" type="number" min="1" max="9999" value="1" style="width:100px;margin-left:6px"></label>
+        <span id="actionQtyHint" class="small muted"></span>
+      </div>
+      <div id="actionQuickBtns" class="action-quick"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="actionCancelBtn" class="tiny-btn">取消</button>
+      <button id="actionQueueBtn" class="tiny-btn">加入列隊</button>
+      <button id="actionStartBtn" class="tiny-btn">立即開始</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="queueModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="queueModalTitle">
+    <h3 id="queueModalTitle">列隊</h3>
+    <div id="queueModalDesc" class="small muted modal-desc"></div>
+    <div id="queueModalBody" class="queue-list" style="margin-top:8px"></div>
+    <div class="modal-actions">
+      <button id="queueModalCloseBtn" class="tiny-btn">關閉</button>
+      <button id="queueModalClearBtn" class="tiny-btn">清空列隊</button>
+    </div>
+  </div>
+</div>
+
+<div id="resetModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <h3 id="resetTitle">確認重置存檔</h3>
+    <div class="small muted">這會清除目前存檔、共用存檔與舊版相容存檔，無法復原。</div>
+    <label class="check-row small"><input id="resetAcknowledge" type="checkbox"> <span>我已確認要永久刪除目前遊戲進度。</span></label>
+    <div class="modal-actions">
+      <button id="resetCancelBtn" class="tiny-btn">取消</button>
+      <button id="resetConfirmBtn" class="tiny-btn" disabled>確認重置</button>
+    </div>
+  </div>
+</div>
+
+<div id="choiceModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="choiceModalTitle">
+    <h3 id="choiceModalTitle">選擇項目</h3>
+    <div id="choiceModalDesc" class="small muted modal-desc"></div>
+    <div id="choiceModalOptions" class="action-quick" style="margin-top:12px"></div>
+    <div class="modal-actions">
+      <button id="choiceModalCloseBtn" class="tiny-btn" type="button">關閉</button>
+    </div>
+  </div>
+</div>
+<script>
+const GAME_VERSION = 'v0.1.0.1';
+const GAME_TITLE = '城主村莊測試版 ' + GAME_VERSION;
+const GAME_CHANGELOG = '書籍改製作、烹飪/研磨分開、礦物粉末與鞣劑、製作介面整理。';
+function syncGameVersionLabels(){
+  document.title = GAME_TITLE;
+  const titleEl = document.getElementById('gameTitle');
+  if(titleEl) titleEl.textContent = GAME_TITLE;
+  const noteEl = document.getElementById('gameVersionNote');
+  if(noteEl) noteEl.textContent = `${GAME_VERSION}：${GAME_CHANGELOG}`;
+}
+syncGameVersionLabels();
+const STORAGE_KEY = 'city_lord_test_shared';
+const STORAGE_KEY_LEGACY = 'city_lord_test_v4';
+const SAVE_SCHEMA_VERSION = 16;
+const LEGACY_STORAGE_KEYS = [
+  'city_lord_test_v4',
+  'city_lord_test_v3',
+  'city_lord_test_v2',
+  'city_lord_test'
+];
+const rarityMultipliers = { common:1, rare:1.2, epic:1.5, legendary:2.0 };
+
+const resourceLabels = {
+  wood:'木頭', stone:'石頭', dirt:'泥土', sand:'沙子',
+  copperOre:'銅礦', coal:'煤炭', ironOre:'鐵礦', silverOre:'銀礦', goldOre:'金礦', magnetite:'磁石', crystal:'水晶', gem:'寶石', coalPowder:'碳粉', copperPowder:'銅粉', ironPowder:'鐵粉', silverPowder:'銀粉', goldPowder:'金粉', magnetitePowder:'磁石粉', crystalPowder:'水晶粉', gemPowder:'寶石粉',
+  herb:'草藥', rareHerb:'稀有藥草', mushroom:'蘑菇', branch:'樹枝', leaf:'樹葉', fiber:'纖維', ginseng:'人蔘',
+  apple:'蘋果', wheat:'小麥', cotton:'棉花', carrot:'蘿蔔', wheatFlour:'小麥粉', cottonThread:'棉線', cottonCloth:'棉布', grassThread:'草線', grassCloth:'草布', boneMeal:'骨粉', compost:'肥料堆',
+  wheatSeed:'小麥種子', mushroomSpore:'蘑菇菌種', appleSeed:'蘋果種子', cottonSeed:'棉花種子', carrotSeed:'蘿蔔種子',
+  shellfish:'貝類', shell:'貝殼', clamMeat:'蛤肉', pearl:'珍珠', coral:'珊瑚',
+  fish:'魚', shrimp:'蝦子', crab:'螃蟹', snail:'蝸牛', chicken:'雞', egg:'雞蛋', rawChicken:'生雞肉', feather:'羽毛',
+  rabbit:'兔子', boar:'野豬', deer:'鹿', wolf:'野狼', brownBear:'棕熊', blackBear:'黑熊',
+  rawMeat:'生肉', offal:'內臟', hide:'生皮', bone:'骨頭', boarTusk:'野豬牙', deerAntler:'鹿角', bearPaw:'熊掌', bearFang:'熊牙',
+  planks:'木板', firewood:'柴火', stoneBrick:'石磚', brick:'磚塊', glass:'玻璃', glassBottle:'玻璃瓶',
+  sashimi:'生魚片', grilledMeat:'烤肉', grilledFish:'烤魚', grilledSausage:'烤香腸', bearStew:'燉熊掌', applePie:'蘋果派', herbTonic:'鞣劑', clamSoup:'蛤肉湯', staminaPotion:'體力藥劑', paper:'紙張', ink:'墨水', note:'破舊筆記', manual:'入門教程',
+  ironIngot:'鐵錠', copperIngot:'銅錠', leather:'皮革', softLeather:'柔軟皮革', clothes:'衣服',
+  stoneAxeTool:'石斧', stonePickTool:'石鎬', shovelTool:'石鏟', stoneCarvingKnifeTool:'石刻木刀', stoneHammerTool:'石鎚子', stonePotTool:'石鍋子', stoneHoeTool:'石鋤頭', stonePitchforkTool:'石草叉', woodBowTool:'木弓', stoneBowTool:'石弓', copperBowTool:'銅弓', ironBowTool:'鐵弓', fishingRodTool:'石釣竿', fishNetTool:'魚網',
+  copperAxeTool:'銅斧', copperShovelTool:'銅鏟', copperPickTool:'銅鎬', copperCarvingKnifeTool:'銅刻木刀', copperHammerTool:'銅鎚子', copperPotTool:'銅鍋子', copperHoeTool:'銅鋤頭', copperPitchforkTool:'銅草叉', copperFishingRodTool:'銅釣竿', ironFishingRodTool:'鐵釣竿',
+  dairyCow:'乳牛', bull:'公牛', milk:'牛奶', cowHorn:'牛角'
+};
+
+const edibleValues = { rawMeat:-5, rawChicken:-5, fish:-5, sashimi:8, grilledMeat:10, grilledFish:10, grilledSausage:25, bearStew:100, applePie:25, clamSoup:18, carrot:4, wheat:2 };
+const foodOrder = ['staminaPotion','bearStew','applePie','grilledSausage','clamSoup','grilledMeat','grilledFish','sashimi','rawChicken','rawMeat','fish'];
+const fuelDurations = { leaf:5, branch:15, firewood:60, coal:180 };
+
+const skillLabels = {
+  labor:'打工', lumber:'伐木', mining:'挖礦', fishing:'釣魚', hunting:'狩獵', gathering:'採集', digging:'挖掘',
+  farming:'耕種', woodworking:'木工', masonry:'石工', cooking:'烹飪', smelting:'冶煉', alchemy:'煉金', tanning:'裁縫'
+};
+
+const books = {
+  note:{name:'破舊筆記', duration:30, intGain:1, expGain:1},
+  manual:{name:'入門教程', duration:120, intGain:5, expGain:5}
+};
+
+const workDefs = {
+  labor:{name:'村莊打工', staminaCost:2, skill:'labor', base:10},
+  lumber:{name:'伐木', staminaCost:3, skill:'lumber', base:10},
+  mining:{name:'挖礦', staminaCost:5, skill:'mining', base:10},
+  fishing:{name:'釣魚', staminaCost:2, skill:'fishing', base:10},
+  hunting:{name:'狩獵', staminaCost:5, skill:'hunting', base:10},
+  forest:{name:'森林採集', staminaCost:3, skill:'gathering', base:10},
+  shore:{name:'海邊採集', staminaCost:3, skill:'gathering', base:10},
+  digging:{name:'挖掘', staminaCost:4, skill:'digging', base:10}
+};
+const workerJobs = ['idle','labor','lumber','mining','fishing','hunting','forest','shore','digging','farming','crafting','cook','ranch'];
+
+const workLootInfo = {
+  labor:['金幣：固定獲得','普通經驗：1','技能經驗：1'],
+  lumber:['木頭：100%，2~5','樹枝：100%，1~3','樹葉：100%，1~4','蘋果：18%，1~2','蘋果種子：5%，1'],
+  mining:['石頭：100%，2~6','銅礦：100%，1~5','煤炭：80%，1~3','鐵礦：55%，1~2','銀礦：Lv10後 12%，1~2','磁石：Lv10後 8%，1','水晶：Lv10後 3%，1','金礦：Lv20後 6%，1~2','寶石：Lv20後 2%，1'],
+  fishing:['魚：55%，2~4','蝦：30%，2~4','螃蟹：12%，1~2','蝸牛：3%，1','鐵礦：0.5%，1','水晶：0.1%，1'],
+  hunting:['兔子、野豬、鹿、野狼、棕熊、黑熊','動物可再分解成肉、皮、骨頭與稀有材料'],
+  forest:['草藥：65%，1~3','稀有藥草：8%，1','蘑菇：55%，1~3','樹枝：100%，1~3','樹葉：100%，1~4','纖維：100%，1~3','人蔘：5%，1','小麥種子：8%，1','蘑菇菌種：7%，1','棉花種子：6%，1','蘿蔔種子：6%，1'],
+  shore:['沙子：100%，1~5','貝類：70%，1~3','螃蟹：35%，1~2','珊瑚：15%，1'],
+  digging:['泥土：100%，2~6','石頭：100%，1~4','沙子：80%，0~3']
+};
+let currentActionModal = null;
+let actionModalInfinite = false;
+function getActionModal(){ return document.getElementById('actionModal'); }
+function setActionModalQty(v){ const input = document.getElementById('actionQtyInput'); if(v === 'infinite'){ actionModalInfinite = true; input.value = 1; } else { actionModalInfinite = false; input.value = Math.max(1, Math.floor(toFiniteNumber(v, 1))); } renderActionQuickStates(); }
+function getActionModalQty(){ if(actionModalInfinite) return -1; const input = document.getElementById('actionQtyInput'); const qty = Math.max(1, Math.floor(toFiniteNumber(input.value, 1))); if(currentActionModal && Number.isFinite(currentActionModal.max)) return Math.min(qty, currentActionModal.max); return qty; }
+function renderActionQuickStates(){ const root = document.getElementById('actionQuickBtns'); if(!root || !currentActionModal) return; Array.from(root.querySelectorAll('button')).forEach(btn => btn.classList.toggle('active', (btn.dataset.mode === 'infinite' && actionModalInfinite) || (!actionModalInfinite && btn.dataset.value === String(document.getElementById('actionQtyInput').value)))); }
+function closeActionModal(){ const modal = getActionModal(); if(!modal) return; modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); currentActionModal = null; actionModalInfinite = false; }
+function openActionModal(config){ currentActionModal = config; actionModalInfinite = false; const modal = getActionModal(); document.getElementById('actionModalTitle').textContent = config.title || '操作'; document.getElementById('actionModalDesc').innerHTML = config.desc || ''; const input = document.getElementById('actionQtyInput'); input.disabled = !!config.disableInput; input.value = Math.max(1, Math.floor(toFiniteNumber(config.defaultQty || 1, 1))); document.getElementById('actionQtyHint').textContent = config.hint || ''; const quick = document.getElementById('actionQuickBtns'); quick.innerHTML = ''; (config.quick || [1,10,50,100,'∞']).forEach(v => { const btn = document.createElement('button'); btn.type='button'; btn.className='tiny-btn'; if(v==='∞'){ btn.textContent='∞'; btn.dataset.mode='infinite'; btn.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation();setActionModalQty('infinite');}; } else if(v==='全部'){ btn.textContent='全部'; btn.dataset.mode='fixed'; btn.dataset.value=String(config.max || 1); btn.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation();setActionModalQty(config.max || 1);}; } else { btn.textContent=String(v); btn.dataset.mode='fixed'; btn.dataset.value=String(v); btn.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation();setActionModalQty(v);}; } btn.onclick=(e)=>e.preventDefault(); quick.appendChild(btn); }); document.getElementById('actionQueueBtn').style.display = config.onQueue ? '' : 'none'; document.getElementById('actionQueueBtn').textContent = config.queueLabel || '加入列隊'; document.getElementById('actionStartBtn').textContent = config.startLabel || '立即開始'; renderActionQuickStates(); modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
+function applyActionModal(kind){ if(!currentActionModal) return; const qty = getActionModalQty(); const config = currentActionModal; closeActionModal(); if(kind === 'queue' && config.onQueue) config.onQueue(qty, qty < 0); if(kind === 'start' && config.onStart) config.onStart(qty, qty < 0); }
+let currentQueueModalType = null;
+let currentChoiceModal = null;
+function getChoiceModal(){ return document.getElementById('choiceModal'); }
+function closeChoiceModal(){
+  const modal = getChoiceModal();
+  if(!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+  currentChoiceModal = null;
+}
+function openChoiceModal(config){
+  currentChoiceModal = config || {};
+  const modal = getChoiceModal();
+  if(!modal) return;
+  document.getElementById('choiceModalTitle').textContent = config.title || '選擇項目';
+  document.getElementById('choiceModalDesc').textContent = config.desc || '';
+  const box = document.getElementById('choiceModalOptions');
+  box.innerHTML = '';
+  (config.options || []).forEach((option, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tiny-btn';
+    btn.textContent = option.label || `選項 ${index + 1}`;
+    btn.onpointerdown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if(typeof option.onSelect === 'function') option.onSelect(option.value);
+      if(option.closeOnSelect !== false) closeChoiceModal();
+    };
+    btn.onclick = (e) => e.preventDefault();
+    box.appendChild(btn);
+  });
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+}
+function getQueueModal(){ return document.getElementById('queueModal'); }
+function closeQueueModal(){
+  const modal = getQueueModal();
+  if(!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+  currentQueueModalType = null;
+}
+function openQueueModal(type){
+  currentQueueModalType = type;
+  renderQueueModal();
+  const modal = getQueueModal();
+  if(!modal) return;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+}
+function renderQueueModal(){
+  const modal = getQueueModal();
+  if(!modal || !currentQueueModalType) return;
+  const titleEl = document.getElementById('queueModalTitle');
+  const descEl = document.getElementById('queueModalDesc');
+  const bodyEl = document.getElementById('queueModalBody');
+  const clearBtn = document.getElementById('queueModalClearBtn');
+  bodyEl.innerHTML = '';
+
+  if(currentQueueModalType === 'work'){
+    const q = state.workQueue || [];
+    const hasCurrent = !!(state.productionAction && state.productionAction.type === 'work' && workDefs[state.productionAction.id]);
+    titleEl.textContent = '生產列隊';
+    const info = estimateWorkQueueSeconds();
+    descEl.textContent = q.length || hasCurrent ? `目前共有 ${q.length} 格列隊${hasCurrent ? '，且有 1 項正在生產中' : ''}，${info.infinite ? '含無限項目' : `預估 ${formatQueueTimeShort(info.total, info.infinite)}`}` : '目前沒有等待中的生產列隊。';
+    clearBtn.disabled = !q.length;
+    clearBtn.onclick = ()=>{ state.workQueue = []; renderWorkQueue(); renderAction(); renderQueueModal(); };
+    if(hasCurrent){
+      const current = state.productionAction;
+      const row = document.createElement('div');
+      row.className = 'queue-row';
+      row.innerHTML = `<div><strong>生產中：${workDefs[current.id].name}</strong><div class="small muted">剩餘：${formatQueueTimeShort(Math.max(0, current.remaining))}</div></div>`;
+      const ops = document.createElement('div');
+      ops.className = 'ops';
+      const cancel = document.createElement('button');
+      cancel.type='button'; cancel.className='tiny-btn'; cancel.textContent='取消目前';
+      cancel.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); cancelCurrentProduction(); renderQueueModal();};
+      cancel.onclick=(e)=>e.preventDefault();
+      ops.appendChild(cancel);
+      row.appendChild(ops);
+      bodyEl.appendChild(row);
+    }
+    q.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'queue-row';
+      const itemInfinite = !!item.infinite;
+      const itemTime = itemInfinite ? 0 : getPlayerCycleTime(item.id) * Math.max(1, item.count || 1);
+      row.innerHTML = `<div><strong>${idx+1}. ${workDefs[item.id].name}</strong><div class="small muted">數量：${itemInfinite ? '∞' : item.count}｜預估：${formatQueueTimeShort(itemTime, itemInfinite)}</div></div>`;
+      const ops = document.createElement('div');
+      ops.className = 'ops';
+      [['↑',-1],['↓',1]].forEach(([txt,delta])=>{
+        const b=document.createElement('button');
+        b.type='button'; b.className='tiny-btn'; b.textContent=txt;
+        b.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); moveWorkQueueItem(idx, delta); renderWorkQueue(); renderAction(); renderQueueModal();};
+        b.onclick=(e)=>e.preventDefault();
+        ops.appendChild(b);
+      });
+      const del=document.createElement('button');
+      del.type='button'; del.className='tiny-btn'; del.textContent='取消';
+      del.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); removeWorkQueueItem(idx); renderQueueModal();};
+      del.onclick=(e)=>e.preventDefault();
+      ops.appendChild(del);
+      row.appendChild(ops);
+      bodyEl.appendChild(row);
+    });
+    return;
+  }
+
+  if(currentQueueModalType === 'craft'){
+    const q = state.craftQueue || [];
+    titleEl.textContent = '製作列隊';
+    const info = estimateCraftQueueSeconds();
+    const autoInf = !!state.autoCraftInfinite;
+    const hasCurrent = !!(state.craftAction && crafts[state.craftAction.id]);
+    descEl.textContent = q.length || autoInf || hasCurrent
+      ? `目前共有 ${q.length} 格等待列隊${hasCurrent ? '，且有 1 項正在製作中' : ''}${info.infinite ? '，含無限項目或正在無限連作' : `，預估 ${formatQueueTimeShort(info.total, info.infinite)}`}`
+      : '目前沒有等待中的製作列隊。';
+    clearBtn.disabled = !q.length;
+    clearBtn.onclick = ()=>{ state.craftQueue = []; renderCraftQueue(); renderAction(); renderQueueModal(); };
+    if(hasCurrent){
+      const current = state.craftAction;
+      const row = document.createElement('div');
+      row.className = 'queue-row';
+      row.innerHTML = `<div><strong>製作中：${crafts[current.id].name}</strong><div class="small muted">剩餘：${formatQueueTimeShort(Math.max(0, current.remaining))}｜取消可退回材料</div></div>`;
+      const ops = document.createElement('div');
+      ops.className = 'ops';
+      const cancel=document.createElement('button');
+      cancel.type='button'; cancel.className='tiny-btn'; cancel.textContent='取消目前';
+      cancel.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); cancelCurrentCraft(); renderQueueModal();};
+      cancel.onclick=(e)=>e.preventDefault();
+      ops.appendChild(cancel);
+      row.appendChild(ops);
+      bodyEl.appendChild(row);
+    }
+    if(autoInf && state.autoCraft && crafts[state.autoCraft]){
+      const row = document.createElement('div');
+      row.className = 'queue-row';
+      row.innerHTML = `<div><strong>∞. ${crafts[state.autoCraft].name}</strong><div class="small muted">狀態：無限重複製作｜預估：∞</div></div>`;
+      const ops = document.createElement('div');
+      ops.className = 'ops';
+      const stop=document.createElement('button');
+      stop.type='button'; stop.className='tiny-btn'; stop.textContent='停止';
+      stop.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); stopAutoCraft(); renderQueueModal();};
+      stop.onclick=(e)=>e.preventDefault();
+      ops.appendChild(stop);
+      row.appendChild(ops);
+      bodyEl.appendChild(row);
+    }
+    q.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'queue-row';
+      const itemInfinite = item.count === 9999 || item.count < 0;
+      const itemTime = itemInfinite ? 0 : getCraftDuration(item.id) * Math.max(1, item.count || 1);
+      row.innerHTML = `<div><strong>${idx+1}. ${crafts[item.id].name}</strong><div class="small muted">數量：${itemInfinite ? '∞' : item.count}｜預估：${formatQueueTimeShort(itemTime, itemInfinite)}</div></div>`;
+      const ops = document.createElement('div');
+      ops.className = 'ops';
+      [['↑',-1],['↓',1]].forEach(([txt,delta])=>{
+        const b=document.createElement('button');
+        b.type='button'; b.className='tiny-btn'; b.textContent=txt;
+        b.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); moveCraftQueueItem(idx, delta); renderCraftQueue(); renderAction(); renderQueueModal();};
+        b.onclick=(e)=>e.preventDefault();
+        ops.appendChild(b);
+      });
+      const del=document.createElement('button');
+      del.type='button'; del.className='tiny-btn'; del.textContent='取消';
+      del.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); removeCraftQueueItem(idx); renderQueueModal();};
+      del.onclick=(e)=>e.preventDefault();
+      ops.appendChild(del);
+      row.appendChild(ops);
+      bodyEl.appendChild(row);
+    });
+    return;
+  }
+
+  if(currentQueueModalType === 'research'){
+    const q = state.researchQueue || [];
+    titleEl.textContent = '研究列隊';
+    const info = estimateResearchQueueSeconds();
+    descEl.textContent = q.length ? `目前共有 ${q.length} 格列隊，總次數 ${getQueueTotalActions(q)}，預估 ${formatQueueTimeShort(info.total, info.infinite)}` : '目前沒有等待中的研究列隊。';
+    clearBtn.disabled = !q.length;
+    clearBtn.onclick = ()=>{ state.researchQueue = []; renderResearchQueue(); renderAction(); renderQueueModal(); };
+    q.forEach((item, idx) => {
+      const title = item.kind === 'read' ? books[item.id].name : researchDefs[item.id].name;
+      const per = item.kind === 'read' ? getReadingDuration(books[item.id]?.duration || 0) : getReadingDuration(researchDefs[item.id]?.duration || 0);
+      const itemTime = per * Math.max(1, item.count || 1);
+      const row = document.createElement('div');
+      row.className = 'queue-row';
+      row.innerHTML = `<div><strong>${idx+1}. ${title}</strong><div class="small muted">類型：${item.kind === 'read' ? '書籍閱讀' : '研究'}｜數量：${item.count}｜預估：${formatQueueTimeShort(itemTime)}</div></div>`;
+      const ops = document.createElement('div');
+      ops.className = 'ops';
+      [['↑',-1],['↓',1]].forEach(([txt,delta])=>{
+        const b=document.createElement('button');
+        b.type='button'; b.className='tiny-btn'; b.textContent=txt;
+        b.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); moveResearchQueueItem(idx, delta); renderResearchQueue(); renderAction(); renderQueueModal();};
+        b.onclick=(e)=>e.preventDefault();
+        ops.appendChild(b);
+      });
+      const del=document.createElement('button');
+      del.type='button'; del.className='tiny-btn'; del.textContent='取消';
+      del.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); removeResearchQueueItem(idx); renderQueueModal();};
+      del.onclick=(e)=>e.preventDefault();
+      ops.appendChild(del);
+      row.appendChild(ops);
+      bodyEl.appendChild(row);
+    });
+  }
+}
+
+function getQueueCount(queue){ return (queue || []).length; }
+function getQueueTotalActions(queue){ return (queue || []).reduce((sum,item)=>sum + Math.max(1, item.count || 1), 0); }
+function getQueueHasInfinite(queue){ return (queue || []).some(item => item && (item.infinite || item.count === 9999 || item.count < 0)); }
+function formatQueueTimeShort(seconds, infinite=false){
+  if(infinite) return '∞';
+  const s = Math.max(0, toFiniteNumber(seconds, 0));
+  if(s >= 3600) return `${(s/3600).toFixed(1)}h`;
+  if(s >= 60) return `${(s/60).toFixed(1)}m`;
+  return `${s.toFixed(1)}s`;
+}
+function estimateWorkQueueSeconds(){
+  let total = 0;
+  let infinite = false;
+  (state.workQueue || []).forEach(item => {
+    if(!item) return;
+    if(item.infinite || item.count === 9999 || item.count < 0){ infinite = true; return; }
+    total += getPlayerCycleTime(item.id) * Math.max(1, item.count || 1);
+  });
+  return {total, infinite};
+}
+function estimateCraftQueueSeconds(){
+  let total = 0;
+  let infinite = !!state.autoCraftInfinite;
+  (state.craftQueue || []).forEach(item => {
+    if(!item) return;
+    if(item.count === 9999 || item.count < 0){ infinite = true; return; }
+    total += getCraftDuration(item.id) * Math.max(1, item.count || 1);
+  });
+  return {total, infinite};
+}
+function estimateResearchQueueSeconds(){
+  let total = 0;
+  let infinite = false;
+  (state.researchQueue || []).forEach(item => {
+    if(!item) return;
+    if(item.count === 9999 || item.count < 0){ infinite = true; return; }
+    const per = item.kind === 'read'
+      ? getReadingDuration(books[item.id]?.duration || 0)
+      : getReadingDuration(researchDefs[item.id]?.duration || 0);
+    total += per * Math.max(1, item.count || 1);
+  });
+  return {total, infinite};
+}
+function enqueueWork(workId, count=1, infinite=false){ if(state.workQueue.length >= 3) return addLog('生產列隊已滿，最多只能等待 3 格。'); state.workQueue.push({id:workId, count:Math.max(1,count), infinite:!!infinite}); addLog(`已排入生產：${workDefs[workId].name}${infinite ? '（無限）' : ` × ${count}`}。`); }
+function tryStartQueuedWork(){ if(state.productionAction || state.isResting || !state.workQueue.length) return false; const next = state.workQueue.shift(); state.autoWork = next.id; state.autoWorkCount = next.infinite ? -1 : Math.max(1, next.count); return beginWorkCycle(next.id, {silent:true}); }
+function cancelCurrentProduction(options={}){
+  const { startNext=true, silent=false } = options;
+  const current = state.productionAction;
+  const currentName = current && current.type === 'work' ? (workDefs[current.id]?.name || '工作') : '';
+  state.productionAction = null;
+  state.isResting = false;
+  state.autoResting = false;
+  state.autoRestResume = null;
+  if(!silent && currentName) addLog(`已取消目前生產：${currentName}。`);
+  if(startNext){
+    if(state.autoWork && !state.isResting) beginWorkCycle(state.autoWork, {silent:true});
+    else if(state.workQueue.length && !state.isResting) tryStartQueuedWork();
+  }
+  if(!silent) render();
+  return !!current;
+}
+function scheduleWorkAction(workId, qty=1, mode='start'){
+  if(mode === 'queue') return enqueueWork(workId, qty < 0 ? 9999 : qty, qty < 0);
+  const hadActive = !!state.productionAction || state.isResting || !!state.autoWork;
+  if(state.productionAction || state.isResting) cancelCurrentProduction({startNext:false, silent:true});
+  state.autoWork = workId;
+  state.autoWorkCount = qty < 0 ? -1 : Math.max(1, qty);
+  if(beginWorkCycle(workId, {silent:true})){
+    addLog(`${hadActive ? '已切換生產為' : ''}${workDefs[workId].name}${qty < 0 ? '（無限）' : ` × ${qty}`}。`.replace(/^已切換生產為/, '已切換生產為'));
+  }else{
+    addLog(`已設定生產：${workDefs[workId].name}${qty < 0 ? '（無限）' : ` × ${qty}`}。`);
+  }
+  render();
+}
+function enqueueResearchTask(kind, id, count=1){ if(state.researchQueue.length >= 3) return addLog('研究列隊已滿，最多只能等待 3 格。'); state.researchQueue.push({kind, id, count:Math.max(1, count)}); addLog(`已排入研究：${kind === 'read' ? books[id].name : researchDefs[id].name}${count>1 ? ` × ${count}` : ''}。`); }
+function beginReadNow(bookId, silent=false){ if(!canStartResearch()) { if(!silent) addLog('研究線忙碌中，無法閱讀。'); return false; } const book = books[bookId]; if((state.resources[bookId] || 0) < 1) { if(!silent) addLog(`沒有可閱讀的${book.name}。請先製作。`); return false; } spendResource(bookId,1); const dur = getReadingDuration(book.duration); state.researchAction = {type:'read', id:bookId, remaining:dur, total:dur}; if(!silent) addLog(`開始閱讀《${book.name}》。`); return true; }
+function beginResearchNow(key, silent=false){ if(state.research[key]) { if(!silent) addLog('這項研究已完成。'); return false; } if(!canStartResearch()) { if(!silent) addLog('研究線忙碌中，無法研究。'); return false; } const def = researchDefs[key]; if(!meetsStageOrResearchReqs(def)) { if(!silent) addLog(`尚未達成研究條件。${getMissingReqText(def)}`); return false; } const dur = getReadingDuration(def.duration); state.researchAction = {type:'research', id:key, remaining:dur, total:dur}; if(!silent) addLog(`開始研究：${def.name}。`); return true; }
+function tryStartQueuedResearch(){ if(state.researchAction || !state.researchQueue.length) return false; const next = state.researchQueue[0]; const ok = next.kind === 'read' ? beginReadNow(next.id, true) : beginResearchNow(next.id, true); if(ok){ next.count -= 1; if(next.count <= 0) state.researchQueue.shift(); return true; } state.researchQueue.shift(); return false; }
+function scheduleResearchAction(kind, id, qty=1, mode='start'){ qty = kind === 'research' ? 1 : (qty < 0 ? 100 : Math.max(1, qty)); if(mode === 'queue') return enqueueResearchTask(kind, id, qty); const ok = kind === 'read' ? beginReadNow(id, false) : beginResearchNow(id, false); if(ok && qty > 1 && kind === 'read') enqueueResearchTask(kind, id, qty - 1); render(); }
+function scheduleCraftAction(craftId, qty=1, mode='start'){
+  const def = crafts[craftId];
+  if(def.unlock && !state.research[def.unlock]) return addLog(`尚未研究${researchDefs[def.unlock].name}。`);
+  if(mode === 'queue'){
+    enqueueCraft(craftId, qty < 0 ? 9999 : Math.max(1, qty));
+    render();
+    return;
+  }
+  if(qty < 0){
+    state.autoCraft = craftId;
+    state.autoCraftInfinite = true;
+    state.craftRepeat = true;
+    if(!state.craftAction){
+      if(!beginCraftCycle(craftId, false)){
+        state.autoCraft = null;
+        state.autoCraftInfinite = false;
+        return;
+      }
+      addLog(`開始無限重複製作：${def.name}。材料或體力不足時會自動停止。`);
+    }else{
+      addLog(`已設定無限重複製作：${def.name}。目前製作完成後會自動接續。`);
+    }
+    render();
+    return;
+  }
+  state.autoCraftInfinite = false;
+  if(state.craftAction){
+    const previousName = crafts[state.craftAction.id]?.name || '目前製作';
+    cancelCurrentCraft({refundMaterials:true, startNext:false, silent:true});
+    addLog(`已將目前製作從${previousName}切換為${def.name}，並退回未完成的材料。`);
+  }
+  if(beginCraftCycle(craftId, false)){
+    if(qty > 1) enqueueCraft(craftId, qty - 1);
+    render();
+  } else if(lastCraftBeginError === 'stamina'){
+    state.craftQueue.unshift({id:craftId, count:Math.max(1, qty)});
+    state.craftPausedForStamina = true;
+    state.craftPausedName = def.name;
+    addLog(`已保留製作排程：${def.name} × ${Math.max(1, qty)}，體力恢復後會自動繼續。`);
+    render();
+  }
+}
+function addFuelMany(id, qty){ qty = Math.max(1, Math.min(qty, Math.floor(toFiniteNumber(state.resources[id], 0)))); if(qty <= 0) return addLog(`沒有可投入的${resourceLabels[id]}。`); spendResource(id, qty); state.campfireSec += fuelDurations[id] * qty; addLog(`投入${resourceLabels[id]} ${qty}份，篝火延長 ${fuelDurations[id] * qty} 秒。`); render(); }
+function eatMany(resourceId, qty){ qty = Math.max(1, Math.min(qty, Math.floor(toFiniteNumber(state.resources[resourceId], 0)))); if(qty <= 0) return addLog(`沒有可用的${resourceLabels[resourceId]}。`); let totalActual = 0; let used = 0; for(let i=0;i<qty;i++){ if(!spendResource(resourceId,1)) break; used++; const value = edibleValues[resourceId] || 0; if(value >= 0){ const boosted = value * (1 + getFoodEffectivenessBonus()); totalActual += restoreStamina(boosted, true); } else { const before = state.stamina; state.stamina = clamp(state.stamina + value, 0, maxStamina()); totalActual += state.stamina - before; } } addLog(`你使用了${resourceLabels[resourceId]} ${used}個，體力變化 ${totalActual >= 0 ? '+' : ''}${totalActual.toFixed(1)}。`); render(); }
+function processAnimalMany(id, qty){ qty = Math.max(1, Math.min(qty, Math.floor(toFiniteNumber(state.resources[id], 0)))); if(qty <= 0) return addLog(`沒有可分解的${resourceLabels[id]}。`); const drops = {}; const add = (res, amt) => { gainResource(res, amt); drops[res] = (drops[res] || 0) + amt; }; for(let c=0;c<qty;c++){ if(!spendResource(id,1)) break; if(id === 'chicken'){ add('rawChicken', randInt(1,2)); add('feather', randInt(1,3)); add('bone', 1); } else if(id === 'rabbit'){ add('rawMeat', randInt(1,3)); add('hide', 1); add('bone', randInt(1,2)); } else if(id === 'boar'){ add('rawMeat', randInt(4,8)); add('offal', randInt(1,4)); add('hide', randInt(1,3)); add('bone', randInt(1,3)); if(roll(0.25)) add('boarTusk', randInt(1,2)); } else if(id === 'deer'){ add('rawMeat', randInt(3,7)); add('offal', randInt(1,3)); add('hide', randInt(1,2)); add('bone', randInt(1,3)); if(roll(0.5)) add('deerAntler', randInt(1,2)); } else if(id === 'wolf'){ add('rawMeat', randInt(2,5)); add('offal', randInt(1,2)); add('hide', randInt(1,2)); add('bone', randInt(1,3)); } else if(id === 'brownBear'){ add('rawMeat', randInt(6,12)); add('offal', randInt(2,6)); add('hide', randInt(2,5)); add('bone', randInt(2,5)); if(roll(0.35)) add('bearPaw', randInt(1,2)); if(roll(0.2)) add('bearFang', randInt(1,2)); } else if(id === 'blackBear'){ add('rawMeat', randInt(8,15)); add('offal', randInt(3,8)); add('hide', randInt(3,6)); add('bone', randInt(3,6)); if(roll(0.5)) add('bearPaw', randInt(1,2)); if(roll(0.35)) add('bearFang', randInt(1,3)); } } const text = Object.entries(drops).map(([res, amt]) => `${resourceLabels[res]}${amt}`).join('、'); addLog(`已分解${resourceLabels[id]} ${qty}隻：${text}。`); render(); }
+function processShellfishMany(qty){ qty = Math.max(1, Math.min(qty, Math.floor(toFiniteNumber(state.resources.shellfish, 0)))); if(qty <= 0) return addLog('沒有可打開的貝類。'); const drops = {}; const add = (res, amt) => { gainResource(res, amt); drops[res] = (drops[res] || 0) + amt; }; for(let i=0;i<qty;i++){ if(!spendResource('shellfish',1)) break; add('shell',1); if(roll(0.7)) add('clamMeat',1); if(roll(0.03)) add('pearl',1); } const text = Object.entries(drops).map(([res, amt]) => `${resourceLabels[res]}${amt}`).join('、'); addLog(`你打開了貝類 ${qty}個：${text}。`); render(); }
+function applyFertilizerMany(type, qty){ let used = 0; for(let i=0;i<qty;i++){ const idx = findBestGrowingPlotIndex(); if(idx < 0) break; if(!applyFertilizer(idx, type, 'resource')) break; used++; } if(used > 0) render(); else addLog('目前沒有可施肥的作物。'); }
+function openWorkModal(id){ const def = workDefs[id]; const cycle = getPlayerCycleTime(id); const lines = [`單次體力：${def.staminaCost}`, `單次耗時：${formatSecondsLabel(cycle)}`, `單次普通經驗：1`, `單次${skillLabels[def.skill]}經驗：1`, '', ...(workLootInfo[id] || [])]; openActionModal({ title:def.name, desc:lines.join('\n'), quick:[1,10,50,100,'∞'], startLabel:'立即開始', queueLabel:'加入列隊', onStart:(qty)=>scheduleWorkAction(id, qty, 'start'), onQueue:(qty)=>scheduleWorkAction(id, qty, 'queue') }); }
+function openCraftModal(id){ const def = crafts[id]; const cycle = getCraftDuration(id); const desc = [`單次體力：${def.stamina || 1}`, `單次耗時：${formatSecondsLabel(cycle)}`, `配方：${bundleText(def.costs)} → ${bundleText(def.yields)}`, `單次${skillLabels[def.skill]}經驗：1`].join('\n'); openActionModal({ title:def.name, desc, quick:[1,10,50,100,'∞'], startLabel:'立即製作', queueLabel:'加入列隊', onStart:(qty)=>scheduleCraftAction(id, qty, 'start'), onQueue:(qty)=>scheduleCraftAction(id, qty, 'queue') }); }
+function openResearchModal(key){ const def = researchDefs[key]; const reqParts = []; if(def.levelReq) reqParts.push(`主等級：${def.levelReq}`); if(def.intReq) reqParts.push(`智力：${def.intReq}`); if(def.reqPlots) reqParts.push(`已建農田：${def.reqPlots}`); if(def.reqHouses) reqParts.push(...Object.entries(def.reqHouses).map(([k,v]) => `${houseBuilds[k]?.name || k}：${v}`)); if(def.reqBuildings) reqParts.push(...Object.entries(def.reqBuildings).map(([k,v]) => `${buildingDefs[k]?.name || k}：${v}`)); openActionModal({ title:def.name, desc:[def.desc, '', `研究耗時：${formatSecondsLabel(getReadingDuration(def.duration))}`, reqParts.length ? `需求：${reqParts.join('、')}` : '需求：無'].join('\n'), quick:[1], disableInput:true, startLabel:'開始研究', queueLabel:'加入列隊', onStart:()=>scheduleResearchAction('research', key, 1, 'start'), onQueue:()=>scheduleResearchAction('research', key, 1, 'queue') }); }
+function openBookModal(bookId){ const book = books[bookId]; const owned = Math.floor(toFiniteNumber(state.resources[bookId], 0)); openActionModal({ title:book.name, desc:[`目前持有：${owned} 本`, `單次耗時：${formatSecondsLabel(getReadingDuration(book.duration))}`, `完成後：智力 +${book.intGain}、主經驗 +${book.expGain}`, '每次閱讀會消耗 1 本書籍。'].join('\n'), quick:[1,10,50,100], startLabel:'開始閱讀', queueLabel:'加入列隊', onStart:(qty)=>scheduleResearchAction('read', bookId, qty, 'start'), onQueue:(qty)=>scheduleResearchAction('read', bookId, qty, 'queue') }); }
+function openResourceModal(id, action){ const max = Math.max(1, Math.floor(toFiniteNumber(state.resources[id], 0))); const baseDesc = `${resourceLabels[id]}
+目前持有：${format(state.resources[id] || 0)}`; if(action === 'eat'){ const value = edibleValues[id] || 0; openActionModal({title:`食用${resourceLabels[id]}`, desc:`${baseDesc}
+單次體力變化：${value >= 0 ? '+' : ''}${value}`, quick:[1,5,10,50,'全部'], max, startLabel:'立即食用', onStart:(qty)=>eatMany(id, qty)}); } else if(action === 'potion'){ openActionModal({title:`使用${resourceLabels[id]}`, desc:`${baseDesc}
+效果：體力回復速度 +50%
+持續：180 秒
+冷卻：300 秒
+目前冷卻：${Math.ceil(state.staminaPotionCooldown)} 秒`, quick:[1], disableInput:true, startLabel:'立即使用', onStart:()=>useStaminaPotion()}); } else if(action === 'fuel'){ openActionModal({title:`投入${resourceLabels[id]}`, desc:`${baseDesc}
+單份篝火時間：+${fuelDurations[id]} 秒`, quick:[1,5,10,50,'全部'], max, startLabel:'加入篝火', onStart:(qty)=>addFuelMany(id, qty)}); } else if(action === 'fertilize'){ const reduction = id === 'boneMeal' ? '5%' : '10%'; openActionModal({title:`使用${resourceLabels[id]}`, desc:`${baseDesc}
+每份可縮短作物成長時間 ${reduction}`, quick:[1,5,10,50,'全部'], max, startLabel:'立即施肥', onStart:(qty)=>applyFertilizerMany(id, qty)}); } }
+function openProcessModal(id){ const max = Math.max(1, Math.floor(toFiniteNumber(state.resources[id], 0))); const desc = id === 'shellfish' ? `貝類開殼可能獲得：貝殼、蛤肉、珍珠
+目前持有：${format(state.resources[id] || 0)}` : `分解${resourceLabels[id]}後可獲得肉、皮、骨頭與稀有材料
+目前持有：${format(state.resources[id] || 0)}`; openActionModal({title:id === 'shellfish' ? '開啟貝類' : `分解${resourceLabels[id]}`, desc, quick:[1,5,10,50,'全部'], max, startLabel:id === 'shellfish' ? '立即開殼' : '立即分解', onStart:(qty)=> id === 'shellfish' ? processShellfishMany(qty) : processAnimalMany(id, qty)}); }
+function moveWorkQueueItem(index, delta){
+  const ni = index + delta;
+  if(index < 0 || ni < 0 || ni >= state.workQueue.length) return;
+  const arr = state.workQueue;
+  [arr[index], arr[ni]] = [arr[ni], arr[index]];
+  renderWorkQueue();
+}
+function removeWorkQueueItem(index){
+  if(index < 0 || index >= state.workQueue.length) return;
+  const removed = state.workQueue.splice(index, 1)[0];
+  addLog(`已取消生產排程：${workDefs[removed.id].name}${removed.infinite ? '（∞）' : ` × ${removed.count}`}。`);
+  render();
+}
+function moveResearchQueueItem(index, delta){
+  const ni = index + delta;
+  if(index < 0 || ni < 0 || ni >= state.researchQueue.length) return;
+  const arr = state.researchQueue;
+  [arr[index], arr[ni]] = [arr[ni], arr[index]];
+  renderResearchQueue();
+}
+function removeResearchQueueItem(index){
+  if(index < 0 || index >= state.researchQueue.length) return;
+  const removed = state.researchQueue.splice(index, 1)[0];
+  const name = removed.kind === 'read' ? books[removed.id].name : researchDefs[removed.id].name;
+  addLog(`已取消研究排程：${name}${removed.count > 1 ? ` × ${removed.count}` : ''}。`);
+  render();
+}
+
+function renderWorkQueue(){
+  const root = document.getElementById('productionQueue');
+  if(!root) return;
+  root.innerHTML = '';
+  const qCount = getQueueCount(state.workQueue);
+  const qTotal = getQueueTotalActions(state.workQueue);
+  const qInfo = estimateWorkQueueSeconds();
+  const hasCurrent = !!(state.productionAction && state.productionAction.type === 'work' && workDefs[state.productionAction.id]);
+  const summary = document.createElement('div');
+  summary.className = 'queue-summary';
+  const pill = document.createElement('span');
+  pill.className = 'queue-pill' + ((qCount || hasCurrent) ? ' clickable' : '');
+  pill.textContent = hasCurrent ? `生產中：${workDefs[state.productionAction.id].name}` : (qCount ? `+${qCount} 列隊｜${formatQueueTimeShort(qInfo.total, qInfo.infinite)}` : '等待隊列：空');
+  if(qCount || hasCurrent){
+    pill.title = `目前共有 ${qCount} 格列隊${hasCurrent ? '，且有 1 項正在生產中' : ''}，總次數 ${qInfo.infinite ? '含∞' : qTotal}，預估時間 ${formatQueueTimeShort(qInfo.total, qInfo.infinite)}。點擊可查看列隊詳情。`;
+    pill.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); openQueueModal('work'); };
+    pill.onclick = (e)=>e.preventDefault();
+  }
+  summary.appendChild(pill);
+  if(hasCurrent){
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'tiny-btn queue-toggle';
+    cancel.textContent = '取消目前';
+    cancel.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); cancelCurrentProduction(); };
+    cancel.onclick = (e)=>e.preventDefault();
+    summary.appendChild(cancel);
+  }
+  if(qCount){
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'tiny-btn queue-toggle';
+    clear.textContent = '清空';
+    clear.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); state.workQueue = []; renderWorkQueue(); renderAction(); };
+    clear.onclick = (e)=>e.preventDefault();
+    summary.appendChild(clear);
+  }
+  root.appendChild(summary);
+  return;
+  const list = document.createElement('div');
+  list.className = 'queue-list';
+  state.workQueue.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'queue-row';
+    const itemInfinite = !!item.infinite;
+    const itemTime = itemInfinite ? 0 : getPlayerCycleTime(item.id) * Math.max(1, item.count || 1);
+    row.innerHTML = `<div><strong>${idx+1}. ${workDefs[item.id].name}</strong><div class="small muted">數量：${itemInfinite ? '∞' : item.count}｜預估：${formatQueueTimeShort(itemTime, itemInfinite)}</div></div>`;
+    const ops = document.createElement('div');
+    ops.className = 'ops';
+    [['↑',-1],['↓',1]].forEach(([txt,delta]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tiny-btn';
+      b.textContent = txt;
+      b.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); moveWorkQueueItem(idx, delta); };
+      b.onclick = (e)=>e.preventDefault();
+      ops.appendChild(b);
+    });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'tiny-btn';
+    del.textContent = '取消';
+    del.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); removeWorkQueueItem(idx); };
+    del.onclick = (e)=>e.preventDefault();
+    ops.appendChild(del);
+    row.appendChild(ops);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
+}
+
+function renderResearchQueue(){
+  const root = document.getElementById('researchQueue');
+  if(!root) return;
+  root.innerHTML = '';
+  const qCount = getQueueCount(state.researchQueue);
+  const qTotal = getQueueTotalActions(state.researchQueue);
+  const qInfo = estimateResearchQueueSeconds();
+  const summary = document.createElement('div');
+  summary.className = 'queue-summary';
+  const pill = document.createElement('span');
+  pill.className = 'queue-pill' + (qCount ? ' clickable' : '');
+  pill.textContent = qCount ? `+${qCount} 列隊｜${formatQueueTimeShort(qInfo.total, qInfo.infinite)}` : '等待隊列：空';
+  if(qCount){
+    pill.title = `目前共有 ${qCount} 格列隊，總次數 ${qInfo.infinite ? '含∞' : qTotal}，預估時間 ${formatQueueTimeShort(qInfo.total, qInfo.infinite)}。點擊可${state.ui.researchQueueExpanded ? '收合' : '展開'}。`;
+    pill.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); openQueueModal('research'); };
+    pill.onclick = (e)=>e.preventDefault();
+  }
+  summary.appendChild(pill);
+  if(qCount){
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'tiny-btn queue-toggle';
+    clear.textContent = '清空';
+    clear.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); state.researchQueue = []; renderResearchQueue(); renderAction(); };
+    clear.onclick = (e)=>e.preventDefault();
+    summary.appendChild(clear);
+  }
+  root.appendChild(summary);
+  return;
+  const list = document.createElement('div');
+  list.className = 'queue-list';
+  state.researchQueue.forEach((item, idx) => {
+    const title = item.kind === 'read' ? books[item.id].name : researchDefs[item.id].name;
+    const per = item.kind === 'read'
+      ? getReadingDuration(books[item.id]?.duration || 0)
+      : getReadingDuration(researchDefs[item.id]?.duration || 0);
+    const itemTime = per * Math.max(1, item.count || 1);
+    const row = document.createElement('div');
+    row.className = 'queue-row';
+    row.innerHTML = `<div><strong>${idx+1}. ${title}</strong><div class="small muted">類型：${item.kind === 'read' ? '書籍閱讀' : '研究'}｜數量：${item.count}｜預估：${formatQueueTimeShort(itemTime)}</div></div>`;
+    const ops = document.createElement('div');
+    ops.className = 'ops';
+    [['↑',-1],['↓',1]].forEach(([txt,delta]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tiny-btn';
+      b.textContent = txt;
+      b.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); moveResearchQueueItem(idx, delta); };
+      b.onclick = (e)=>e.preventDefault();
+      ops.appendChild(b);
+    });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'tiny-btn';
+    del.textContent = '取消';
+    del.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); removeResearchQueueItem(idx); };
+    del.onclick = (e)=>e.preventDefault();
+    ops.appendChild(del);
+    row.appendChild(ops);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
+}
+
+function moveCraftQueueItem(index, delta){ const ni = index + delta; if(index < 0 || ni < 0 || ni >= state.craftQueue.length) return; const arr = state.craftQueue; [arr[index], arr[ni]] = [arr[ni], arr[index]]; renderCraftQueue(); }
+function removeCraftQueueItem(index){ if(index < 0 || index >= state.craftQueue.length) return; const removed = state.craftQueue.splice(index, 1)[0]; addLog(`已取消排程：${crafts[removed.id].name} × ${removed.count}。`); render(); }
+
+const farmingDefs = {
+  wheatSeed:{name:'小麥', duration:60, yields:{wheat:[12,18]}, skill:'farming', returnBase:0.28},
+  mushroomSpore:{name:'蘑菇', duration:75, yields:{mushroom:[5,8]}, skill:'farming', returnBase:0.25},
+  appleSeed:{name:'蘋果樹', duration:180, yields:{apple:[4,8], wood:[2,4], branch:[3,6], leaf:[4,8]}, skill:'farming', returnBase:0.50},
+  cottonSeed:{name:'棉花', duration:95, yields:{cotton:[6,10]}, skill:'farming', returnBase:0.32},
+  carrotSeed:{name:'蘿蔔', duration:80, yields:{carrot:[8,12]}, skill:'farming', returnBase:0.35}
+};
+
+const buildingDefs = {
+  well:{name:'水井', max:5, desc:'體力恢復 +10% / 級', cost:(lv)=>({gold:20+lv*25, resources:{stoneBrick:4+lv*2, wood:8+lv*4}})},
+  library:{name:'圖書室', max:5, desc:'閱讀與研究速度 +15% / 級', cost:(lv)=>({gold:30+lv*35, resources:{planks:6+lv*3, stoneBrick:3+lv*2}})},
+  mill:{name:'磨坊', max:5, desc:'研磨類配方製作速度 +20% / 級', cost:(lv)=>({gold:25+lv*30, resources:{planks:8+lv*4, stoneBrick:4+lv*2}})},
+  alchemyHut:{name:'煉金小屋', max:5, desc:'煉金速度 +20% / 級', cost:(lv)=>({gold:35+lv*35, resources:{planks:6+lv*3, glassBottle:1+Math.floor(lv/2), brick:4+lv*2}})},
+  lumberMill:{name:'伐木廠', max:5, desc:'伐木速度與伐木技能經驗 +10% / 級', cost:(lv)=>({gold:25+lv*30, resources:{planks:8+lv*4, stoneBrick:3+lv*2}})},
+  quarry:{name:'挖掘場', max:5, desc:'挖礦與挖掘速度與技能經驗 +10% / 級', cost:(lv)=>({gold:30+lv*35, resources:{stoneBrick:8+lv*3, planks:4+lv*2}})},
+  fishingShack:{name:'釣魚小屋', max:5, desc:'釣魚速度與技能經驗 +10% / 級', cost:(lv)=>({gold:25+lv*30, resources:{planks:8+lv*4, stoneBrick:2+lv}})},
+  tannery:{name:'裁縫小屋', max:5, desc:'棉線、棉布、衣服與皮料加工速度 +20% / 級', cost:(lv)=>({gold:28+lv*34, resources:{planks:6+lv*3, brick:4+lv*2, hide:2+lv}})},
+  smithy:{name:'鐵匠鋪', max:5, desc:'冶煉與工具製作速度 +20% / 級', cost:(lv)=>({gold:40+lv*40, resources:{stoneBrick:8+lv*3, ironIngot:1+lv, planks:4+lv*2}})},
+  townCenter:{name:'城鎮中心', max:5, desc:'人民工作速度 +5% / 級，商人每分鐘到訪率 +1% / 級', cost:(lv)=>({gold:60+lv*50, resources:{stoneBrick:10+lv*4, brick:8+lv*3, planks:8+lv*3, glass:2+lv}})},
+  ranch:{name:'牧場', max:5, desc:'牧場繁殖速度 +20% / 級，雞蛋產量增加', cost:(lv)=>({gold:32+lv*36, resources:{planks:8+lv*3, hide:2+lv, stoneBrick:4+lv*2}})},
+  waterChannel:{name:'水渠', max:5, desc:'農田生長速度 +10% / 級，農作物產量 +5% / 級', cost:(lv)=>({gold:22+lv*24, resources:{stone:8+lv*3, wood:6+lv*2, dirt:10+lv*4}})},
+  windmill:{name:'風車', max:5, desc:'種子返還率 +5% / 級，磨坊相關製作速度額外 +15% / 級', cost:(lv)=>({gold:48+lv*42, resources:{planks:10+lv*4, stoneBrick:6+lv*3, wheatFlour:3+lv, glass:1+Math.floor(lv/2)}})}
+};
+
+
+const researchDefs = {
+  stoneAxe:{name:'石斧設計', category:'tool', intReq:5, duration:40, desc:'解鎖石斧製作。石斧在倉庫中時伐木產量 +20%，伐木速度 +10%', rewardInt:1},
+  shovel:{name:'鏟子設計', category:'tool', intReq:8, duration:50, desc:'解鎖鏟子製作。鏟子在倉庫中時挖掘產量 +20%，挖掘速度 +10%', rewardInt:1},
+  fishingRod:{name:'魚竿設計', category:'tool', intReq:10, duration:60, desc:'解鎖魚竿製作。魚竿在倉庫中時釣魚產量 +20%，釣魚速度 +10%', rewardInt:2},
+  stonePick:{name:'石鎬設計', category:'tool', intReq:6, duration:45, desc:'解鎖石鎬製作。石鎬可供挖礦工人使用。', rewardInt:1},
+  stoneKnife:{name:'石刻木刀設計', category:'tool', intReq:6, duration:45, desc:'解鎖石刻木刀製作。可供狩獵、森林採集使用。', rewardInt:1},
+  stoneHammer:{name:'石鎚子設計', category:'tool', intReq:7, duration:50, desc:'解鎖石鎚子製作。可供工匠使用。', rewardInt:1},
+  stonePot:{name:'石鍋子設計', category:'tool', intReq:7, duration:50, desc:'解鎖石鍋子製作。可供廚師使用。', rewardInt:1},
+  stoneHoe:{name:'石鋤頭設計', category:'tool', intReq:7, duration:50, desc:'解鎖石鋤頭製作。可供農夫使用。', rewardInt:1},
+  stonePitchfork:{name:'石草叉設計', category:'tool', intReq:7, duration:50, desc:'解鎖石草叉製作。可供牧場工人使用。', rewardInt:1},
+
+  copperAxe:{name:'銅斧設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅斧製作。', rewardInt:2},
+  copperPick:{name:'銅鎬設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅鎬製作。', rewardInt:2},
+  copperShovel:{name:'銅鏟設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅鏟製作。', rewardInt:2},
+  copperKnife:{name:'銅刻木刀設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅刻木刀製作。', rewardInt:2},
+  copperHammer:{name:'銅鎚子設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅鎚子製作。', rewardInt:2},
+  copperPot:{name:'銅鍋子設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅鍋子製作。', rewardInt:2},
+  copperHoe:{name:'銅鋤頭設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅鋤頭製作。', rewardInt:2},
+  copperPitchfork:{name:'銅草叉設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅草叉製作。', rewardInt:2},
+  copperFishingRod:{name:'銅釣竿設計', category:'tool', intReq:11, duration:70, desc:'解鎖銅釣竿製作。', rewardInt:2},
+  ironFishingRod:{name:'鐵釣竿設計', category:'tool', intReq:14, duration:90, desc:'解鎖鐵釣竿製作。', rewardInt:3},
+
+  wellPlan:{name:'水井藍圖', category:'building', intReq:4, duration:35, desc:'解鎖水井建造。', rewardInt:1, unlockBuild:'well', levelReq:2},
+  wallPlan:{name:'城牆藍圖', category:'building', intReq:6, duration:45, desc:'解鎖城牆建造。', rewardInt:1, unlockHouse:'wall', levelReq:3, reqHouses:{cabin:2}, reqBuildings:{well:1}},
+  lumberMillPlan:{name:'伐木廠藍圖', category:'building', intReq:7, duration:50, desc:'解鎖伐木廠升級。', rewardInt:1, unlockBuild:'lumberMill', levelReq:4, reqHouses:{cabin:2}, reqBuildings:{well:1}},
+  fishingShackPlan:{name:'釣魚小屋藍圖', category:'building', intReq:7, duration:50, desc:'解鎖釣魚小屋升級。', rewardInt:1, unlockBuild:'fishingShack', levelReq:4, reqHouses:{cabin:2}, reqBuildings:{well:1}},
+  stoneHousePlan:{name:'中石屋藍圖', category:'building', intReq:8, duration:60, desc:'解鎖中石屋建造。', rewardInt:2, unlockHouse:'stoneHouse', levelReq:5, reqHouses:{cabin:3, wall:1}, reqBuildings:{well:1}},
+  smithyPlan:{name:'鐵匠鋪藍圖', category:'building', intReq:9, duration:70, desc:'解鎖鐵匠鋪升級。', rewardInt:2, unlockBuild:'smithy', levelReq:6, reqHouses:{wall:3}, reqBuildings:{well:1}},
+  quarryPlan:{name:'挖掘場藍圖', category:'building', intReq:9, duration:70, desc:'解鎖挖掘場升級。', rewardInt:2, unlockBuild:'quarry', levelReq:6, reqHouses:{stoneHouse:1, wall:4}, reqBuildings:{well:1}},
+  libraryPlan:{name:'圖書室藍圖', category:'building', intReq:10, duration:80, desc:'解鎖圖書室升級。', rewardInt:2, unlockBuild:'library', levelReq:7, reqHouses:{stoneHouse:1, wall:4}, reqBuildings:{well:1}},
+  ranchPlan:{name:'牧場藍圖', category:'building', intReq:10, duration:75, desc:'解鎖牧場升級。', rewardInt:2, unlockBuild:'ranch', levelReq:7, reqHouses:{cabin:4}, reqBuildings:{well:1}},
+  waterChannelPlan:{name:'水渠藍圖', category:'building', intReq:10, duration:80, desc:'解鎖水渠建造。水渠能加快農田生長，並略微提高農作物產量。', rewardInt:2, unlockBuild:'waterChannel', levelReq:7, reqBuildings:{well:1}, reqPlots:3},
+  millPlan:{name:'磨坊藍圖', category:'building', intReq:11, duration:85, desc:'解鎖磨坊升級。磨坊能提升小麥粉、骨粉、肥料堆與各類礦物粉末的製作效率。', rewardInt:2, unlockBuild:'mill', levelReq:8, reqBuildings:{well:2, waterChannel:1}, reqPlots:4},
+  windmillPlan:{name:'風車藍圖', category:'building', intReq:13, duration:110, desc:'解鎖風車建造。風車能提高種子返還率，並強化磨坊效率。', rewardInt:3, unlockBuild:'windmill', levelReq:10, reqBuildings:{mill:1, waterChannel:1}, reqPlots:6},
+  tanneryPlan:{name:'裁縫小屋藍圖', category:'building', intReq:11, duration:85, desc:'解鎖裁縫小屋升級。', rewardInt:2, unlockBuild:'tannery', levelReq:8, reqHouses:{stoneHouse:1}, reqBuildings:{well:1}},
+  alchemyHutPlan:{name:'煉金小屋藍圖', category:'building', intReq:12, duration:95, desc:'解鎖煉金小屋升級。', rewardInt:3, unlockBuild:'alchemyHut', levelReq:9, reqBuildings:{library:1}},
+  townCenterPlan:{name:'城鎮中心藍圖', category:'building', intReq:14, duration:120, desc:'解鎖城鎮中心升級。', rewardInt:3, unlockBuild:'townCenter', levelReq:10, reqHouses:{stoneHouse:2, wall:6}, reqBuildings:{well:2}}
+};
+
+const castleExpBase = {
+  cabin:5, stoneHouse:12, wall:15,
+  well:6, library:10, mill:8, alchemyHut:10, lumberMill:8, quarry:8, fishingShack:8, tannery:8, smithy:12, townCenter:20, ranch:10, waterChannel:6, windmill:12
+};
+const castleExpUpgrade = {
+  cabin:2, stoneHouse:4, wall:5,
+  well:2, library:3, mill:2, alchemyHut:3, lumberMill:2, quarry:2, fishingShack:2, tannery:2, smithy:4, townCenter:6, ranch:3, waterChannel:2, windmill:4
+};
+const houseBuildBaseCaps = { cabin:10, stoneHouse:5, wall:9999 };
+const ranchRarityCaps = { common:0.42, uncommon:0.24, rare:0.12, epic:0.05 };
+const animalRarity = { chicken:'common', rabbit:'common', dairyCow:'common', bull:'common', boar:'uncommon', deer:'rare', wolf:'rare', brownBear:'epic', blackBear:'epic' };
+const animalFeedDefs = {
+  chicken:{food:'wheatSeed', amount:1, label:'小麥種子', breedSeconds:180, hatchChance:1.00, eggFoodPerCycle:1},
+  rabbit:{food:'carrot', amount:1, label:'蘿蔔', breedSeconds:180, hatchChance:0.95},
+  dairyCow:{food:'wheat', amount:2, label:'小麥', breedSeconds:210, hatchChance:0.90},
+  bull:{food:'wheat', amount:2, label:'小麥', breedSeconds:210, hatchChance:0.90},
+  boar:{food:'mushroom', amount:2, label:'蘑菇', breedSeconds:240, hatchChance:0.75},
+  deer:{food:'fiber', amount:2, label:'纖維', breedSeconds:300, hatchChance:0.60},
+  wolf:{food:'rawMeat', amount:2, label:'生肉', breedSeconds:300, hatchChance:0.52},
+  brownBear:{food:'fish', amount:3, label:'魚', breedSeconds:360, hatchChance:0.38},
+  blackBear:{food:'fish', amount:4, label:'魚', breedSeconds:360, hatchChance:0.32}
+};
+function createInitialRanchData(){
+  const data = {};
+  Object.keys(animalFeedDefs).forEach(id => data[id] = {fed:0, timer:0});
+  return data;
+}
+const townStageDefs = [
+  {name:'荒地', minLevel:1, reqHouses:{}, reqBuildings:{}},
+  {name:'小村落', minLevel:2, reqHouses:{cabin:2, wall:1}, reqBuildings:{well:1}},
+  {name:'聚居地', minLevel:4, reqHouses:{cabin:4, wall:3}, reqBuildings:{well:1}},
+  {name:'村莊', minLevel:6, reqHouses:{cabin:5, stoneHouse:1, wall:6}, reqBuildings:{well:2}},
+  {name:'商業聚落', minLevel:8, reqHouses:{stoneHouse:2, wall:8}, reqBuildings:{well:2, townCenter:1}},
+  {name:'城鎮', minLevel:10, reqHouses:{stoneHouse:3, wall:12}, reqBuildings:{townCenter:1, smithy:1, library:1}},
+  {name:'商業中心', minLevel:13, reqHouses:{stoneHouse:4, wall:16}, reqBuildings:{townCenter:2, mill:1, waterChannel:1}},
+  {name:'城池', minLevel:16, reqHouses:{wall:24}, reqBuildings:{townCenter:3, smithy:2, library:1, windmill:1}}
+];
+
+
+function expToNext(level){ return Math.round(5 + 2.5 * level * (level - 1)); }
+function clamp(n,min,max){ return Math.min(max, Math.max(min,n)); }
+function toFiniteNumber(value, fallback=0){
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function roll(chance){ return Math.random()<chance; }
+function nowTime(){ const d=new Date(); return `[${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}]`; }
+function jobDisplayName(job){
+  const extra = {idle:'待命', farming:'農務', crafting:'工匠', cook:'廚師', ranch:'牧場'};
+  if(extra[job]) return extra[job];
+  return workDefs[job] ? workDefs[job].name : job;
+}
+
+function createInitialState(){
+  const skills = {};
+  Object.keys(skillLabels).forEach(k => skills[k] = {level:1, exp:0});
+  return {
+    gold:0, level:1, exp:0, intelligence:0,
+    stamina:100, staminaLevel:1, staminaExp:0,
+    managementLevel:1, managementExp:0,
+    castleLevel:1, castleExp:0,
+    tradeLevel:1, tradeExp:0, reputation:0,
+    pendingTax:0,
+    campfireSec:0, isResting:false, autoWork:null, autoWorkCount:0, workQueue:[], autoCraft:null, autoCraftInfinite:false, craftQueue:[], craftRepeat:false, productionAction:null, craftAction:null, researchAction:null, researchQueue:[], playerAction:null, autoResting:false, autoRestResume:null, craftPausedForStamina:false, craftPausedName:'',
+    staminaPotionBuff:0, staminaPotionCooldown:0,
+    nextWorkerId:1, workers:[], salaryTimer:300, salaryDebt:0,
+    houses:{cabin:0, stoneHouse:0, wall:0},
+    buildings:{well:0, library:0, mill:0, alchemyHut:0, lumberMill:0, quarry:0, fishingShack:0, tannery:0, smithy:0, townCenter:0, ranch:0, waterChannel:0, windmill:0},
+    research:Object.fromEntries(Object.keys(researchDefs).map(k=>[k,false])),
+    ui:{researchTab:'available', hideCompletedResearch:false, craftQueueExpanded:false, logTab:'important', mainPage:'production', shopTab:'general', manualSeedSelection:'wheatSeed', farmerSeedPreference:'auto', shopBuyQty:{}, shopSellQty:{}},
+    merchant:{minuteCounter:0, present:false, presentSec:0, cash:0, maxCash:0, storeFunds:0, lastStoreInjection:0, keep:{}, orders:[], nextOrderId:1},
+    farmerAutoFertilize:false,
+    ranchData:createInitialRanchData(),
+    plots:[null,null,null],
+    logs:[{time:nowTime(), text:'開始遊戲。你是剛起步的城主。', type:'important'}],
+    resources:Object.fromEntries(Object.keys(resourceLabels).map(k=>[k,0])),
+    skills
+  };
+}
+
+function getLoadCandidates(){
+  const keys = [STORAGE_KEY, STORAGE_KEY_LEGACY, ...LEGACY_STORAGE_KEYS];
+  return [...new Set(keys)];
+}
+
+function unwrapSaveData(parsed){
+  if(!parsed || typeof parsed !== 'object') return null;
+  if(parsed && typeof parsed === 'object' && parsed.data && typeof parsed.data === 'object'){
+    return {
+      data: parsed.data,
+      meta: {
+        schemaVersion: parsed.schemaVersion || 1,
+        savedAt: parsed.savedAt || null,
+        gameVersion: parsed.gameVersion || null,
+        sourceKey: parsed.sourceKey || null
+      }
+    };
+  }
+  return {
+    data: parsed,
+    meta: { schemaVersion: 1, savedAt: null, gameVersion: null, sourceKey: null }
+  };
+}
+
+function migrateLoadedState(data, meta={}){
+  const migrated = JSON.parse(JSON.stringify(data));
+  if(typeof migrated.saveSchemaVersion !== 'number') migrated.saveSchemaVersion = meta.schemaVersion || 1;
+  if(!migrated.meta || typeof migrated.meta !== 'object') migrated.meta = {};
+  if(!migrated.meta.lastLoadedFrom && meta.sourceKey) migrated.meta.lastLoadedFrom = meta.sourceKey;
+  if(!Array.isArray(migrated.workers) && Array.isArray(migrated.workerList)) migrated.workers = migrated.workerList;
+  if(!Array.isArray(migrated.plots)){
+    if(Array.isArray(migrated.fields)) migrated.plots = migrated.fields;
+    else if(Array.isArray(migrated.farmPlots)) migrated.plots = migrated.farmPlots;
+  }
+  return migrated;
+}
+
+function getSaveTimestamp(unwrapped){
+  if(!unwrapped || !unwrapped.data || typeof unwrapped.data !== 'object') return 0;
+  const metaSavedAt = Number(unwrapped.meta && unwrapped.meta.savedAt);
+  const dataSavedAt = Number(unwrapped.data && unwrapped.data.meta && unwrapped.data.meta.lastSavedAt);
+  if(Number.isFinite(metaSavedAt) && metaSavedAt > 0) return metaSavedAt;
+  if(Number.isFinite(dataSavedAt) && dataSavedAt > 0) return dataSavedAt;
+  return 0;
+}
+
+function loadGame(){
+  try{
+    let best = null;
+    for(const key of getLoadCandidates()){
+      const raw = localStorage.getItem(key);
+      if(!raw) continue;
+      try{
+        const parsed = JSON.parse(raw);
+        const unwrapped = unwrapSaveData(parsed);
+        if(!unwrapped || !unwrapped.data || typeof unwrapped.data !== 'object') continue;
+        unwrapped.meta.sourceKey = key;
+        unwrapped.meta.detectedSavedAt = getSaveTimestamp(unwrapped);
+        if(!best || unwrapped.meta.detectedSavedAt > best.meta.detectedSavedAt){
+          best = unwrapped;
+        }
+      }catch(err){
+        console.warn('讀取存檔失敗:', key, err);
+      }
+    }
+    return best ? migrateLoadedState(best.data, best.meta) : null;
+  }catch(err){
+    console.warn('讀取存檔失敗:', err);
+    return null;
+  }
+}
+
+const state = loadGame() || createInitialState();
+normalizeState(state);
+applyV060Migration(state);
+if(state.meta && state.meta.lastLoadedFrom){
+  const sourceName = state.meta.lastLoadedFrom === STORAGE_KEY ? '共用存檔' : `舊版存檔（${state.meta.lastLoadedFrom}）`;
+  if(!Array.isArray(state.logs)) state.logs = [];
+  state.logs.unshift(`${nowTime()} 已載入${sourceName}。`);
+  if(state.meta.housingRecovered){ state.logs.unshift(`${nowTime()} 已自動修復住房容量。`); state.meta.housingRecovered = false; }
+  state.logs = state.logs.slice(0, 220);
+}
+let lastTick = performance.now();
+let allResourcesOpen = true;
+let resourceOpenState = {};
+let merchantUiInteractionUntil = 0;
+function markMerchantUiInteraction(ms=1200){
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  merchantUiInteractionUntil = Math.max(merchantUiInteractionUntil, now + ms);
+}
+function isMerchantUiInteractionLocked(){
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  const root = document.getElementById('merchantArea');
+  const hovering = !!(root && root.matches && root.matches(':hover'));
+  const focused = !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#merchantArea'));
+  return hovering || focused || now < merchantUiInteractionUntil;
+}
+
+function normalizeState(s){
+  if(typeof s.saveSchemaVersion !== 'number') s.saveSchemaVersion = SAVE_SCHEMA_VERSION;
+  else s.saveSchemaVersion = Math.max(s.saveSchemaVersion, SAVE_SCHEMA_VERSION);
+  if(!s.meta || typeof s.meta !== 'object') s.meta = {};
+  if(typeof s.meta.lastSavedAt !== 'number') s.meta.lastSavedAt = Date.now();
+  if(typeof s.meta.lastSavedGameVersion !== 'string') s.meta.lastSavedGameVersion = GAME_VERSION;
+  if(typeof s.meta.lastLoadedFrom !== 'string') s.meta.lastLoadedFrom = 'new';
+
+  s.gold = toFiniteNumber(s.gold, 0);
+  s.level = Math.max(1, Math.floor(toFiniteNumber(s.level, 1)));
+  s.exp = toFiniteNumber(s.exp, 0);
+  s.intelligence = toFiniteNumber(s.intelligence, 0);
+  s.staminaLevel = Math.max(1, Math.floor(toFiniteNumber(s.staminaLevel, 1)));
+  s.staminaExp = toFiniteNumber(s.staminaExp, 0);
+  s.stamina = toFiniteNumber(s.stamina, 100);
+  s.managementLevel = Math.max(1, Math.floor(toFiniteNumber(s.managementLevel, 1)));
+  s.castleLevel = Math.max(1, Math.floor(toFiniteNumber(s.castleLevel, 1)));
+  s.castleExp = Math.max(0, toFiniteNumber(s.castleExp, 0));
+  s.managementExp = toFiniteNumber(s.managementExp, 0);
+  s.tradeLevel = Math.max(1, Math.floor(toFiniteNumber(s.tradeLevel, 1)));
+  s.tradeExp = toFiniteNumber(s.tradeExp, 0);
+  s.reputation = Math.max(0, toFiniteNumber(s.reputation, 0));
+  s.campfireSec = Math.max(0, toFiniteNumber(s.campfireSec, 0));
+  s.salaryTimer = Math.max(0, toFiniteNumber(s.salaryTimer, 300));
+  s.salaryDebt = Math.max(0, Math.floor(toFiniteNumber(s.salaryDebt, 0)));
+  s.pendingTax = Math.max(0, Math.floor(toFiniteNumber(s.pendingTax, 0)));
+  s.nextWorkerId = Math.max(1, Math.floor(toFiniteNumber(s.nextWorkerId, 1)));
+  s.isResting = !!s.isResting;
+
+  if(!s.houses) s.houses = {cabin:0, stoneHouse:0, wall:0};
+  s.houses.cabin = Math.max(0, Math.floor(toFiniteNumber(s.houses.cabin, 0)));
+  s.houses.stoneHouse = Math.max(0, Math.floor(toFiniteNumber(s.houses.stoneHouse, 0)));
+  s.houses.wall = Math.max(0, Math.floor(toFiniteNumber(s.houses.wall, 0)));
+  if(!Number.isFinite(Number(s.castleLevel)) || !Number.isFinite(Number(s.castleExp)) || (toFiniteNumber(s.castleLevel,1) === 1 && toFiniteNumber(s.castleExp,0) === 0 && s.houses.wall > 0)){
+    let totalCastleExp = Math.max(0, Math.floor(toFiniteNumber(s.castleTotalExp, 0)));
+    if(totalCastleExp <= 0) totalCastleExp = s.houses.wall * 10;
+    let level = 1;
+    while(totalCastleExp >= expToNext(level)){
+      totalCastleExp -= expToNext(level);
+      level++;
+    }
+    s.castleLevel = level;
+    s.castleExp = totalCastleExp;
+  }
+
+  if(!s.buildings) s.buildings = {well:0, library:0, mill:0, alchemyHut:0, lumberMill:0, quarry:0, fishingShack:0, tannery:0, smithy:0, townCenter:0, ranch:0, waterChannel:0, windmill:0};
+  Object.keys({well:0, library:0, mill:0, alchemyHut:0, lumberMill:0, quarry:0, fishingShack:0, tannery:0, smithy:0, townCenter:0, ranch:0, waterChannel:0, windmill:0}).forEach(k => {
+    s.buildings[k] = Math.max(0, Math.floor(toFiniteNumber(s.buildings[k], 0)));
+  });
+
+  if(!s.research || typeof s.research !== 'object') s.research = {};
+  Object.keys(researchDefs).forEach(k => { s.research[k] = !!s.research[k]; });
+  if(!s.ui || typeof s.ui !== 'object') s.ui = {};
+  if(typeof s.ui.researchTab !== 'string') s.ui.researchTab = 'available';
+  if(typeof s.ui.hideCompletedResearch !== 'boolean') s.ui.hideCompletedResearch = false;
+  if(typeof s.ui.craftQueueExpanded !== 'boolean') s.ui.craftQueueExpanded = false;
+  if(typeof s.ui.logTab !== 'string') s.ui.logTab = 'important';
+  if(typeof s.ui.mainPage !== 'string') s.ui.mainPage = 'production';
+  if(typeof s.ui.shopTab !== 'string') s.ui.shopTab = 'general';
+  if(!s.ui.shopBuyQty || typeof s.ui.shopBuyQty !== 'object') s.ui.shopBuyQty = {};
+  if(!s.ui.shopSellQty || typeof s.ui.shopSellQty !== 'object') s.ui.shopSellQty = {};
+  if(typeof s.ui.manualSeedSelection !== 'string' || !farmingDefs[s.ui.manualSeedSelection]) s.ui.manualSeedSelection = 'wheatSeed';
+  if(typeof s.ui.farmerSeedPreference !== 'string' || (s.ui.farmerSeedPreference !== 'auto' && !farmingDefs[s.ui.farmerSeedPreference])) s.ui.farmerSeedPreference = 'auto';
+  if(typeof s.ui.workQueueExpanded !== 'boolean') s.ui.workQueueExpanded = false;
+  if(typeof s.ui.researchQueueExpanded !== 'boolean') s.ui.researchQueueExpanded = false;
+  if(typeof s.ui.workQueueExpanded !== 'boolean') s.ui.workQueueExpanded = false;
+  if(typeof s.ui.researchQueueExpanded !== 'boolean') s.ui.researchQueueExpanded = false;
+
+
+  Object.entries(researchDefs).forEach(([key, def]) => {
+    if(def.unlockBuild && s.buildings && toFiniteNumber(s.buildings[def.unlockBuild], 0) > 0) s.research[key] = true;
+    if(def.unlockHouse && s.houses && toFiniteNumber(s.houses[def.unlockHouse], 0) > 0) s.research[key] = true;
+  });
+
+  if(!Array.isArray(s.plots)) s.plots = [null,null,null];
+  s.farmerAutoFertilize = !!s.farmerAutoFertilize;
+  if(!s.ranchData || typeof s.ranchData !== 'object') s.ranchData = createInitialRanchData();
+  Object.keys(animalFeedDefs).forEach(id => {
+    if(!s.ranchData[id] || typeof s.ranchData[id] !== 'object') s.ranchData[id] = {fed:0, timer:0};
+    s.ranchData[id].fed = Math.max(0, Math.floor(toFiniteNumber(s.ranchData[id].fed, 0)));
+    s.ranchData[id].timer = Math.max(0, toFiniteNumber(s.ranchData[id].timer, 0));
+  });
+  if(!Array.isArray(s.workers)) s.workers = [];
+  if(typeof s.autoResting !== 'boolean') s.autoResting = false;
+  if(typeof s.autoRestResume !== 'string' && s.autoRestResume !== null) s.autoRestResume = null;
+  if(typeof s.autoCraft !== 'string' && s.autoCraft !== null) s.autoCraft = null;
+  if(typeof s.autoWorkCount !== 'number') s.autoWorkCount = (s.autoWork ? -1 : 0);
+  s.autoWorkCount = Math.floor(toFiniteNumber(s.autoWorkCount, s.autoWork ? -1 : 0));
+  if(!Array.isArray(s.workQueue)) s.workQueue = [];
+  s.workQueue = s.workQueue.map(item => typeof item === 'string' ? ({id:item,count:1,infinite:false}) : ({id:item.id,count:Math.max(1,Math.floor(toFiniteNumber(item.count,1))),infinite:!!item.infinite})).filter(item => item.id);
+  if(typeof s.craftRepeat !== 'boolean') s.craftRepeat = false;
+  if(!Array.isArray(s.craftQueue)) s.craftQueue = [];
+  s.craftQueue = s.craftQueue.map(item => typeof item === 'string' ? ({id:item,count:1}) : ({id:item.id,count:Math.max(1,Math.floor(toFiniteNumber(item.count,1)))})).filter(item => item.id);
+  if(!Array.isArray(s.researchQueue)) s.researchQueue = [];
+  s.researchQueue = s.researchQueue.map(item => ({kind:item.kind || 'research', id:item.id, count:Math.max(1,Math.floor(toFiniteNumber(item.count,1)))})).filter(item => item.id);
+  if(!s.merchant || typeof s.merchant !== 'object') s.merchant = {minuteCounter:0, present:false, presentSec:0, cash:0, maxCash:0, storeFunds:0, lastStoreInjection:0, keep:{}, orders:[], nextOrderId:1};
+  s.merchant.minuteCounter = Math.max(0, toFiniteNumber(s.merchant.minuteCounter, 0));
+  s.merchant.present = !!s.merchant.present;
+  s.merchant.presentSec = Math.max(0, toFiniteNumber(s.merchant.presentSec, 0));
+  s.merchant.cash = Math.max(0, Math.floor(toFiniteNumber(s.merchant.cash, 0)));
+  s.merchant.maxCash = Math.max(s.merchant.cash, Math.floor(toFiniteNumber(s.merchant.maxCash, s.merchant.cash)));
+  s.merchant.storeFunds = Math.max(0, Math.floor(toFiniteNumber(s.merchant.storeFunds, s.merchant.cash)));
+  s.merchant.lastStoreInjection = Math.max(0, Math.floor(toFiniteNumber(s.merchant.lastStoreInjection, s.merchant.maxCash)));
+  if(!s.merchant.keep || typeof s.merchant.keep !== 'object') s.merchant.keep = {};
+  if(!Array.isArray(s.merchant.orders)) s.merchant.orders = [];
+  s.merchant.orders = s.merchant.orders.filter(o=>o && o.id && o.resource && Number.isFinite(Number(o.qty)) && Number.isFinite(Number(o.rewardGold))).map(o=>({
+    id:o.id,
+    resource:o.resource,
+    qty:Math.max(1,Math.floor(toFiniteNumber(o.qty,1))),
+    rewardGold:Math.max(1,Math.floor(toFiniteNumber(o.rewardGold,1))),
+    rewardTrade:Math.max(0.2,toFiniteNumber(o.rewardTrade,0.2)),
+    rewardRep:Math.max(0.1,toFiniteNumber(o.rewardRep,0.1)),
+    from:o.from || '商人',
+    tier:o.tier || 'common',
+    tierLabel:o.tierLabel || getOrderTierMeta(o.tier || 'common').label
+  }));
+  s.merchant.nextOrderId = Math.max(1, Math.floor(toFiniteNumber(s.merchant.nextOrderId, 1)));
+
+  if((s.houses.cabin + s.houses.stoneHouse + s.houses.wall) === 0 && Array.isArray(s.logs) && s.logs.length){
+    const joined = s.logs.join('\\n');
+    const countMatches = (pattern) => (joined.match(pattern) || []).length;
+    s.houses.cabin = countMatches(/完成建築：小木屋/g);
+    s.houses.stoneHouse = countMatches(/完成建築：中石屋/g);
+    s.houses.wall = countMatches(/完成建築：城牆段/g);
+  }
+  const currentCap = s.houses.cabin * 2 + s.houses.stoneHouse * 5;
+  if(Array.isArray(s.workers) && currentCap < s.workers.length){
+    const missingCap = s.workers.length - currentCap;
+    s.houses.cabin += Math.ceil(missingCap / 2);
+    if(!s.meta.housingRecovered) s.meta.housingRecovered = true;
+  }
+
+  if(s.playerAction && !s.productionAction && !s.craftAction && !s.researchAction){
+    if(s.playerAction.type === 'work') s.productionAction = s.playerAction;
+    else if(s.playerAction.type === 'craft') s.craftAction = s.playerAction;
+    else if(s.playerAction.type === 'read' || s.playerAction.type === 'research') s.researchAction = s.playerAction;
+  }
+  if(!s.productionAction || typeof s.productionAction !== 'object') s.productionAction = null;
+  if(!s.craftAction || typeof s.craftAction !== 'object') s.craftAction = null;
+  if(!s.researchAction || typeof s.researchAction !== 'object') s.researchAction = null;
+  s.playerAction = null;
+  ['productionAction','craftAction','researchAction'].forEach(key => {
+    const a = s[key];
+    if(!a) return;
+    a.remaining = Math.max(0, toFiniteNumber(a.remaining, 0));
+    a.total = Math.max(0.01, toFiniteNumber(a.total, 0.01));
+    if(typeof a.id !== 'string') s[key] = null;
+  });
+
+  s.workers.forEach(w => {
+    w.id = Math.max(1, Math.floor(toFiniteNumber(w.id, 1)));
+    w.remaining = Math.max(0, toFiniteNumber(w.remaining, 15));
+    w.switchCooldown = Math.max(0, toFiniteNumber(w.switchCooldown, 0));
+    if(w.job === 'artisan') w.job = 'crafting';
+    if(!w.job) w.job = 'idle';
+    w.maxStamina = Math.max(20, toFiniteNumber(w.maxStamina, 30));
+    w.stamina = clamp(toFiniteNumber(w.stamina, w.maxStamina), 0, w.maxStamina);
+    if(typeof w.toolId !== 'string') w.toolId = '';
+    w.toolDurability = Math.max(0, toFiniteNumber(w.toolDurability, 0));
+    if(typeof w.clothesEquipped !== 'boolean') w.clothesEquipped = false;
+    w.clothesDurability = Math.max(0, toFiniteNumber(w.clothesDurability, 0));
+    if(typeof w.toolPreference !== 'string') w.toolPreference = 'auto';
+    if(typeof w.foodPreference !== 'string') w.foodPreference = 'auto';
+    if(typeof w.craftRecipe !== 'string') w.craftRecipe = 'plank';
+  });
+
+  if(!s.skills) s.skills = {};
+  if(!s.skills.gathering){
+    const forest = s.skills.forest || {level:1, exp:0};
+    const shore = s.skills.shore || {level:1, exp:0};
+    s.skills.gathering = { level: Math.max(toFiniteNumber(forest.level,1), toFiniteNumber(shore.level,1)), exp: toFiniteNumber(forest.exp,0) + toFiniteNumber(shore.exp,0) };
+  }
+  Object.keys(skillLabels).forEach(k => {
+    if(!s.skills[k] || typeof s.skills[k] !== 'object') s.skills[k] = {level:1, exp:0};
+    s.skills[k].level = Math.max(1, Math.floor(toFiniteNumber(s.skills[k].level, 1)));
+    s.skills[k].exp = toFiniteNumber(s.skills[k].exp, 0);
+  });
+
+  if(!s.resources) s.resources = {};
+  Object.keys(resourceLabels).forEach(k => { s.resources[k] = Math.max(0, toFiniteNumber(s.resources[k], 0)); });
+
+  if(!Array.isArray(s.logs)) s.logs = [];
+  s.logs = s.logs.map(item => {
+    if(typeof item === 'string'){
+      const parts = item.split(' ');
+      const time = parts.shift() || nowTime();
+      return {time, text:parts.join(' '), type:inferLogType(parts.join(' '))};
+    }
+    return {time:item.time || nowTime(), text:item.text || '', type:item.type || inferLogType(item.text || '')};
+  });
+  const fixedMaxStamina = 100 + (s.staminaLevel - 1) * 10;
+  s.stamina = clamp(s.stamina, 0, fixedMaxStamina);
+  autoCullExcessAnimals(false);
+}
+
+function inferLogType(text){
+  if(/^(工人 #|工人製作完成|工人收成|工人分解|工人開啟|工匠 #|廚師 #)/.test(text)) return 'worker';
+  if(/(研究完成|商人|布告|稅收|讀完《|等級提升|城池等級提升|主等級提升|體力等級提升|管理等級提升|貿易等級提升)/.test(text)) return 'important';
+  if(/(打工完成|伐木完成|挖礦完成|釣魚完成|狩獵完成|森林採集完成|海邊採集完成|挖掘完成|你收成了|你種下了|你使用了|製作.*完成|獲得：|打開了貝類|分解|完成了)/.test(text)) return 'loot';
+  return 'important';
+}
+function addLog(text, rerender=true, type=null){
+  const entry = {time:nowTime(), text, type:type || inferLogType(text)};
+  state.logs.unshift(entry);
+  state.logs = state.logs.slice(0, 260);
+  if(state._suspendRender) rerender = false;
+  if(rerender) render();
+}
+function buildSaveEnvelope(){
+  state.saveSchemaVersion = SAVE_SCHEMA_VERSION;
+  state.meta.lastSavedAt = Date.now();
+  state.meta.lastSavedGameVersion = GAME_VERSION;
+  const snapshot = JSON.parse(JSON.stringify(state));
+  return {
+    schemaVersion: SAVE_SCHEMA_VERSION,
+    gameVersion: GAME_VERSION,
+    savedAt: state.meta.lastSavedAt,
+    sourceKey: STORAGE_KEY,
+    data: snapshot
+  };
+}
+
+function saveGame(){
+  const envelope = buildSaveEnvelope();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+  localStorage.setItem(STORAGE_KEY_LEGACY, JSON.stringify(envelope.data));
+  addLog('已存檔。', false);
+  render();
+}
+
+
+function maxStamina(){ return 100 + (state.staminaLevel - 1) * 10; }
+function getRestEfficiencyBonus(){ return Math.min(0.60, (state.staminaLevel - 1) * 0.02); }
+function getFoodEffectivenessBonus(){ return Math.min(0.40, (state.staminaLevel - 1) * 0.01); }
+function getStaminaPotionRegenBonus(){ return state.staminaPotionBuff > 0 ? 0.50 : 0; }
+const workerFoodPriority = ['rawChicken','carrot','wheat','sashimi','clamSoup','applePie','grilledFish','grilledMeat','grilledSausage','bearStew'];
+const workerFoodReserve = { rawChicken:0, carrot:0, wheat:0, sashimi:4, clamSoup:4, applePie:3, grilledFish:6, grilledMeat:6, grilledSausage:4, bearStew:2 };
+
+const toolDurabilityMap = {
+  stoneAxeTool:10, stonePickTool:10, shovelTool:10, stoneCarvingKnifeTool:10, stoneHammerTool:10, stonePotTool:10, stoneHoeTool:10, stonePitchforkTool:10,
+  woodBowTool:8, stoneBowTool:14, copperBowTool:30, ironBowTool:50,
+  fishingRodTool:10, fishNetTool:20,
+  copperAxeTool:30, copperShovelTool:30, copperPickTool:30, copperCarvingKnifeTool:30, copperHammerTool:30, copperPotTool:30, copperHoeTool:30, copperPitchforkTool:30, copperFishingRodTool:30, ironFishingRodTool:50,
+  clothes:80
+};
+function getToolOptionsForJob(job){
+  const map = {
+    lumber:['copperAxeTool','stoneAxeTool'],
+    mining:['copperPickTool','stonePickTool'],
+    fishing:['fishNetTool','ironFishingRodTool','copperFishingRodTool','fishingRodTool'],
+    hunting:['ironBowTool','copperBowTool','stoneBowTool','woodBowTool'],
+    forest:[],
+    shore:['copperShovelTool','shovelTool'],
+    digging:['copperShovelTool','shovelTool'],
+    farming:['copperHoeTool','stoneHoeTool'],
+    crafting:['copperHammerTool','stoneHammerTool'],
+    cook:['copperPotTool','stonePotTool'],
+    ranch:['copperPitchforkTool','stonePitchforkTool']
+  };
+  return map[job] || [];
+}
+function getToolDisplayName(id){ return resourceLabels[id] || '工具'; }
+function getToolDurabilityMax(id){ return toolDurabilityMap[id] || 0; }
+function getWorkerToolRequirementText(job){
+  const options = getToolOptionsForJob(job);
+  if(!options.length) return '此工作不需要工具';
+  return options.map(getToolDisplayName).join(' / ');
+}
+function getOrderedToolOptions(worker, job){
+  const options = [...getToolOptionsForJob(job)];
+  const pref = worker && worker.toolPreference;
+  if(pref && pref !== 'auto' && options.includes(pref)) return [pref, ...options.filter(id => id !== pref)];
+  return options;
+}
+function getWorkerFoodChoices(){
+  return workerFoodPriority.filter(id => getWorkerFoodRecovery(id) > 0);
+}
+function getWorkerFoodReserve(item){
+  return Math.max(0, Math.floor(toFiniteNumber(workerFoodReserve[item], 0)));
+}
+
+function getWorkerStaminaCost(job){
+  const def = workDefs[job];
+  if(def) return def.staminaCost || 2;
+  if(job === 'crafting') return 2;
+  if(job === 'cook') return 2;
+  if(job === 'farming') return 2;
+  if(job === 'ranch') return 2;
+  return 1;
+}
+function getWorkerFoodRecovery(item){
+  if(item === 'staminaPotion') return 0;
+  const value = edibleValues[item];
+  if(typeof value !== 'number' || value <= 0) return 0;
+  return value * (1 + getFoodEffectivenessBonus());
+}
+function equipWorkerTool(worker){
+  const options = getOrderedToolOptions(worker, worker.job);
+  for(const toolId of options){
+    if((state.resources[toolId] || 0) > 0){
+      spendResource(toolId,1);
+      worker.toolId = toolId;
+      worker.toolDurability = toolDurabilityMap[toolId] || 40;
+      addLog(`工人 #${worker.id} 裝備了${resourceLabels[toolId]}。`, false, 'worker');
+      return true;
+    }
+  }
+  return options.length === 0;
+}
+function equipWorkerClothes(worker){
+  if(worker.clothesEquipped && worker.clothesDurability > 0) return true;
+  if((state.resources.clothes || 0) > 0){
+    spendResource('clothes',1);
+    worker.clothesEquipped = true;
+    worker.clothesDurability = toolDurabilityMap.clothes;
+    addLog(`工人 #${worker.id} 穿上了衣服。`, false, 'worker');
+    return true;
+  }
+  return false;
+}
+function workerEatIfNeeded(worker, needed=0){
+  if(worker.stamina >= needed) return true;
+  const missing = Math.max(0, worker.maxStamina - worker.stamina);
+  if(missing <= 0) return true;
+  const pref = worker.foodPreference || 'auto';
+  let options = getWorkerFoodChoices().filter(item => (state.resources[item] || 0) > 0);
+  if(pref !== 'auto'){
+    options = options.filter(item => item === pref);
+  }else{
+    const reserved = options.filter(item => (state.resources[item] || 0) > getWorkerFoodReserve(item));
+    if(reserved.length) options = reserved;
+  }
+  let candidates = options.filter(item => getWorkerFoodRecovery(item) <= missing + 0.001);
+  if(!candidates.length && pref === 'auto') return worker.stamina >= needed;
+  if(!candidates.length) candidates = options.filter(item => getWorkerFoodRecovery(item) > 0);
+  if(!candidates.length) return worker.stamina >= needed;
+  candidates.sort((a,b) => getWorkerFoodRecovery(a) - getWorkerFoodRecovery(b));
+  const item = candidates[0];
+  const recover = getWorkerFoodRecovery(item);
+  if(recover <= 0) return worker.stamina >= needed;
+  spendResource(item,1);
+  const actual = Math.min(missing, recover);
+  worker.stamina = Math.min(worker.maxStamina, worker.stamina + actual);
+  addLog(`工人 #${worker.id} 吃了${resourceLabels[item]}，恢復 ${actual.toFixed(1)} 體力。`, false, 'worker');
+  return worker.stamina >= needed;
+}
+function degradeWorkerEquipment(worker){
+  if(worker.toolId && worker.toolDurability > 0){
+    worker.toolDurability -= 1;
+    if(worker.toolDurability <= 0){
+      addLog(`工人 #${worker.id} 的${resourceLabels[worker.toolId]}損壞了。`, false, 'worker');
+      worker.toolId = '';
+      worker.toolDurability = 0;
+    }
+  }
+  if(worker.clothesEquipped && worker.clothesDurability > 0){
+    worker.clothesDurability -= 1;
+    if(worker.clothesDurability <= 0){
+      addLog(`工人 #${worker.id} 的衣服損壞了。`, false, 'worker');
+      worker.clothesEquipped = false;
+      worker.clothesDurability = 0;
+    }
+  }
+}
+function getWorkerEffectiveCycleTime(worker){
+  let t = getWorkerCycleTime(worker.job);
+  if(!worker.clothesEquipped || worker.clothesDurability <= 0) t *= 1.25;
+  if(worker.toolId && worker.toolId.startsWith('copper')) t *= 0.90;
+  return t;
+}
+function useStaminaPotion(){
+  if((state.resources.staminaPotion || 0) <= 0) return addLog('沒有可用的體力藥劑。');
+  if(state.staminaPotionCooldown > 0) return addLog(`體力藥劑冷卻中，剩餘 ${Math.ceil(state.staminaPotionCooldown)} 秒。`);
+  spendResource('staminaPotion',1);
+  state.staminaPotionBuff = 180;
+  state.staminaPotionCooldown = 300;
+  addLog('已使用體力藥劑：180 秒內體力回復速度提升，冷卻 300 秒。', true, 'important');
+  render();
+}
+function getManagementMaterialDiscount(){ return Math.min(0.15, state.managementLevel * 0.005); }
+function getManagementWageDiscount(){ return Math.min(0.25, state.managementLevel * 0.008); }
+function getHouseBuildCap(key){
+  if(key === 'wall') return wallCap();
+  const base = houseBuildBaseCaps[key] || 0;
+  const town = state.buildings?.townCenter || 0;
+  if(key === 'cabin') return base + town;
+  if(key === 'stoneHouse') return base + Math.floor(town / 2);
+  return base;
+}
+function housingCap(){ return state.houses.cabin * 2 + state.houses.stoneHouse * 5; }
+function wallCap(){ return 30 + (state.buildings.townCenter || 0) * 15 + state.castleLevel * 5; }
+function safetyValue(){ return state.castleLevel * 5 + state.houses.wall * 2; }
+function getSafetyBand(){
+  const s = safetyValue();
+  if(s >= 150) return {key:'high', label:'極安全', desc:'商人很願意帶大量資金與高品質大宗訂單。'};
+  if(s >= 80) return {key:'mid', label:'安全', desc:'商人較常帶來較好的訂單與更多資金。'};
+  if(s >= 30) return {key:'low', label:'穩定', desc:'商人願意穩定往來，訂單品質開始提升。'};
+  return {key:'risk', label:'不穩', desc:'商人偏保守，資金與訂單品質較低。'};
+}
+function getManagementLevelEffectText(){
+  const wageCut = Math.round(getManagementWageDiscount() * 1000) / 10;
+  const matCut = Math.round(getManagementMaterialDiscount() * 1000) / 10;
+  return `管理等級 Lv.${state.managementLevel}\n經驗：${format(state.managementExp)} / ${expToNext(state.managementLevel)}\n效果：工人薪水 -${wageCut}%\n建築材料需求 -${matCut}%\n工人工作經驗分紅偏低，但會額外提供管理經驗。`;
+}
+function getCastleLevelEffectText(){
+  const stage = getTownStage();
+  return `城池等級 Lv.${state.castleLevel}\n經驗：${format(state.castleExp)} / ${expToNext(state.castleLevel)}\n安全值：${safetyValue()}（${getSafetyBand().label}）\n效果：提高商人到訪率、商人攜帶資金、累積稅收與部分城鎮階段條件。\n目前城鎮階段：${stage.name}`;
+}
+function getTradeLevelEffectText(){
+  return `貿易等級 Lv.${state.tradeLevel}\n經驗：${format(state.tradeExp)} / ${expToNext(state.tradeLevel)}\n效果：提高商人到訪率與商人攜帶資金。\n目前每分鐘商人到訪率：約 ${Math.round(merchantChancePerMinute()*100)}%`;
+}
+function getReputationEffectText(){
+  return `聲望：${format(state.reputation)}\n效果：工人工作速度 +${Math.round(getReputationWorkerSpeedBonus()*100)}%\n經驗獲取 +${Math.round(getReputationExpBonus()*100)}%\n產量 +${Math.round(getReputationYieldBonus()*100)}%`;
+}
+function getTaxEffectText(){
+  return `累積稅收：${format(state.pendingTax)} 金\n領取時可獲得同時的管理經驗：${Math.floor(state.pendingTax * 0.5)}\n稅收會受城池等級、安全值與工人工資規模影響。`;
+}
+function countBuiltPlots(){ return Array.isArray(state.plots) ? state.plots.length : 0; }
+function getFarmPlotCap(){
+  return 4 + (state.buildings.townCenter || 0) * 2;
+}
+function getFarmBuildCost(){
+  const built = countBuiltPlots();
+  return {
+    gold: 10 + built * 4,
+    resources: {
+      planks: 2 + Math.floor(built / 3),
+      dirt: 6 + built * 2,
+      stone: 4 + Math.floor(built / 2)
+    }
+  };
+}
+function buildFarmPlot(){
+  if(countBuiltPlots() >= getFarmPlotCap()){
+    addLog('農田已達上限。');
+    return false;
+  }
+  const rawCost = getFarmBuildCost();
+  const cost = { gold: rawCost.gold, resources: applyBuildingResourceDiscount(rawCost.resources) };
+  if(state.gold < cost.gold){
+    addLog(`金幣不足，建造農田需要 ${cost.gold} 金，尚缺 ${Math.ceil(cost.gold - state.gold)} 金。`);
+    return false;
+  }
+  if(!canAffordResources(cost.resources)){
+    const missing = getMissingResources(cost.resources);
+    addLog(`材料不足，建造農田需要：${formatCostBundle(cost.resources)}；尚缺：${formatCostBundle(missing)}。`);
+    return false;
+  }
+  state.gold -= cost.gold;
+  spendResources(cost.resources);
+  if(!Array.isArray(state.plots)) state.plots = [];
+  state.plots.push(null);
+  addManagementExp(1);
+  addCastleExp(2);
+  addLog(`你建造了一塊農田。目前農田：${countBuiltPlots()} / ${getFarmPlotCap()}。`);
+  return true;
+}
+function meetsStageOrResearchReqs(def){
+  if(state.level < (def.levelReq || 1)) return false;
+  if(state.castleLevel < (def.minLevel || 1)) return false;
+  if(def.intReq && state.intelligence < def.intReq) return false;
+  if(def.reqHouses){
+    for(const [k, need] of Object.entries(def.reqHouses)){ if((state.houses[k] || 0) < need) return false; }
+  }
+  if(def.reqBuildings){
+    for(const [k, need] of Object.entries(def.reqBuildings)){ if((state.buildings[k] || 0) < need) return false; }
+  }
+  if(def.reqPlots && countBuiltPlots() < def.reqPlots) return false;
+  return true;
+}
+function getTownStage(){
+  let current = townStageDefs[0];
+  for(const stage of townStageDefs){ if(meetsStageOrResearchReqs(stage)) current = stage; }
+  return current;
+}
+function getNextTownStage(){
+  const current = getTownStage();
+  const idx = townStageDefs.findIndex(s => s.name === current.name);
+  return idx >= 0 && idx < townStageDefs.length - 1 ? townStageDefs[idx+1] : null;
+}
+function getMissingReqText(def){
+  const misses = [];
+  if(state.level < (def.levelReq || 1)) misses.push(`主等級 ${state.level}/${def.levelReq}`);
+  if(state.castleLevel < (def.minLevel || 1)) misses.push(`城池等級 ${state.castleLevel}/${def.minLevel}`);
+  if(def.intReq && state.intelligence < def.intReq) misses.push(`智力 ${state.intelligence}/${def.intReq}`);
+  if(def.reqHouses){
+    for(const [k, need] of Object.entries(def.reqHouses)){
+      const label = houseBuilds[k]?.name || k;
+      const have = state.houses[k] || 0;
+      if(have < need) misses.push(`${label} ${have}/${need}`);
+    }
+  }
+  if(def.reqBuildings){
+    for(const [k, need] of Object.entries(def.reqBuildings)){
+      const label = buildingDefs[k]?.name || k;
+      const have = state.buildings[k] || 0;
+      if(have < need) misses.push(`${label} ${have}/${need}`);
+    }
+  }
+  if(def.reqPlots && countBuiltPlots() < def.reqPlots) misses.push(`農田 ${countBuiltPlots()}/${def.reqPlots}`);
+  return misses.length ? `尚缺：${misses.join('、')}` : '條件已滿足';
+}
+
+function currentCastleTotalExp(){
+  let total = Math.max(0, Math.floor(toFiniteNumber(state.castleExp, 0)));
+  for(let lv = 1; lv < state.castleLevel; lv++) total += expToNext(lv);
+  return total;
+}
+function setCastleFromTotalExp(total, {log=false} = {}){
+  total = Math.max(0, Math.floor(toFiniteNumber(total, 0)));
+  let level = 1;
+  let remaining = total;
+  while(remaining >= expToNext(level)){
+    remaining -= expToNext(level);
+    level++;
+  }
+  const old = state.castleLevel;
+  state.castleLevel = level;
+  state.castleExp = remaining;
+  if(log && level > old) addLog(`城池等級提升到 Lv.${state.castleLevel}。`);
+}
+function addCastleExp(amount){
+  setCastleFromTotalExp(currentCastleTotalExp() + amount, {log:true});
+}
+function getBuildingCastleExpTotal(){
+  let total = 0;
+  total += state.houses.cabin * castleExpBase.cabin;
+  total += state.houses.stoneHouse * castleExpBase.stoneHouse;
+  total += state.houses.wall * castleExpBase.wall;
+  Object.entries(state.buildings).forEach(([key, lv]) => {
+    if(!lv) return;
+    total += (castleExpBase[key] || 0);
+    total += Math.max(0, lv - 1) * (castleExpUpgrade[key] || 0);
+  });
+  return total;
+}
+function applyBuildingResourceDiscount(costs){
+  const discount = getManagementMaterialDiscount();
+  if(discount <= 0) return JSON.parse(JSON.stringify(costs));
+  const out = {};
+  Object.entries(costs).forEach(([id, amt]) => {
+    out[id] = Math.max(1, Math.ceil(amt * (1 - discount)));
+  });
+  return out;
+}
+function currentTaxIncome(){
+  const base = state.workers.length * effectiveWorkerWage() * 0.10;
+  const safetyBonus = 1 + safetyValue() * 0.01;
+  return Math.floor(base * (1 + (state.castleLevel - 1) * 0.03) * safetyBonus);
+}
+function merchantChancePerMinute(){
+  return clamp(0.01 + state.buildings.townCenter * 0.01 + (state.tradeLevel - 1) * 0.005 + (state.castleLevel - 1) * 0.003 + safetyValue() * 0.0008 + state.reputation * 0.0005, 0.01, 0.6);
+}
+function merchantCashPerVisit(){
+  const base = 120;
+  const tradeBonus = (state.tradeLevel - 1) * 40;
+  const reputationBonus = Math.floor(state.reputation * 6);
+  const townCenterBonus = state.buildings.townCenter * 25;
+  const castleBonus = (state.castleLevel - 1) * 25;
+  const safetyBonus = Math.floor(safetyValue() * 8);
+  return Math.max(80, Math.floor((base + tradeBonus + reputationBonus + townCenterBonus + castleBonus + safetyBonus) * (0.9 + Math.random() * 0.2)));
+}
+function getReputationWorkerSpeedBonus(){
+  return Math.min(0.25, state.reputation * 0.002);
+}
+function getReputationExpBonus(){
+  return Math.min(0.50, state.reputation * 0.003);
+}
+function getReputationYieldBonus(){
+  return Math.min(0.25, state.reputation * 0.002);
+}
+function getRanchTotalCapacity(){
+  return 50 + (state.buildings.ranch || 0) * 150;
+}
+function getAnimalCap(animalId){
+  const ratio = ranchRarityCaps[animalRarity[animalId] || 'common'] || 0.1;
+  return Math.max(1, Math.floor(getRanchTotalCapacity() * ratio));
+}
+function getRanchUsedCapacity(){
+  return ['chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear']
+    .reduce((sum,id)=>sum + Math.floor(toFiniteNumber(state.resources[id],0)), 0);
+}
+function getAnimalRarityLabel(id){
+  const map = {common:'普通', uncommon:'常見', rare:'稀有', epic:'珍稀'};
+  return map[animalRarity[id] || 'common'] || '普通';
+}
+function getAnimalCapRatioText(id){
+  const ratio = ranchRarityCaps[animalRarity[id] || 'common'] || 0;
+  return `${Math.round(ratio * 100)}%`;
+}
+function getAutoCullLootForAnimal(id, count){
+  const drops = {};
+  const add = (res, amt) => { if(amt>0) drops[res] = (drops[res] || 0) + amt; };
+  for(let i=0;i<count;i++){
+    if(id === 'chicken'){
+      add('rawChicken', randInt(1,2)); add('feather', randInt(1,3)); add('bone', 1);
+    }else if(id === 'rabbit'){
+      add('rawMeat', randInt(1,3)); add('hide', 1); add('bone', randInt(1,2));
+    }else if(id === 'dairyCow'){
+      add('rawMeat', randInt(4,8)); add('hide', randInt(1,2)); add('milk', randInt(2,4));
+    }else if(id === 'bull'){
+      add('rawMeat', randInt(4,8)); add('hide', randInt(1,2)); add('cowHorn', randInt(1,2));
+    }else if(id === 'boar'){
+      add('rawMeat', randInt(4,8)); add('offal', randInt(1,4)); add('hide', randInt(1,3)); add('bone', randInt(1,3)); if(roll(0.25)) add('boarTusk', randInt(1,2));
+    }else if(id === 'deer'){
+      add('rawMeat', randInt(3,7)); add('offal', randInt(1,3)); add('hide', randInt(1,2)); add('bone', randInt(1,3)); if(roll(0.5)) add('deerAntler', randInt(1,2));
+    }else if(id === 'wolf'){
+      add('rawMeat', randInt(2,5)); add('offal', randInt(1,2)); add('hide', randInt(1,2)); add('bone', randInt(1,3));
+    }else if(id === 'brownBear'){
+      add('rawMeat', randInt(6,12)); add('offal', randInt(2,6)); add('hide', randInt(2,5)); add('bone', randInt(2,5)); if(roll(0.35)) add('bearPaw', randInt(1,2)); if(roll(0.2)) add('bearFang', randInt(1,2));
+    }else if(id === 'blackBear'){
+      add('rawMeat', randInt(8,15)); add('offal', randInt(3,8)); add('hide', randInt(3,6)); add('bone', randInt(3,6)); if(roll(0.5)) add('bearPaw', randInt(1,2)); if(roll(0.35)) add('bearFang', randInt(1,3));
+    }
+  }
+  return drops;
+}
+function autoCullExcessAnimals(logIt=false){
+  const animals = Object.keys(animalRarity);
+  animals.forEach(id => {
+    const have = Math.floor(toFiniteNumber(state.resources[id], 0));
+    const cap = getAnimalCap(id);
+    if(have <= cap) return;
+    const extra = have - cap;
+    state.resources[id] = cap;
+    const loot = getAutoCullLootForAnimal(id, extra);
+    Object.entries(loot).forEach(([rid, amt]) => gainResource(rid, amt));
+    if(logIt){
+      const txt = Object.entries(loot).map(([rid, amt]) => `${resourceLabels[rid]}${amt}`).join('、');
+      addLog(`因牧場容量調整，自動屠宰${resourceLabels[id]} ${extra} 隻，獲得：${txt}。`, false);
+    }
+  });
+}
+function applyV060Migration(s){
+  if(!s.meta || s.meta.migration_v0_6_0_applied) return;
+  const currentTotal = currentCastleTotalExp();
+  const legacyWallOnly = s.houses.wall * 10;
+  const targetTotal = currentTotal + Math.max(0, getBuildingCastleExpTotal() - legacyWallOnly);
+  setCastleFromTotalExp(targetTotal, {log:false});
+  const allowedWorkers = housingCap();
+  if(s.workers.length > allowedWorkers){
+    const excess = s.workers.length - allowedWorkers;
+    const refund = excess * (40 + 8);
+    const sorted = [...s.workers].sort((a,b) => ((a.job === 'idle') ? -1 : 1) - ((b.job === 'idle') ? -1 : 1) || (b.id - a.id));
+    const removeIds = new Set(sorted.slice(0, excess).map(w => w.id));
+    s.workers = s.workers.filter(w => !removeIds.has(w.id));
+    s.gold += refund;
+    addLog(`因住房規則調整，已退聘 ${excess} 名超額工人並退回 ${refund} 金。`, false);
+  }
+  autoCullExcessAnimals(true);
+  s.tradeExp += 100;
+  s.reputation += 10;
+  addLog('v0.6.0 更新補發已套用：補發城池經驗、整理工人與牧場容量，並發放基礎貿易與聲望補助。', false);
+  s.meta.migration_v0_6_0_applied = true;
+}
+
+function addTradeExp(amount){
+  state.tradeExp += amount;
+  while(state.tradeExp >= expToNext(state.tradeLevel)){
+    state.tradeExp -= expToNext(state.tradeLevel);
+    state.tradeLevel++;
+    addLog(`貿易等級提升到 Lv.${state.tradeLevel}。`);
+  }
+}
+function addReputation(amount){
+  state.reputation = Math.max(0, +(state.reputation + amount).toFixed(2));
+}
+
+function getOrderTierMeta(tier){
+  if(tier === 'epic') return {label:'高級', multiplier:2.0, bonusTrade:40, rep:4};
+  if(tier === 'rare') return {label:'進階', multiplier:1.6, bonusTrade:15, rep:2};
+  return {label:'普通', multiplier:1.35, bonusTrade:5, rep:1};
+}
+function createMerchantOrder(fromMerchant=true){
+  const pool = [
+    {resource:'wood', tier:'common', qty:[20,40]},
+    {resource:'stone', tier:'common', qty:[18,36]},
+    {resource:'fish', tier:'common', qty:[8,18]},
+    {resource:'shrimp', tier:'common', qty:[8,18]},
+    {resource:'crab', tier:'rare', qty:[4,10]},
+    {resource:'herb', tier:'common', qty:[10,20]},
+    {resource:'rareHerb', tier:'rare', qty:[3,8]},
+    {resource:'mushroom', tier:'common', qty:[8,18]},
+    {resource:'leather', tier:'rare', qty:[4,10]},
+    {resource:'softLeather', tier:'epic', qty:[2,6]},
+    {resource:'cottonCloth', tier:'rare', qty:[3,8]},
+    {resource:'clothes', tier:'epic', qty:[1,4]},
+    {resource:'staminaPotion', tier:'epic', qty:[1,4]},
+    {resource:'stoneBrick', tier:'rare', qty:[8,20]},
+    {resource:'brick', tier:'rare', qty:[8,20]},
+    {resource:'glassBottle', tier:'rare', qty:[4,10]},
+    {resource:'boneMeal', tier:'common', qty:[3,8]},
+    {resource:'compost', tier:'common', qty:[3,8]}
+  ];
+  const safety = safetyValue();
+  const orderBoost = safety >= 150 ? 1.25 : safety >= 80 ? 1.15 : safety >= 30 ? 1.05 : 1;
+  const tierWeights = safety >= 150 ? {common:1, rare:2.2, epic:1.8} : safety >= 80 ? {common:1.4, rare:1.8, epic:1.2} : {common:2, rare:1.2, epic:0.5};
+  const weighted = [];
+  pool.forEach(p => { for(let i=0;i<Math.round((tierWeights[p.tier]||1)*10);i++) weighted.push(p); });
+  const pick = weighted[randInt(0, weighted.length-1)];
+  const qty = Math.max(1, Math.floor(randInt(pick.qty[0], pick.qty[1]) * orderBoost));
+  const baseSell = qty * (sellPrices[pick.resource] || 1);
+  const meta = getOrderTierMeta(pick.tier);
+  const rewardGold = Math.max(Math.ceil(baseSell * meta.multiplier), baseSell + 5);
+  const rewardTrade = rewardGold + meta.bonusTrade;
+  const rewardRep = meta.rep;
+  return {
+    id: 'ord' + (state.merchant.nextOrderId++),
+    resource: pick.resource,
+    qty,
+    rewardGold,
+    rewardTrade,
+    rewardRep,
+    tier: pick.tier,
+    tierLabel: meta.label,
+    from: fromMerchant ? '行腳商人' : '村民委託'
+  };
+}
+function addMerchantOrders(count=1){
+  let added = 0;
+  for(let i=0;i<count;i++){
+    if(state.merchant.orders.length >= 6) break;
+    state.merchant.orders.push(createMerchantOrder(true));
+    added++;
+  }
+  return added;
+}
+function fulfillMerchantOrder(orderId){
+  const idx = state.merchant.orders.findIndex(o => o.id === orderId);
+  if(idx < 0) return;
+  const order = state.merchant.orders[idx];
+  const have = Math.floor(toFiniteNumber(state.resources[order.resource], 0));
+  if(have < order.qty){
+    addLog(`布告欄訂單材料不足，繳交${resourceLabels[order.resource]}${order.qty}需要，尚缺 ${order.qty - have}。`);
+    return;
+  }
+  state.resources[order.resource] -= order.qty;
+  state.gold += order.rewardGold;
+  const tradeGain = order.rewardGold + order.rewardTrade;
+  addTradeExp(tradeGain);
+  addReputation(order.rewardRep);
+  addLog(`完成布告欄訂單：繳交${resourceLabels[order.resource]}${order.qty}，獲得 ${order.rewardGold} 金、貿易經驗 ${tradeGain}、聲望 ${order.rewardRep}。`);
+  state.merchant.orders.splice(idx, 1);
+  render();
+}
+
+function getAnimalBreedSeconds(id){
+  const def = animalFeedDefs[id];
+  if(!def) return 240;
+  const speedBonus = 1 + (state.buildings.ranch || 0) * 0.20;
+  return Math.max(60, Math.round(def.breedSeconds / speedBonus));
+}
+function feedAnimal(id){
+  const def = animalFeedDefs[id];
+  if(!def) return;
+  const foodHave = Math.floor(toFiniteNumber(state.resources[def.food], 0));
+  if(foodHave < def.amount){
+    addLog(`${resourceLabels[id]}需要 ${resourceLabels[def.food]} ${def.amount} 才能餵養。`);
+    return;
+  }
+  spendResource(def.food, def.amount);
+  if(!state.ranchData[id]) state.ranchData[id] = {fed:0, timer:0};
+  state.ranchData[id].fed += 1;
+  addLog(`你餵了${resourceLabels[id]}：${resourceLabels[def.food]} -${def.amount}，目前待繁殖餵養次數 ${state.ranchData[id].fed}。`, true, 'important');
+  render();
+}
+
+function claimTax(){
+  if(state.pendingTax <= 0) return addLog('目前沒有可領取的稅收。');
+  const amt = state.pendingTax;
+  state.pendingTax = 0;
+  state.gold += amt;
+  const mgmtExp = Math.max(1, Math.floor(amt * 0.5));
+  addManagementExp(mgmtExp);
+  addLog(`已領取累積稅收 ${amt} 金，管理經驗 +${mgmtExp}。`);
+  render();
+}
+
+function effectiveWorkerWage(){
+  const discount = getManagementWageDiscount();
+  return Math.max(1, Math.ceil(8 * (1 - discount)));
+}
+function hasTool(resId){ return (state.resources[resId] || 0) > 0; }
+function getWorkSpeedBonus(workId){
+  let bonus = state.campfireSec > 0 ? 0.10 : 0;
+  if(workId === 'lumber') bonus += state.buildings.lumberMill * 0.10 + (hasTool('copperAxeTool') ? 0.20 : (hasTool('stoneAxeTool') ? 0.10 : 0));
+  if(workId === 'mining') bonus += state.buildings.quarry * 0.10 + (hasTool('copperPickTool') ? 0.20 : 0);
+  if(workId === 'digging') bonus += state.buildings.quarry * 0.10 + (hasTool('copperShovelTool') ? 0.20 : (hasTool('shovelTool') ? 0.10 : 0));
+  if(workId === 'fishing') bonus += state.buildings.fishingShack * 0.10 + (hasTool('ironFishingRodTool') ? 0.25 : (hasTool('copperFishingRodTool') ? 0.20 : (hasTool('fishingRodTool') ? 0.10 : 0)));
+  if(workId === 'hunting') bonus += hasTool('ironBowTool') ? 0.25 : (hasTool('copperBowTool') ? 0.20 : (hasTool('stoneBowTool') ? 0.12 : (hasTool('woodBowTool') ? 0.06 : 0)));
+  return bonus;
+}
+function getPlayerCycleTime(workId=null){
+  const raw = (1 + 0.02 * state.intelligence) / 10;
+  const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
+  const base = 1 / capped;
+  const bonus = workId ? getWorkSpeedBonus(workId) : 0;
+  return base / (1 + bonus);
+}
+function getWorkerCycleTime(job=null){
+  let mult = 1 + (state.managementLevel - 1) * 0.02 + state.houses.stoneHouse * 0.03 + state.buildings.townCenter * 0.05 + (state.campfireSec > 0 ? 0.10 : 0) + getReputationWorkerSpeedBonus();
+  if(job === 'ranch') mult += state.buildings.ranch * 0.20;
+  if(job && job !== 'crafting' && job !== 'ranch') mult += getWorkSpeedBonus(job);
+  return 15 / mult;
+}
+function getReadingDuration(base){ return base / (1 + state.buildings.library * 0.15); }
+function getCraftDuration(craftId){
+  const craft = crafts[craftId];
+  let bonus = state.campfireSec > 0 ? 0.10 : 0;
+  if(craft.skill === 'alchemy') bonus += state.buildings.alchemyHut * 0.20;
+  if(craft.skill === 'tanning') bonus += state.buildings.tannery * 0.20;
+  if(['flour','boneMeal','compost'].includes(craftId)) bonus += state.buildings.mill * 0.20 + state.buildings.windmill * 0.15;
+  if(['ironFirewood','ironCoal','copperFirewood','copperCoal','stoneAxeTool','shovelTool','stoneBowTool','fishingRodTool','fishNetTool','ironFishingRodTool','ironBowTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHoeTool','copperPitchforkTool','copperBowTool','copperFishingRodTool'].includes(craftId)) bonus += state.buildings.smithy * 0.20;
+  return getPlayerCycleTime() / (1 + bonus);
+}
+function getCropDuration(seedId){
+  const def = farmingDefs[seedId];
+  if(!def) return 60;
+  const bonus = (state.buildings.waterChannel || 0) * 0.10;
+  return def.duration / (1 + bonus);
+}
+function getCropYieldMultiplier(seedId){
+  const waterBonus = (state.buildings.waterChannel || 0) * 0.12;
+  const farmingBonus = Math.floor(Math.max(0, state.skills.farming.level - 1) / 5) * 0.05;
+  return 1 + waterBonus + farmingBonus;
+}
+function getSeedReturnChance(seedId){
+  const base = farmingDefs[seedId].returnBase;
+  const bonus = Math.min(0.25, (state.skills.farming.level - 1) * 0.01) + state.buildings.windmill * 0.05;
+  return clamp(base + bonus, 0, 0.95);
+}
+function getRegenRate(resting){
+  let rate = resting ? 5 : 0.1;
+  rate *= 1 + state.buildings.well * 0.10;
+  rate *= 1 + getRestEfficiencyBonus();
+  if(state.campfireSec > 0) rate *= 1.10;
+  rate *= 1 + getStaminaPotionRegenBonus();
+  return rate;
+}
+function gainResource(id, amt){ state.resources[id] = (state.resources[id] || 0) + amt; }
+function spendResource(id, amt){ if((state.resources[id]||0) < amt) return false; state.resources[id]-=amt; return true; }
+function canAffordResources(costs){ return Object.entries(costs).every(([id,amt]) => (state.resources[id]||0) >= amt); }
+function spendResources(costs){ if(!canAffordResources(costs)) return false; Object.entries(costs).forEach(([id,amt]) => state.resources[id]-=amt); return true; }
+function spendGold(amt){ if(state.gold < amt) return false; state.gold -= amt; return true; }
+function formatCostBundle(costs){
+  return Object.entries(costs).map(([id,amt]) => `${resourceLabels[id] || id}${amt}`).join('、');
+}
+function getMissingResources(costs){
+  const missing = {};
+  Object.entries(costs).forEach(([id, amt]) => {
+    const have = toFiniteNumber(state.resources[id], 0);
+    if(have < amt) missing[id] = amt - have;
+  });
+  return missing;
+}
+function formatMissingResources(costs){
+  const missing = getMissingResources(costs);
+  const entries = Object.entries(missing);
+  if(!entries.length) return '';
+  return entries.map(([id, amt]) => `${resourceLabels[id] || id}${amt}`).join('、');
+}
+function addManagementFromSpend(gold){ addManagementExp(Math.max(1, Math.floor(gold / 10))); }
+function restoreStamina(amount, grantsExp=true){
+  const before = state.stamina;
+  state.stamina = clamp(state.stamina + amount, 0, maxStamina());
+  const actual = state.stamina - before;
+  if(grantsExp && actual > 0) addStaminaExp(actual);
+  return actual;
+}
+function addMainExp(amount){
+  state.exp += amount;
+  while(state.exp >= expToNext(state.level)){
+    state.exp -= expToNext(state.level);
+    state.level++;
+    addLog(`主等級提升到 Lv.${state.level}。`);
+  }
+}
+function addSkillExp(skillId, amount){
+  const mult = 1 + getSkillExpBonus(skillId);
+  const skill = state.skills[skillId];
+  if(!skill) return;
+  skill.exp += amount * mult;
+  while(skill.exp >= expToNext(skill.level)){
+    skill.exp -= expToNext(skill.level);
+    skill.level++;
+    addLog(`${skillLabels[skillId]} 等級提升到 Lv.${skill.level}。`);
+  }
+}
+function getSkillExpBonus(skillId){
+  if(skillId === 'lumber') return state.buildings.lumberMill * 0.10;
+  if(skillId === 'mining' || skillId === 'digging') return state.buildings.quarry * 0.10;
+  if(skillId === 'fishing') return state.buildings.fishingShack * 0.10;
+  return 0;
+}
+function addManagementExp(amount){
+  state.managementExp += amount;
+  while(state.managementExp >= expToNext(state.managementLevel)){
+    state.managementExp -= expToNext(state.managementLevel);
+    state.managementLevel++;
+    addLog(`管理等級提升到 Lv.${state.managementLevel}。`);
+  }
+}
+function gainGold(amount){ state.gold += amount; }
+function addResource(id, amount){ state.resources[id] = Math.max(0, toFiniteNumber(state.resources[id],0) + amount); }
+function addStaminaExp(amount){
+  state.staminaExp += amount;
+  while(state.staminaExp >= expToNext(state.staminaLevel)){
+    state.staminaExp -= expToNext(state.staminaLevel);
+    state.staminaLevel++;
+    state.stamina = Math.min(maxStamina(), state.stamina + 10);
+    addLog(`體力等級提升到 Lv.${state.staminaLevel}，最大體力增加。`);
+  }
+}
+
+function rarityName(key){ return {common:'普通', rare:'稀有', epic:'珍稀', legendary:'極稀有'}[key]; }
+
+function getWorkSummaryLoot(workId, isWorker=false){
+  const loot = {};
+  let rarity = 'common';
+  const miningLv = state.skills.mining.level;
+  const setRarity = (r) => { if(rarityMultipliers[r] > rarityMultipliers[rarity]) rarity = r; };
+  const add = (id, amt) => { loot[id] = (loot[id] || 0) + amt; };
+  switch(workId){
+    case 'labor':
+      return {loot, gold:1 * (1 + 0.1 * (state.level - 1)), rarity:'common', skillExp:1, mainExp:1};
+    case 'lumber':
+      add('wood', randInt(2,5));
+      add('branch', randInt(1,3));
+      add('leaf', randInt(1,4));
+      if(roll(0.18)) { add('apple', randInt(1,2)); setRarity('rare'); }
+      if(roll(0.05)) { add('appleSeed', 1); setRarity('rare'); }
+      break;
+    case 'mining':
+      add('stone', randInt(2,6));
+      add('copperOre', randInt(1,5));
+      if(roll(0.8)) add('coal', randInt(1,3));
+      if(roll(0.55)) add('ironOre', randInt(1,2));
+      if(miningLv >= 10){
+        if(roll(0.12)){ add('silverOre', randInt(1,2)); setRarity('rare'); }
+        if(roll(0.08)){ add('magnetite', 1); setRarity('rare'); }
+        if(roll(0.03)){ add('crystal', 1); setRarity('epic'); }
+      }
+      if(miningLv >= 20){
+        if(roll(0.06)){ add('goldOre', randInt(1,2)); setRarity('epic'); }
+        if(roll(0.02)){ add('gem', 1); setRarity('legendary'); }
+      }
+      break;
+    case 'fishing':{
+      const r = Math.random();
+      if(r < 0.55) add('fish', randInt(2,4));
+      else if(r < 0.85) add('shrimp', randInt(2,4));
+      else if(r < 0.97) { add('crab', randInt(1,2)); setRarity('rare'); }
+      else { add('snail', 1); setRarity('rare'); }
+      if(roll(0.005)){ add('ironOre', 1); setRarity('rare'); }
+      if(roll(0.001)){ add('crystal', 1); setRarity('legendary'); }
+      break;
+    }
+    case 'hunting':{
+      const r = Math.random();
+      if(r < 0.24) add('rabbit', 1);
+      else if(r < 0.50) add('boar', 1);
+      else if(r < 0.72) add('deer', 1);
+      else if(r < 0.87) { add('wolf', 1); setRarity('rare'); }
+      else if(r < 0.97) { add('brownBear', 1); setRarity('rare'); }
+      else { add('blackBear', 1); setRarity('epic'); }
+      break;
+    }
+    case 'forest':
+      if(roll(0.65)) add('herb', randInt(1,3));
+      if(roll(0.08)){ add('rareHerb', 1); setRarity('rare'); }
+      if(roll(0.55)) add('mushroom', randInt(1,3));
+      add('branch', randInt(1,3));
+      add('leaf', randInt(1,4));
+      add('fiber', randInt(1,3));
+      if(roll(0.05)){ add('ginseng', 1); setRarity('rare'); }
+      if(roll(0.08)){ add('wheatSeed', 1); setRarity('rare'); }
+      if(roll(0.07)){ add('mushroomSpore', 1); setRarity('rare'); }
+      if(roll(0.06)){ add('cottonSeed', 1); setRarity('rare'); }
+      if(roll(0.06)){ add('carrotSeed', 1); setRarity('rare'); }
+      break;
+    case 'shore':
+      add('sand', randInt(1,5));
+      if(roll(0.7)) add('shellfish', randInt(1,3));
+      if(roll(0.35)){ add('crab', randInt(1,2)); setRarity('rare'); }
+      if(roll(0.15)){ add('coral', 1); setRarity('rare'); }
+      break;
+    case 'digging':
+      add('dirt', randInt(2,6));
+      add('stone', randInt(1,4));
+      if(roll(0.8)) add('sand', randInt(0,3));
+      break;
+  }
+  if((hasTool('copperAxeTool') || hasTool('stoneAxeTool')) && workId === 'lumber'){
+    const mult = hasTool('copperAxeTool') ? 1.35 : 1.2;
+    if(loot.wood) loot.wood = Math.max(1, Math.floor(loot.wood * mult));
+    if(loot.branch) loot.branch = Math.max(1, Math.floor(loot.branch * mult));
+  }
+  if((hasTool('copperShovelTool') || hasTool('shovelTool')) && workId === 'digging'){
+    const mult = hasTool('copperShovelTool') ? 1.35 : 1.2;
+    Object.keys(loot).forEach(k => loot[k] = Math.max(1, Math.floor(loot[k] * mult)));
+  }
+  if(workId === 'fishing'){
+    let mult = 1;
+    if(hasTool('fishNetTool')) mult = 1.8;
+    else if(hasTool('ironFishingRodTool')) mult = 1.5;
+    else if(hasTool('copperFishingRodTool')) mult = 1.35;
+    else if(hasTool('fishingRodTool')) mult = 1.2;
+    if(mult > 1) Object.keys(loot).forEach(k => loot[k] = Math.max(1, Math.floor(loot[k] * mult)));
+  }
+  if(hasTool('copperPickTool') && workId === 'mining'){
+    Object.keys(loot).forEach(k => loot[k] = Math.max(1, Math.floor(loot[k] * 1.25)));
+  }
+  if(isWorker){
+    Object.keys(loot).forEach(k => loot[k] = Math.max(1, Math.floor(loot[k] * 0.8)));
+  }
+  return { loot, gold:0, rarity, skillExp:rarityMultipliers[rarity], mainExp:rarityMultipliers[rarity] };
+}
+
+function applyWorkResult(workId, result, isWorker=false, workerId=null){
+  if(isWorker){
+    const yb = 1 + getReputationYieldBonus();
+    Object.keys(result.loot).forEach(id => {
+      result.loot[id] = Math.max(1, Math.round(result.loot[id] * yb));
+    });
+  }
+  Object.entries(result.loot).forEach(([id,amt]) => gainResource(id, amt));
+  state.gold += result.gold;
+  const skillId = workDefs[workId].skill;
+  if(!isWorker){
+    addSkillExp(skillId, result.skillExp);
+    addMainExp(result.mainExp);
+  }else{
+    const expMult = 1 + getReputationExpBonus();
+    addSkillExp(skillId, result.skillExp * 0.05 * expMult);
+    addMainExp(result.mainExp * 0.10 * expMult);
+    addManagementExp(0.3);
+  }
+  const gained = Object.entries(result.loot).map(([id,amt]) => `${resourceLabels[id]}+${amt}`).join('、');
+  const rareText = result.rarity !== 'common' ? `（${rarityName(result.rarity)}）` : '';
+  if(!isWorker){
+    const goldText = result.gold ? `金幣+${result.gold.toFixed(1)}` : '';
+    addLog(`${workDefs[workId].name}完成${rareText}${gained || ''}${gained && goldText ? '、' : ''}${goldText}`);
+  }else if(result.rarity !== 'common'){
+    addLog(`工人 #${workerId} 在${workDefs[workId].name}取得${rareText}成果：${gained}`);
+  }
+}
+
+function canStartProduction(){ return !state.productionAction && !state.isResting; }
+function canStartCraft(){ return !state.craftAction; }
+
+const buildResearchByTarget = Object.fromEntries(Object.entries(researchDefs).filter(([,v])=>v.unlockBuild).map(([k,v])=>[v.unlockBuild,k]));
+const houseResearchByTarget = Object.fromEntries(Object.entries(researchDefs).filter(([,v])=>v.unlockHouse).map(([k,v])=>[v.unlockHouse,k]));
+function getResearchStatus(key){
+  if(state.research[key]) return 'completed';
+  const def = researchDefs[key];
+  if(meetsStageOrResearchReqs(def)) return 'available';
+  return 'locked';
+}
+function isBuildUnlocked(key){
+  const rk = buildResearchByTarget[key];
+  return !rk || !!state.research[rk] || (state.buildings[key] || 0) > 0;
+}
+function isHouseUnlocked(key){
+  const rk = houseResearchByTarget[key];
+  return !rk || !!state.research[rk] || (state.houses[key] || 0) > 0;
+}
+
+function canStartResearch(){ return !state.researchAction; }
+
+function triggerAutoRest(workId){
+  const targetWork = workId || state.autoWork;
+  if(!targetWork) return false;
+  state.isResting = true;
+  state.autoResting = true;
+  state.autoRestResume = targetWork;
+  if(state.productionAction && state.productionAction.type === 'work') state.productionAction = null;
+  addLog(`體力耗盡，自動開始休息。體力全滿後會繼續${workDefs[targetWork].name}。`, false);
+  return true;
+}
+function maybeResumeAfterAutoRest(){
+  if(!state.isResting || !state.autoResting || !state.autoRestResume) return false;
+  if(state.stamina + 1e-6 < maxStamina()) return false;
+  const resumeWork = state.autoRestResume;
+  state.isResting = false;
+  state.autoResting = false;
+  state.autoRestResume = null;
+  addLog(`體力已全滿，自動恢復${workDefs[resumeWork].name}。`, false);
+  if(!state.productionAction){
+    beginWorkCycle(resumeWork, {silent:true});
+  }
+  return true;
+}
+function beginWorkCycle(workId,{silent=false}={}){
+  const def = workDefs[workId];
+  if(state.stamina < def.staminaCost){
+    if(state.autoWork === workId){
+      triggerAutoRest(workId);
+    }else{
+      state.autoWork = null;
+      if(!silent) addLog(`體力不足，${def.name}已停止。`);
+    }
+    return false;
+  }
+  state.stamina -= def.staminaCost;
+  const duration = getPlayerCycleTime(workId);
+  state.productionAction = {type:'work', id:workId, remaining:duration, total:duration};
+  return true;
+}
+function startWork(workId){
+  if(state.isResting) return addLog('休息中，請先停止休息。');
+  if(state.productionAction && state.productionAction.type !== 'work') return addLog('你現在無法開始工作。');
+  const switching = state.autoWork && state.autoWork !== workId;
+  state.autoWork = workId;
+  if(!state.productionAction){
+    if(beginWorkCycle(workId)){ addLog(`${workDefs[workId].name}已設為持續工作。`); }
+  }else if(switching){
+    addLog(`已切換持續工作為：${workDefs[workId].name}。`);
+  }
+  render();
+}
+function stopAutoWork(reason='已停止持續工作。'){
+  if(!state.autoWork && !(state.productionAction && state.productionAction.type === 'work')) return addLog('目前沒有持續工作。');
+  state.autoWork = null;
+  state.autoResting = false;
+  state.autoRestResume = null;
+  if(state.productionAction && state.productionAction.type === 'work') state.productionAction = null;
+  addLog(reason);
+  render();
+}
+function startReading(bookId){
+  if(!canStartResearch()) return addLog('研究線忙碌中，無法閱讀。');
+  const book = books[bookId];
+  if(!spendGold(book.cost)) return addLog('金幣不足，無法買研究書。');
+  const dur = getReadingDuration(book.duration);
+  state.researchAction = {type:'read', id:bookId, remaining:dur, total:dur};
+  addLog(`開始閱讀《${book.name}》。`);
+  render();
+}
+function getResearchUnlockResultText(def){
+  if(!def) return '已完成研究。';
+  if(def.unlockCraft && crafts[def.unlockCraft]) return `已解鎖配方：${crafts[def.unlockCraft].name}。`;
+  if(def.unlockBuild && buildingDefs[def.unlockBuild]) return `已解鎖建築：${buildingDefs[def.unlockBuild].name}。`;
+  if(def.unlockHouse && houseBuilds[def.unlockHouse]) return `已解鎖建造：${houseBuilds[def.unlockHouse].name}。`;
+  if(def.category === 'tool') return '已解鎖對應工具配方。';
+  return '已解鎖新內容。';
+}
+
+function startResearch(key){
+  if(state.research[key]) return addLog('這項研究已完成。');
+  if(!canStartResearch()) return addLog('研究線忙碌中，無法研究。');
+  const def = researchDefs[key];
+  if(!meetsStageOrResearchReqs(def)) return addLog(`尚未達成研究條件。${getMissingReqText(def)}`);
+  const dur = getReadingDuration(def.duration);
+  state.researchAction = {type:'research', id:key, remaining:dur, total:dur};
+  addLog(`開始研究：${def.name}。`);
+  render();
+}
+
+const crafts = {
+  plank:{name:'木板', skill:'woodworking', costs:{wood:5}, yields:{planks:1, firewood:2}, stamina:1},
+  stoneBrick:{name:'石磚', skill:'masonry', costs:{stone:5}, yields:{stoneBrick:1}, stamina:2},
+  brickFirewood:{name:'燒製磚塊（柴火）', skill:'masonry', costs:{dirt:5, firewood:1}, yields:{brick:1}, stamina:2},
+  brickCoal:{name:'燒製磚塊（煤炭）', skill:'masonry', costs:{dirt:10, coal:1}, yields:{brick:2}, stamina:2},
+  glassFirewood:{name:'燒製玻璃（柴火）', skill:'masonry', costs:{sand:5, firewood:1}, yields:{glass:1}, stamina:2},
+  glassCoal:{name:'燒製玻璃（煤炭）', skill:'masonry', costs:{sand:10, coal:1}, yields:{glass:2}, stamina:2},
+  bottle:{name:'玻璃瓶', skill:'masonry', costs:{glass:2}, yields:{glassBottle:1}, stamina:1},
+
+  sashimi:{name:'生魚片', skill:'cooking', costs:{fish:2, shrimp:1}, yields:{sashimi:1}, stamina:1},
+  grilledMeat:{name:'烤肉', skill:'cooking', costs:{rawMeat:2}, yields:{grilledMeat:1}, stamina:1},
+  grilledFish:{name:'烤魚', skill:'cooking', costs:{fish:2}, yields:{grilledFish:1}, stamina:1},
+  grilledSausage:{name:'烤香腸', skill:'cooking', costs:{offal:2, wheatFlour:1}, yields:{grilledSausage:1}, stamina:1},
+  bearStew:{name:'燉熊掌', skill:'cooking', costs:{bearPaw:1}, yields:{bearStew:1}, stamina:2},
+  flour:{name:'小麥粉', skill:'cooking', costs:{wheat:3}, yields:{wheatFlour:1}, stamina:1},
+  applePie:{name:'蘋果派', skill:'cooking', costs:{apple:2, wheatFlour:1}, yields:{applePie:1}, stamina:2},
+  clamSoup:{name:'蛤肉湯', skill:'cooking', costs:{clamMeat:2}, yields:{clamSoup:1}, stamina:1},
+
+  ironFirewood:{name:'冶鐵（柴火）', skill:'smelting', costs:{ironOre:5, firewood:1}, yields:{ironIngot:1}, stamina:2},
+  ironCoal:{name:'冶鐵（煤炭）', skill:'smelting', costs:{ironOre:10, coal:1}, yields:{ironIngot:2}, stamina:2},
+  copperFirewood:{name:'冶銅（柴火）', skill:'smelting', costs:{copperOre:5, firewood:1}, yields:{copperIngot:1}, stamina:2},
+  copperCoal:{name:'冶銅（煤炭）', skill:'smelting', costs:{copperOre:10, coal:1}, yields:{copperIngot:2}, stamina:2},
+
+  leather:{name:'皮革', skill:'tanning', costs:{hide:2}, yields:{leather:1}, stamina:1},
+  softLeather:{name:'柔軟皮革', skill:'tanning', costs:{leather:1, herbTonic:1}, yields:{softLeather:1}, stamina:1},
+  cottonThread:{name:'紡成棉線', skill:'tanning', costs:{cotton:3}, yields:{cottonThread:1}, stamina:1},
+  cottonCloth:{name:'織成棉布', skill:'tanning', costs:{cottonThread:2}, yields:{cottonCloth:1}, stamina:1},
+  grassThread:{name:'草線', skill:'tanning', costs:{fiber:4}, yields:{grassThread:1}, stamina:1},
+  grassCloth:{name:'草布', skill:'tanning', costs:{grassThread:2}, yields:{grassCloth:1}, stamina:1},
+  clothes:{name:'縫製衣服', skill:'tanning', costs:{cottonCloth:2, cottonThread:1}, yields:{clothes:1}, stamina:2},
+  fishNetTool:{name:'編製魚網', skill:'tanning', costs:{grassCloth:2, grassThread:1}, yields:{fishNetTool:1}, stamina:2},
+
+  herbTonic:{name:'鞣劑', skill:'alchemy', costs:{herb:4, mushroom:1, glassBottle:1}, yields:{herbTonic:1}, stamina:1},
+  staminaPotion:{name:'體力藥劑', skill:'alchemy', costs:{herb:3, glassBottle:1}, yields:{staminaPotion:1}, stamina:1},
+  boneMeal:{name:'骨粉', skill:'alchemy', costs:{bone:3}, yields:{boneMeal:1}, stamina:1},
+  compost:{name:'肥料堆', skill:'alchemy', costs:{branch:2, leaf:4}, yields:{compost:1}, stamina:1},
+  wheatSeedBundle:{name:'小麥種子', skill:'alchemy', costs:{wheat:1}, yields:{wheatSeed:10}, stamina:1},
+  paper:{name:'紙張', skill:'alchemy', costs:{fiber:10}, yields:{paper:1}, stamina:1},
+  ink:{name:'墨水', skill:'alchemy', costs:{herb:1, mushroom:1, coral:1}, yields:{ink:1}, stamina:1},
+  note:{name:'破舊筆記', skill:'alchemy', costs:{paper:10, leather:1, ink:1}, yields:{note:1}, stamina:2},
+  manual:{name:'入門教程', skill:'alchemy', costs:{paper:25, leather:5, ink:5}, yields:{manual:1}, stamina:3},
+  coalPowder:{name:'碳粉', skill:'alchemy', costs:{coal:1}, yields:{coalPowder:1}, stamina:1},
+  copperPowder:{name:'銅粉', skill:'alchemy', costs:{copperOre:1}, yields:{copperPowder:1}, stamina:1},
+  ironPowder:{name:'鐵粉', skill:'alchemy', costs:{ironOre:1}, yields:{ironPowder:1}, stamina:1},
+  silverPowder:{name:'銀粉', skill:'alchemy', costs:{silverOre:1}, yields:{silverPowder:1}, stamina:1},
+  goldPowder:{name:'金粉', skill:'alchemy', costs:{goldOre:1}, yields:{goldPowder:1}, stamina:1},
+  magnetitePowder:{name:'磁石粉', skill:'alchemy', costs:{magnetite:1}, yields:{magnetitePowder:1}, stamina:1},
+  crystalPowder:{name:'水晶粉', skill:'alchemy', costs:{crystal:1}, yields:{crystalPowder:1}, stamina:1},
+  gemPowder:{name:'寶石粉', skill:'alchemy', costs:{gem:1}, yields:{gemPowder:1}, stamina:1},
+
+  stoneAxeTool:{name:'打造石斧', skill:'smelting', costs:{stone:2, wood:1, fiber:1}, yields:{stoneAxeTool:1}, unlock:'stoneAxe', stamina:1},
+  stonePickTool:{name:'打造石鎬', skill:'smelting', costs:{stone:3, wood:1}, yields:{stonePickTool:1}, unlock:'stonePick', stamina:1},
+  shovelTool:{name:'打造石鏟', skill:'smelting', costs:{stone:2, wood:1}, yields:{shovelTool:1}, unlock:'shovel', stamina:1},
+  stoneCarvingKnifeTool:{name:'打造石刻木刀', skill:'smelting', costs:{stone:2, wood:1}, yields:{stoneCarvingKnifeTool:1}, unlock:'stoneKnife', stamina:1},
+  stoneHammerTool:{name:'打造石鎚子', skill:'smelting', costs:{stone:3, wood:1}, yields:{stoneHammerTool:1}, unlock:'stoneHammer', stamina:1},
+  stonePotTool:{name:'打造石鍋子', skill:'smelting', costs:{stone:3, wood:1}, yields:{stonePotTool:1}, unlock:'stonePot', stamina:1},
+  stoneHoeTool:{name:'打造石鋤頭', skill:'smelting', costs:{stone:2, wood:1}, yields:{stoneHoeTool:1}, unlock:'stoneHoe', stamina:1},
+  stonePitchforkTool:{name:'打造石草叉', skill:'smelting', costs:{stone:2, wood:1}, yields:{stonePitchforkTool:1}, unlock:'stonePitchfork', stamina:1},
+  woodBowTool:{name:'製作木弓', skill:'woodworking', costs:{wood:3, fiber:2}, yields:{woodBowTool:1}, stamina:1},
+  stoneBowTool:{name:'製作石弓', skill:'smelting', costs:{wood:2, stone:2, fiber:2}, yields:{stoneBowTool:1}, stamina:1},
+  fishingRodTool:{name:'製作石釣竿', skill:'smelting', costs:{wood:2, fiber:2}, yields:{fishingRodTool:1}, unlock:'fishingRod', stamina:1},
+
+  copperAxeTool:{name:'打造銅斧', skill:'smelting', costs:{copperIngot:1, wood:2}, yields:{copperAxeTool:1}, unlock:'copperAxe', stamina:1},
+  copperShovelTool:{name:'打造銅鏟', skill:'smelting', costs:{copperIngot:1, wood:2}, yields:{copperShovelTool:1}, unlock:'copperShovel', stamina:1},
+  copperPickTool:{name:'打造銅鎬', skill:'smelting', costs:{copperIngot:2, wood:2}, yields:{copperPickTool:1}, unlock:'copperPick', stamina:1},
+  copperCarvingKnifeTool:{name:'打造銅刻木刀', skill:'smelting', costs:{copperIngot:1, wood:1}, yields:{copperCarvingKnifeTool:1}, unlock:'copperKnife', stamina:1},
+  copperHammerTool:{name:'打造銅鎚子', skill:'smelting', costs:{copperIngot:2, wood:1}, yields:{copperHammerTool:1}, unlock:'copperHammer', stamina:1},
+  copperPotTool:{name:'打造銅鍋子', skill:'smelting', costs:{copperIngot:2, wood:1}, yields:{copperPotTool:1}, unlock:'copperPot', stamina:1},
+  copperHoeTool:{name:'打造銅鋤頭', skill:'smelting', costs:{copperIngot:1, wood:2}, yields:{copperHoeTool:1}, unlock:'copperHoe', stamina:1},
+  copperPitchforkTool:{name:'打造銅草叉', skill:'smelting', costs:{copperIngot:1, wood:2}, yields:{copperPitchforkTool:1}, unlock:'copperPitchfork', stamina:1},
+  copperBowTool:{name:'打造銅弓', skill:'smelting', costs:{copperIngot:1, wood:2, fiber:2}, yields:{copperBowTool:1}, stamina:1},
+  copperFishingRodTool:{name:'打造銅釣竿', skill:'smelting', costs:{copperIngot:1, fiber:2}, yields:{copperFishingRodTool:1}, unlock:'copperFishingRod', stamina:1},
+  ironBowTool:{name:'打造鐵弓', skill:'smelting', costs:{ironIngot:1, wood:2, fiber:2}, yields:{ironBowTool:1}, stamina:1},
+  ironFishingRodTool:{name:'打造鐵釣竿', skill:'smelting', costs:{ironIngot:1, fiber:2}, yields:{ironFishingRodTool:1}, unlock:'ironFishingRod', stamina:1}
+};
+
+function enqueueCraft(craftId, count){
+  const def = crafts[craftId];
+  if(!def) return;
+  if(def.unlock && !state.research[def.unlock]) return addLog(`尚未研究${researchDefs[def.unlock].name}。`);
+  if(state.craftQueue.length >= 3) return addLog('製作排程已滿，最多只能等待 3 格。');
+  state.craftQueue.push({id:craftId, count});
+  addLog(`已排入製作：${def.name} × ${count}。`);
+}
+let lastCraftBeginError = '';
+function beginCraftCycle(craftId, silent=false, fromWorker=false){
+  lastCraftBeginError = '';
+  const def = crafts[craftId];
+  if(!def) return false;
+  if(def.unlock && !state.research[def.unlock]){
+    lastCraftBeginError = 'unlock';
+    if(!silent) addLog(`尚未研究${researchDefs[def.unlock].name}。`);
+    return false;
+  }
+  if(!canAffordResources(def.costs)){
+    lastCraftBeginError = 'resources';
+    state.craftPausedForStamina = false;
+    if(!silent){
+      const needText = formatCostBundle(def.costs);
+      const missingText = formatMissingResources(def.costs);
+      addLog(`材料不足，製作${def.name}需要：${needText}${missingText ? `；尚缺：${missingText}` : ''}`);
+    }
+    return false;
+  }
+  if(!fromWorker){
+    const staminaCost = def.stamina || 1;
+    if(state.stamina < staminaCost){
+      lastCraftBeginError = 'stamina';
+      if(!state.craftPausedForStamina || state.craftPausedName !== def.name){
+        addLog(`體力不足，製作${def.name}已暫停，恢復後會自動繼續。`, true, 'important');
+      }
+      state.craftPausedForStamina = true;
+      state.craftPausedName = def.name;
+      return false;
+    }
+    state.stamina -= staminaCost;
+  }
+  state.craftPausedForStamina = false;
+  state.craftPausedName = '';
+  spendResources(def.costs);
+  const dur = fromWorker ? getWorkerCycleTime('crafting') : getCraftDuration(craftId);
+  state.craftAction = {type:'craft', id:craftId, remaining:dur, total:dur, fromWorker};
+  return true;
+}
+function tryStartNextCraftNow(){
+  if(state.craftAction) return false;
+  if(state.craftQueue.length){
+    const next = state.craftQueue[0];
+    if(beginCraftCycle(next.id, true)){
+      next.count -= 1;
+      if(next.count <= 0) state.craftQueue.shift();
+      return true;
+    }
+    if(lastCraftBeginError !== 'stamina') state.craftQueue.shift();
+  }
+  if(state.autoCraft){
+    if(beginCraftCycle(state.autoCraft, true)) return true;
+    if(lastCraftBeginError !== 'stamina'){
+      state.autoCraft = null;
+      state.autoCraftInfinite = false;
+      state.craftRepeat = false;
+    }
+    return false;
+  }
+  return false;
+}
+function cancelCurrentCraft(options={}){
+  const { refundMaterials=true, startNext=true, silent=false } = options;
+  if(!state.craftAction){
+    if(state.autoCraft){
+      const name = crafts[state.autoCraft]?.name || '製作';
+      state.autoCraft = null;
+      state.autoCraftInfinite = false;
+      state.craftRepeat = false;
+      state.craftPausedForStamina = false;
+      state.craftPausedName = '';
+      if(!silent){
+        addLog(`已取消待命中的重複製作：${name}。`);
+        render();
+      }
+      return true;
+    }
+    if(!silent) addLog('目前沒有正在製作中的項目。');
+    return false;
+  }
+  const action = state.craftAction;
+  const def = crafts[action.id];
+  state.craftAction = null;
+  if(state.autoCraft === action.id){
+    state.autoCraft = null;
+    state.autoCraftInfinite = false;
+    state.craftRepeat = false;
+  }
+  state.craftPausedForStamina = false;
+  state.craftPausedName = '';
+  let refundText = '';
+  if(refundMaterials && def?.costs){
+    Object.entries(def.costs).forEach(([id, amt]) => gainResource(id, amt));
+    refundText = ` 已退回材料：${formatCostBundle(def.costs)}。`;
+  }
+  if(!silent) addLog(`已取消目前製作：${def?.name || '未知配方'}。${refundText}`.trim());
+  if(startNext) tryStartNextCraftNow();
+  if(!silent) render();
+  return true;
+}
+function stopAutoCraft(){
+  const currentName = state.autoCraft && crafts[state.autoCraft] ? crafts[state.autoCraft].name : '';
+  state.autoCraft = null;
+  state.autoCraftInfinite = false;
+  state.craftRepeat = false;
+  state.craftQueue = [];
+  addLog(currentName ? `已停止${currentName}的重複製作，並清空排程。` : '已停止製作，並清空排程。');
+  render();
+}
+function startCraft(craftId){
+  if(!crafts[craftId]) return;
+  scheduleCraftAction(craftId, 1, 'start');
+}
+
+const craftStaminaCosts = {
+  plank:1, stoneBrick:2, brickFirewood:2, brickCoal:2, glassFirewood:2, glassCoal:2, bottle:1,
+  sashimi:1, grilledMeat:1, grilledFish:1, grilledSausage:1, bearStew:2, flour:1, applePie:2, clamSoup:1,
+  ironFirewood:3, ironCoal:3, copperFirewood:3, copperCoal:3, leather:1, softLeather:1, herbTonic:1, staminaPotion:1, boneMeal:1, compost:1, wheatSeedBundle:1, paper:1, ink:1, note:2, manual:3, coalPowder:1, copperPowder:1, ironPowder:1, silverPowder:1, goldPowder:1, magnetitePowder:1, crystalPowder:1, gemPowder:1,
+  cottonThread:1, cottonCloth:1, grassThread:1, grassCloth:1, clothes:2, fishNetTool:2,
+  stoneAxeTool:1, stonePickTool:1, shovelTool:1, stoneCarvingKnifeTool:1, stoneHammerTool:1, stonePotTool:1, stoneHoeTool:1, stonePitchforkTool:1, woodBowTool:1, stoneBowTool:1, fishingRodTool:1,
+  copperAxeTool:1, copperPickTool:1, copperShovelTool:1, copperCarvingKnifeTool:1, copperHammerTool:1, copperPotTool:1, copperHoeTool:1, copperPitchforkTool:1, copperBowTool:1, copperFishingRodTool:1, ironBowTool:1, ironFishingRodTool:1
+};
+Object.entries(craftStaminaCosts).forEach(([id, cost]) => { if(crafts[id]) crafts[id].stamina = cost; });
+
+const houseBuilds = {
+  cabin:{name:'小木屋', gold:20, costs:{planks:10, stoneBrick:4}},
+  stoneHouse:{name:'中石屋', gold:60, costs:{planks:16, stoneBrick:12, brick:8}},
+  wall:{name:'城牆段', gold:0, costs:{stoneBrick:5, planks:2, brick:3}}
+};
+
+
+function getHouseEffectText(key){
+  if(key === 'cabin') return '效果：住房容量 +2';
+  if(key === 'stoneHouse') return '效果：住房容量 +5，工人效率 +3%';
+  if(key === 'wall') return '效果：城池經驗 +10';
+  return '';
+}
+function getHouseBuiltCountText(key){
+  const built = Math.max(0, Math.floor((state.houses && state.houses[key]) || 0));
+  return `已建：${built} 棟`;
+}
+function getHouseExtraStatusText(key){
+  if(key === 'cabin' || key === 'stoneHouse'){
+    return `目前總住房容量：${housingCap()}｜目前住房：${state.workers.length}/${housingCap()}`;
+  }
+  if(key === 'wall'){
+    return `目前城牆段數：${Math.max(0, Math.floor((state.houses && state.houses.wall) || 0))}/${wallCap()}｜城池等級：Lv.${state.castleLevel}｜安全值 ${safetyValue()}`;
+  }
+  return '';
+}
+
+function bindHouseButtons(){
+  document.querySelectorAll('[data-build]').forEach(btn => {
+    const key = btn.dataset.build;
+    const def = houseBuilds[key];
+    btn.type = 'button';
+    const cap = getHouseBuildCap(key);
+    const discountedCosts = applyBuildingResourceDiscount(def.costs);
+    const unlocked = isHouseUnlocked(key);
+    const shouldHide = key !== 'cabin' && !unlocked && (state.houses[key] || 0) === 0;
+    if(shouldHide){
+      btn.style.display = 'none';
+      return;
+    }
+    btn.style.display = '';
+    btn.textContent = key === 'cabin'
+      ? `小木屋${state.houses[key] >= cap ? '（已上限）' : ''}`
+      : key === 'stoneHouse'
+        ? `中石屋${state.houses[key] >= cap ? '（已上限）' : ''}`
+        : `城牆段${state.houses[key] >= cap ? '（已上限）' : ''}`;
+    btn.title = `${def.name}\n需求金幣：${def.gold}\n需求材料：${formatCostBundle(discountedCosts)}\n${getHouseEffectText(key)}\n${getHouseBuiltCountText(key)}\n可建上限：${cap}\n${getHouseExtraStatusText(key)}`;
+    btn.disabled = state.houses[key] >= cap;
+    btn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(!btn.disabled) buildHouse(key); };
+    btn.onclick = (e) => { e.preventDefault(); };
+  });
+}
+
+
+function buildHouse(key){
+  const def = houseBuilds[key];
+  if(!isHouseUnlocked(key) && key !== 'cabin' && (state.houses[key] || 0) === 0) return addLog(`尚未研究${def.name}。`);
+  const cap = getHouseBuildCap(key);
+  if(state.houses[key] >= cap) return addLog(`${def.name}（已上限）。目前 ${state.houses[key]}/${cap}。`);
+  const discountedCosts = applyBuildingResourceDiscount(def.costs);
+  if(!canAffordResources(discountedCosts)){
+    const needText = formatCostBundle(discountedCosts);
+    const missingText = formatMissingResources(discountedCosts);
+    return addLog(`建材不足，建造${def.name}需要：${needText}${missingText ? `；尚缺：${missingText}` : ''}`);
+  }
+  spendResources(discountedCosts);
+  if(def.gold && !spendGold(def.gold)){
+    Object.entries(discountedCosts).forEach(([id,amt]) => gainResource(id,amt));
+    return addLog(`金幣不足，建造${def.name}需要：${def.gold} 金；尚缺：${Math.max(0, def.gold - toFiniteNumber(state.gold, 0))} 金。`);
+  }
+  const oldCycles = {};
+  if(key === 'stoneHouse'){
+    state.workers.forEach(w => {
+      oldCycles[w.id] = getWorkerCycleTime(w.job);
+    });
+  }
+  state.houses[key] += 1;
+  if(key === 'stoneHouse'){
+    state.workers.forEach(w => {
+      if(w.switchCooldown > 0 || w.job === 'idle') return;
+      const oldCycle = Math.max(0.01, oldCycles[w.id] || 15);
+      const newCycle = Math.max(0.01, getWorkerCycleTime(w.job));
+      w.remaining = Math.max(0, w.remaining * (newCycle / oldCycle));
+    });
+  }
+  const gainedCastleExp = castleExpBase[key] || 0;
+  if(gainedCastleExp) addCastleExp(gainedCastleExp);
+  if(def.gold) addManagementFromSpend(def.gold);
+  addLog(`完成建築：${def.name}${gainedCastleExp ? `，城池經驗 +${gainedCastleExp}` : ''}。目前住房 ${state.workers.length}/${housingCap()}。`);
+  render();
+}
+
+function upgradeBuilding(key){
+  const building = buildingDefs[key];
+  if(!isBuildUnlocked(key) && (state.buildings[key] || 0) === 0) return addLog(`尚未研究${building.name}。`);
+  const lv = state.buildings[key];
+  if(lv >= building.max) return addLog(`${building.name}（已上限）。`);
+  const rawCost = building.cost(lv + 1);
+  const discountedResources = applyBuildingResourceDiscount(rawCost.resources);
+  if(!canAffordResources(discountedResources)){
+    const needText = formatCostBundle(discountedResources);
+    const missingText = formatMissingResources(discountedResources);
+    return addLog(`建材不足，升級${building.name}需要：${needText}${missingText ? `；尚缺：${missingText}` : ''}`);
+  }
+  spendResources(discountedResources);
+  if(!spendGold(rawCost.gold)){
+    Object.entries(discountedResources).forEach(([id,amt]) => gainResource(id,amt));
+    return addLog(`金幣不足，升級${building.name}需要：${rawCost.gold} 金；尚缺：${Math.max(0, rawCost.gold - toFiniteNumber(state.gold, 0))} 金。`);
+  }
+  state.buildings[key] += 1;
+  const gainedCastleExp = castleExpUpgrade[key] || 0;
+  if(gainedCastleExp) addCastleExp(gainedCastleExp);
+  addManagementFromSpend(rawCost.gold);
+  addLog(`${building.name} 升到 Lv.${state.buildings[key]}${gainedCastleExp ? `，城池經驗 +${gainedCastleExp}` : ''}。`);
+  render();
+}
+
+
+function recruitWorker(){
+  if(state.workers.length >= housingCap()) return addLog('沒有住房空位，不能招募工人。');
+  if(!spendGold(40)) return addLog('金幣不足，無法招募工人。');
+  addManagementFromSpend(40);
+  state.workers.push({id:state.nextWorkerId++, job:'idle', remaining:getWorkerCycleTime(), switchCooldown:0, maxStamina:30, stamina:30, toolId:'', toolDurability:0, clothesEquipped:false, clothesDurability:0, toolPreference:'auto', foodPreference:'auto', craftRecipe:'plank'});
+  addLog('成功招募一名工人。');
+  render();
+}
+function setWorkerJob(id, job, options={}){
+  const { silent=false, rerender=true } = options;
+  const worker = state.workers.find(w => w.id === id);
+  if(!worker) return false;
+  if(worker.switchCooldown > 0){
+    if(!silent) addLog(`工人 #${id} 剛換崗，請稍後再調度。`);
+    return false;
+  }
+  worker.job = job;
+  worker.remaining = getWorkerCycleTime(job === 'idle' ? null : job);
+  worker.switchCooldown = 10;
+  if(job === 'idle'){ worker.toolId=''; worker.toolDurability=0; }
+  if(!silent) addLog(`工人 #${id} 已指派到：${jobDisplayName(job)}。`);
+  if(rerender) render();
+  return true;
+}
+
+function adjustWorkersForJob(job, delta){
+  if(delta > 0){
+    const idleWorker = state.workers.find(w => w.job === 'idle' && w.switchCooldown <= 0);
+    if(!idleWorker){ addLog(`沒有可立即指派到${jobDisplayName(job)}的待命工人。`); return; }
+    setWorkerJob(idleWorker.id, job, {silent:true, rerender:false});
+    addLog(`已快速指派工人 #${idleWorker.id} 到${jobDisplayName(job)}。`);
+    render();
+    return;
+  }
+  if(delta < 0){
+    const assignedWorker = [...state.workers].reverse().find(w => w.job === job && w.switchCooldown <= 0);
+    if(!assignedWorker){ addLog(`${jobDisplayName(job)}沒有可立即撤回的工人。`); return; }
+    setWorkerJob(assignedWorker.id, 'idle', {silent:true, rerender:false});
+    addLog(`已將工人 #${assignedWorker.id} 從${jobDisplayName(job)}調回待命。`);
+    render();
+  }
+}
+function payDebt(){
+  if(state.salaryDebt <= 0) return addLog('目前沒有欠薪。');
+  if(!spendGold(state.salaryDebt)) return addLog('金幣不足，無法支付欠薪。');
+  addManagementFromSpend(state.salaryDebt);
+  addLog(`已支付欠薪 ${state.salaryDebt} 金。`);
+  state.salaryDebt = 0;
+  render();
+}
+
+function getAutoCookCraftId(){
+  const order = ['grilledMeat','grilledFish','grilledSausage','clamSoup','applePie','bearStew'];
+  return order.find(id => crafts[id] && canAffordResources(crafts[id].costs)) || '';
+}
+
+function processRanch(workerId){
+  const drops = {};
+  const add = (res, amt) => { if(amt<=0) return; gainResource(res, amt); drops[res] = (drops[res] || 0) + amt; };
+  let acted = false;
+  const ranchBonus = state.buildings.ranch * 0.03;
+  const tickGain = getWorkerEffectiveCycleTime({job:'ranch', clothesEquipped:true, clothesDurability:1, toolId:''});
+  Object.keys(animalFeedDefs).forEach(id => { if(!state.ranchData[id]) state.ranchData[id] = {fed:0, timer:0}; });
+
+  ['chicken','rabbit','boar','deer','wolf','brownBear','blackBear'].forEach(id => {
+    if((state.resources[id] || 0) >= 2 && state.ranchData[id].fed > 0){
+      state.ranchData[id].timer += tickGain;
+      const need = getAnimalBreedSeconds(id);
+      if(state.ranchData[id].timer >= need){
+        state.ranchData[id].timer = 0;
+        state.ranchData[id].fed = Math.max(0, state.ranchData[id].fed - 1);
+        if(roll(animalFeedDefs[id].hatchChance + ranchBonus)){ add(id, 1); acted = true; }
+      }
+    }
+  });
+
+  if((state.resources.dairyCow || 0) >= 1 && (state.resources.bull || 0) >= 1 && state.ranchData.dairyCow.fed > 0 && state.ranchData.bull.fed > 0){
+    state.ranchData.dairyCow.timer += tickGain;
+    state.ranchData.bull.timer += tickGain;
+    const need = Math.max(getAnimalBreedSeconds('dairyCow'), getAnimalBreedSeconds('bull'));
+    if(state.ranchData.dairyCow.timer >= need && state.ranchData.bull.timer >= need){
+      state.ranchData.dairyCow.timer = 0;
+      state.ranchData.bull.timer = 0;
+      state.ranchData.dairyCow.fed = Math.max(0, state.ranchData.dairyCow.fed - 1);
+      state.ranchData.bull.fed = Math.max(0, state.ranchData.bull.fed - 1);
+      if(roll(0.90 + ranchBonus)){ add(Math.random() < 0.55 ? 'dairyCow' : 'bull', 1); acted = true; }
+    }
+  }
+
+  const chickenFeed = animalFeedDefs.chicken;
+  if((state.resources.chicken || 0) >= 1 && (state.resources[chickenFeed.food] || 0) >= chickenFeed.eggFoodPerCycle){
+    spendResource(chickenFeed.food, chickenFeed.eggFoodPerCycle);
+    add('egg', randInt(1, Math.max(2, 2 + state.buildings.ranch)));
+    if(roll(0.35 + ranchBonus)) add('feather', randInt(1,2));
+    acted = true;
+  }
+  if(acted){
+    autoCullExcessAnimals(false);
+    addSkillExp('farming', 0.05);
+    addMainExp(0.10);
+    addManagementExp(0.3);
+    addLog(`工人 #${workerId} 在牧場獲得：${Object.entries(drops).map(([id,amt]) => `${resourceLabels[id]}${amt}`).join('、') || '繁殖進度推進'}。`, false, 'worker');
+  }
+  return acted;
+}
+
+
+
+function safeTickStep(name, fn){
+  try{
+    fn();
+    if(state._runtimeErrors && state._runtimeErrors[name]) delete state._runtimeErrors[name];
+    return true;
+  }catch(err){
+    console.error(`[${name}]`, err);
+    if(!state._runtimeErrors) state._runtimeErrors = {};
+    const prev = state._runtimeErrors[name] || 0;
+    const now = Date.now();
+    state._runtimeErrors[name] = now;
+    if(!prev || now - prev > 5000){
+      addLog(`系統修復保護：${name} 更新時發生錯誤，已暫時跳過該段並讓其他讀條繼續。`, false, 'important');
+    }
+    return false;
+  }
+}
+
+function updateTimersSystem(delta){
+  state.campfireSec = Math.max(0, state.campfireSec - delta);
+  state.staminaPotionBuff = Math.max(0, state.staminaPotionBuff - delta);
+  state.staminaPotionCooldown = Math.max(0, state.staminaPotionCooldown - delta);
+  state.salaryTimer -= delta;
+  state.merchant.minuteCounter += delta;
+  if(state.merchant.present){
+    state.merchant.presentSec = Math.max(0, state.merchant.presentSec - delta);
+    if(state.merchant.presentSec <= 0){
+      state.merchant.present = false;
+      state.merchant.cash = 0;
+      state.merchant.maxCash = 0;
+      addLog('商人離開了城鎮。', false);
+    }
+  }
+  if(state.merchant.minuteCounter >= 60){
+    state.merchant.minuteCounter -= 60;
+    if(!state.merchant.present && roll(merchantChancePerMinute())){
+      state.merchant.present = true;
+      state.merchant.presentSec = 60;
+      state.merchant.maxCash = merchantCashPerVisit();
+      state.merchant.cash = state.merchant.maxCash;
+      state.merchant.lastStoreInjection = state.merchant.maxCash;
+      state.merchant.storeFunds = Math.max(0, Math.floor(toFiniteNumber(state.merchant.storeFunds, 0))) + state.merchant.lastStoreInjection;
+      const addedOrders = addMerchantOrders(randInt(1,2));
+      addLog(`有商人來到城裡張貼收購布告，共新增 ${addedOrders} 張訂單，並替商店投入 ${state.merchant.lastStoreInjection} 金（目前商店資金 ${state.merchant.storeFunds}，安全值 ${safetyValue()}）。`, false);
+    }
+  }
+  if(state.salaryTimer <= 0){
+    const tax = currentTaxIncome();
+    if(tax > 0){
+      state.pendingTax += tax;
+      addLog(`已累積稅收 ${tax} 金（安全值 ${safetyValue()}、城池等級 Lv.${state.castleLevel}）。`, false);
+    }
+    const baseWage = 8 * state.workers.length;
+    const wage = effectiveWorkerWage() * state.workers.length;
+    if(wage > 0){
+      if(state.gold >= wage){
+        state.gold -= wage;
+        addManagementExp(Math.max(1, Math.floor(baseWage * 0.5)));
+        addLog(`已支付工人薪資 ${wage} 金（原始薪資 ${baseWage} 金）。`, false);
+      }else{
+        state.salaryDebt += wage;
+        addLog(`金幣不足，累積欠薪 ${wage} 金，工人停止工作。`, false);
+      }
+    }
+    state.salaryTimer += 300;
+  }
+  restoreStamina(getRegenRate(state.isResting) * delta, true);
+  maybeResumeAfterAutoRest();
+}
+
+function updateProductionSystem(delta){
+  if(state.productionAction){
+    state.productionAction.remaining -= delta;
+    if(state.productionAction.remaining <= 0){
+      const action = state.productionAction;
+      state.productionAction = null;
+      if(action.type === 'work'){
+        const result = getWorkSummaryLoot(action.id, false);
+        applyWorkResult(action.id, result, false);
+        if(state.autoWork){
+          if(state.autoWorkCount > 0) state.autoWorkCount -= 1;
+          if(state.autoWorkCount === 0) state.autoWork = null;
+        }
+        if(state.autoWork) beginWorkCycle(state.autoWork, {silent:true});
+        else if(state.workQueue.length && !state.isResting) tryStartQueuedWork();
+      }
+    }
+  }else if(state.autoWork && !state.isResting){
+    beginWorkCycle(state.autoWork, {silent:true});
+  }else if(state.workQueue.length && !state.isResting){
+    tryStartQueuedWork();
+  }
+}
+
+function updateCraftSystem(delta){
+  if(state.craftAction){
+    state.craftAction.remaining -= delta;
+    if(state.craftAction.remaining <= 0){
+      const action = state.craftAction;
+      state.craftAction = null;
+      const def = crafts[action.id];
+      if(def){
+        Object.entries(def.yields).forEach(([id,amt]) => gainResource(id,amt));
+        addSkillExp(def.skill, action.fromWorker ? 0.15 : 1);
+        addMainExp(action.fromWorker ? 0.2 : 0.8);
+        if(action.fromWorker) addManagementExp(0.2);
+        const actualYieldText = Object.entries(def.yields).map(([id,amt])=>`${resourceLabels[id]}${amt}`).join('、');
+        addLog(action.fromWorker ? `工人製作完成：${actualYieldText}。` : craftCompletionText(def), false, 'loot');
+      }
+      if(state.craftQueue.length){
+        const next = state.craftQueue[0];
+        if(beginCraftCycle(next.id, false)){
+          next.count -= 1;
+          if(next.count <= 0) state.craftQueue.shift();
+        }else if(lastCraftBeginError !== 'stamina'){
+          state.craftQueue.shift();
+        }
+      } else if(state.autoCraft === action.id){
+        if(!beginCraftCycle(action.id, true)){
+          const def2 = crafts[action.id];
+          if(lastCraftBeginError !== 'stamina' && def2){
+            const needText = formatCostBundle(def2.costs);
+            const missingText = formatMissingResources(def2.costs);
+            addLog(`重複製作停止：${def2.name}需要 ${needText}${missingText ? `；尚缺：${missingText}` : ''}`, false);
+            state.autoCraft = null;
+            state.autoCraftInfinite = false;
+          }
+        }
+      }
+    }
+  }else if(state.craftQueue.length){
+    const next = state.craftQueue[0];
+    if(beginCraftCycle(next.id, false)){
+      next.count -= 1;
+      if(next.count <= 0) state.craftQueue.shift();
+    }else if(lastCraftBeginError !== 'stamina'){
+      state.craftQueue.shift();
+    }
+  }else if(state.autoCraft){
+    if(!beginCraftCycle(state.autoCraft, true)){
+      if(lastCraftBeginError !== 'stamina'){
+        const def = crafts[state.autoCraft];
+        if(def){
+          const needText = formatCostBundle(def.costs);
+          const missingText = formatMissingResources(def.costs);
+          addLog(`重複製作停止：${def.name}需要 ${needText}${missingText ? `；尚缺：${missingText}` : ''}`, false);
+        }
+        state.autoCraft = null;
+        state.autoCraftInfinite = false;
+      }
+    }
+  }
+}
+
+function updateResearchSystem(delta){
+  if(state.researchAction){
+    state.researchAction.remaining -= delta;
+    if(state.researchAction.remaining <= 0){
+      const action = state.researchAction;
+      state.researchAction = null;
+      if(action.type === 'read'){
+        const book = books[action.id];
+        if(book){
+          state.intelligence += book.intGain;
+          addMainExp(book.expGain);
+          addLog(`讀完《${book.name}》，智力 +${book.intGain}。`, false);
+        }
+      }else if(action.type === 'research'){
+        const def = researchDefs[action.id];
+        if(def){
+          state.research[action.id] = true;
+          state.intelligence += def.rewardInt;
+          addMainExp(2);
+          addLog(`研究完成：${def.name}。${getResearchUnlockResultText(def)}`, false);
+        }
+      }
+      renderCraftActionButtons();
+      renderBuildingButtons();
+      bindHouseButtons();
+      renderResearch();
+      if(state.researchQueue.length) tryStartQueuedResearch();
+    }
+  }else if(state.researchQueue.length){
+    tryStartQueuedResearch();
+  }
+}
+
+function updatePlotsSystem(delta){
+  state.plots.forEach(plot => {
+    if(plot && plot.remaining > 0) plot.remaining = Math.max(0, plot.remaining - delta);
+  });
+}
+
+function updateRanchSystem(delta){
+  if(!state.ranchData || typeof state.ranchData !== 'object') state.ranchData = createInitialRanchData();
+  Object.keys(animalFeedDefs).forEach(id => { if(!state.ranchData[id]) state.ranchData[id] = {fed:0, timer:0}; });
+  const ranchTick = delta * (1 + (state.buildings.ranch || 0) * 0.2);
+  const ranchBonus = (state.buildings.ranch || 0) * 0.03;
+  const ranchAdd = (id, amt) => gainResource(id, amt);
+  ['chicken','rabbit','boar','deer','wolf','brownBear','blackBear'].forEach(id => {
+    if((state.resources[id] || 0) >= 2 && state.ranchData[id].fed > 0){
+      state.ranchData[id].timer += ranchTick;
+      const need = getAnimalBreedSeconds(id);
+      if(state.ranchData[id].timer >= need){
+        state.ranchData[id].timer = 0;
+        state.ranchData[id].fed = Math.max(0, state.ranchData[id].fed - 1);
+        if(roll((animalFeedDefs[id]?.hatchChance || 0.5) + ranchBonus)) ranchAdd(id, 1);
+      }
+    }
+  });
+  if((state.resources.dairyCow || 0) >= 1 && (state.resources.bull || 0) >= 1 && state.ranchData.dairyCow && state.ranchData.bull && state.ranchData.dairyCow.fed > 0 && state.ranchData.bull.fed > 0){
+    state.ranchData.dairyCow.timer += ranchTick;
+    state.ranchData.bull.timer += ranchTick;
+    const need = Math.max(getAnimalBreedSeconds('dairyCow'), getAnimalBreedSeconds('bull'));
+    if(state.ranchData.dairyCow.timer >= need && state.ranchData.bull.timer >= need){
+      state.ranchData.dairyCow.timer = 0;
+      state.ranchData.bull.timer = 0;
+      state.ranchData.dairyCow.fed = Math.max(0, state.ranchData.dairyCow.fed - 1);
+      state.ranchData.bull.fed = Math.max(0, state.ranchData.bull.fed - 1);
+      if(roll(0.90 + ranchBonus)) ranchAdd(Math.random() < 0.55 ? 'dairyCow' : 'bull', 1);
+    }
+  }
+  autoCullExcessAnimals(false);
+}
+
+function updateWorkersSystem(delta){
+  state.workers.forEach(worker => {
+    if(!worker || typeof worker !== 'object') return;
+    if(worker.switchCooldown > 0) worker.switchCooldown = Math.max(0, worker.switchCooldown - delta);
+    if(state.salaryDebt > 0 || worker.job === 'idle') return;
+    worker.remaining = Math.max(0, toFiniteNumber(worker.remaining, getWorkerEffectiveCycleTime(worker))) - delta;
+    if(worker.remaining > 0) return;
+
+    const needTool = getToolOptionsForJob(worker.job).length > 0;
+    if(needTool && (!worker.toolId || worker.toolDurability <= 0)){
+      if(!equipWorkerTool(worker)){
+        addLog(`工人 #${worker.id} 缺少工具，無法進行${jobDisplayName(worker.job)}。`, false, 'worker');
+        worker.remaining = 8;
+        return;
+      }
+    }
+    equipWorkerClothes(worker);
+
+    const staminaNeed = getWorkerStaminaCost(worker.job) * (worker.clothesEquipped && worker.clothesDurability > 0 ? 1 : 1.35);
+    if(worker.stamina < staminaNeed){
+      workerEatIfNeeded(worker, staminaNeed);
+      if(worker.stamina < staminaNeed){
+        worker.stamina = Math.min(worker.maxStamina, worker.stamina + 2);
+        addLog(`工人 #${worker.id} 體力不足，正在休息恢復。`, false, 'worker');
+        worker.remaining = 10;
+        return;
+      }
+    }
+
+    let didWork = false;
+    if(worker.job === 'farming'){
+      let acted = false;
+      for(let i=0;i<state.plots.length;i++){
+        if(state.plots[i] && state.plots[i].remaining <= 0){ harvestPlot(i, worker.id); acted = true; break; }
+      }
+      if(!acted && state.farmerAutoFertilize){
+        const targetIndex = findBestGrowingPlotIndex();
+        if(targetIndex >= 0){
+          if((state.resources.compost || 0) > 0 && applyFertilizer(targetIndex, 'compost', 'worker')){ addManagementExp(0.3); acted = true; }
+          else if((state.resources.boneMeal || 0) > 0 && applyFertilizer(targetIndex, 'boneMeal', 'worker')){ addManagementExp(0.3); acted = true; }
+        }
+      }
+      if(!acted){
+        const seedOrder = getFarmerSeedOrder();
+        for(const seedId of seedOrder){
+          if((state.resources[seedId] || 0) > 0 && tryPlantSeed(seedId, 'worker')){ addLog(`工人 #${worker.id} 種下了${farmingDefs[seedId].name}。`, false, 'worker'); addManagementExp(0.3); acted = true; break; }
+        }
+      }
+      didWork = acted;
+      if(didWork) worker.stamina = Math.max(0, worker.stamina - staminaNeed);
+      worker.remaining = getWorkerEffectiveCycleTime(worker);
+      if(didWork) degradeWorkerEquipment(worker);
+      return;
+    }
+
+    if(worker.job === 'crafting'){
+      const craftId = worker.craftRecipe || 'plank';
+      const def = crafts[craftId];
+      if(def && canAffordResources(def.costs)){
+        spendResources(def.costs);
+        Object.entries(def.yields).forEach(([id,amt]) => gainResource(id,amt));
+        addSkillExp(def.skill, 0.05);
+        addMainExp(0.10);
+        addManagementExp(0.3);
+        const yieldText = Object.entries(def.yields).map(([id,amt])=>`${resourceLabels[id]}${amt}`).join('、');
+        addLog(`工匠 #${worker.id} 完成：${yieldText}。`, false, 'loot');
+        didWork = true;
+      }else{
+        addLog(`工匠 #${worker.id} 缺少材料，無法製作${def ? def.name : '配方'}。`, false, 'important');
+      }
+      if(didWork) worker.stamina = Math.max(0, worker.stamina - staminaNeed);
+      worker.remaining = getWorkerEffectiveCycleTime(worker);
+      if(didWork) degradeWorkerEquipment(worker);
+      return;
+    }
+
+    if(worker.job === 'cook'){
+      const craftId = getAutoCookCraftId();
+      const def = crafts[craftId];
+      if(def && canAffordResources(def.costs)){
+        spendResources(def.costs);
+        Object.entries(def.yields).forEach(([id,amt]) => gainResource(id,amt));
+        addSkillExp('cooking', 0.05);
+        addMainExp(0.10);
+        addManagementExp(0.3);
+        const yieldText = Object.entries(def.yields).map(([id,amt])=>`${resourceLabels[id]}${amt}`).join('、');
+        addLog(`廚師 #${worker.id} 完成：${yieldText}。`, false, 'loot');
+        didWork = true;
+      }else{
+        addLog(`廚師 #${worker.id} 目前沒有可烹飪的材料（需要生肉 / 魚 / 內臟+麵粉 / 蛤肉 / 蘋果+麵粉 / 熊掌）。`, false, 'important');
+      }
+      if(didWork) worker.stamina = Math.max(0, worker.stamina - staminaNeed);
+      worker.remaining = getWorkerEffectiveCycleTime(worker);
+      if(didWork) degradeWorkerEquipment(worker);
+      return;
+    }
+
+    if(worker.job === 'ranch'){
+      didWork = processRanch(worker.id);
+      if(didWork) worker.stamina = Math.max(0, worker.stamina - staminaNeed);
+      worker.remaining = getWorkerEffectiveCycleTime(worker);
+      if(didWork) degradeWorkerEquipment(worker);
+      return;
+    }
+
+    const result = getWorkSummaryLoot(worker.job, true);
+    applyWorkResult(worker.job, result, true, worker.id);
+    worker.stamina = Math.max(0, worker.stamina - staminaNeed);
+    worker.remaining = getWorkerEffectiveCycleTime(worker);
+    degradeWorkerEquipment(worker);
+  });
+}
+
+function update(delta){
+  state._suspendRender = true;
+  const safeDelta = Math.max(0, Math.min(0.25, toFiniteNumber(delta, 0)));
+  safeTickStep('timers', () => updateTimersSystem(safeDelta));
+  safeTickStep('production', () => updateProductionSystem(safeDelta));
+  safeTickStep('craft', () => updateCraftSystem(safeDelta));
+  safeTickStep('research', () => updateResearchSystem(safeDelta));
+  safeTickStep('plots', () => updatePlotsSystem(safeDelta));
+  safeTickStep('ranch', () => updateRanchSystem(safeDelta));
+  safeTickStep('workers', () => updateWorkersSystem(safeDelta));
+  state._suspendRender = false;
+}
+
+function format(num){
+  if(Math.abs(num) >= 1000) return num.toFixed(0);
+  if(Number.isInteger(num)) return String(num);
+  return num.toFixed(1);
+}
+
+function formatSecondsLabel(seconds){
+  return `${seconds.toFixed(1)}秒`;
+}
+
+function bundleText(bundle){
+  return Object.entries(bundle).map(([id,amt]) => `${resourceLabels[id]}${amt}`).join(' + ');
+}
+
+function craftCompletionText(def){
+  const yieldText = Object.entries(def.yields).map(([id,amt]) => `${resourceLabels[id]}${amt}`).join('、');
+  const mainProduct = Object.keys(def.yields)[0];
+  return `製作${resourceLabels[mainProduct] || def.name}完成：${yieldText}。`;
+}
+
+function renderWorkActionButtons(){
+  document.querySelectorAll('[data-work]').forEach(btn => {
+    const id = btn.dataset.work;
+    const def = workDefs[id];
+    const cycle = getPlayerCycleTime(id);
+    btn.type = 'button';
+    btn.textContent = def.name;
+    btn.title = `${def.name}
+體力：${def.staminaCost}
+耗時：${formatSecondsLabel(cycle)}`;
+    btn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); openWorkModal(id); };
+    btn.onclick = (e) => e.preventDefault();
+  });
+}
+
+const craftGroupMap = {
+  plank:'基礎加工', stoneBrick:'基礎加工', brickFirewood:'基礎加工', brickCoal:'基礎加工', glassFirewood:'基礎加工', glassCoal:'基礎加工', bottle:'基礎加工',
+  sashimi:'烹飪', grilledMeat:'烹飪', grilledFish:'烹飪', grilledSausage:'烹飪', bearStew:'烹飪', applePie:'烹飪', clamSoup:'烹飪',
+  flour:'研磨', boneMeal:'研磨', compost:'研磨', wheatSeedBundle:'研磨', coalPowder:'研磨', copperPowder:'研磨', ironPowder:'研磨', silverPowder:'研磨', goldPowder:'研磨', magnetitePowder:'研磨', crystalPowder:'研磨', gemPowder:'研磨',
+  ironFirewood:'冶煉與工具', ironCoal:'冶煉與工具', copperFirewood:'冶煉與工具', copperCoal:'冶煉與工具', leather:'冶煉與工具', softLeather:'冶煉與工具', stoneAxeTool:'冶煉與工具', stonePickTool:'冶煉與工具', shovelTool:'冶煉與工具', stoneCarvingKnifeTool:'冶煉與工具', stoneHammerTool:'冶煉與工具', stonePotTool:'冶煉與工具', stoneHoeTool:'冶煉與工具', stonePitchforkTool:'冶煉與工具', fishingRodTool:'冶煉與工具', woodBowTool:'冶煉與工具', stoneBowTool:'冶煉與工具', copperAxeTool:'冶煉與工具', copperPickTool:'冶煉與工具', copperShovelTool:'冶煉與工具', copperCarvingKnifeTool:'冶煉與工具', copperHammerTool:'冶煉與工具', copperPotTool:'冶煉與工具', copperHoeTool:'冶煉與工具', copperPitchforkTool:'冶煉與工具', copperFishingRodTool:'冶煉與工具', copperBowTool:'冶煉與工具', ironFishingRodTool:'冶煉與工具', ironBowTool:'冶煉與工具',
+  herbTonic:'煉金與文具', staminaPotion:'煉金與文具', paper:'煉金與文具', ink:'煉金與文具', note:'煉金與文具', manual:'煉金與文具',
+  cottonThread:'製革與裁縫', cottonCloth:'製革與裁縫', grassThread:'製革與裁縫', grassCloth:'製革與裁縫', clothes:'製革與裁縫', fishNetTool:'製革與裁縫'
+};
+function ensureCraftButtonsExist(){
+  const page = document.querySelector('[data-main-page="production"]');
+  if(!page) return;
+  const groups = {};
+  page.querySelectorAll('details').forEach(detail => {
+    const summary = detail.querySelector('summary');
+    const row = detail.querySelector('.row');
+    if(summary && row) groups[summary.textContent.trim()] = row;
+  });
+  Object.keys(crafts).forEach(id => {
+    if(page.querySelector(`[data-craft="${id}"]`)) return;
+    const groupName = craftGroupMap[id];
+    const row = groups[groupName];
+    if(!row) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.craft = id;
+    btn.textContent = crafts[id].name;
+    row.appendChild(btn);
+  });
+}
+function renderCraftActionButtons(){
+  ensureCraftButtonsExist();
+  document.querySelectorAll('[data-craft]').forEach(btn => {
+    const id = btn.dataset.craft;
+    const def = crafts[id];
+    if(!def) return;
+    const cycle = getCraftDuration(id);
+    const recipe = `${bundleText(def.costs)} → ${bundleText(def.yields)}`;
+    const locked = !!(def.unlock && !state.research[def.unlock]);
+    btn.type = 'button';
+    btn.textContent = def.name;
+    btn.title = locked
+      ? `${def.name}\n尚未研究${researchDefs[def.unlock]?.name || def.unlock}。`
+      : `${def.name}
+體力：${def.stamina || 1}
+配方：${recipe}
+耗時：${formatSecondsLabel(cycle)}`;
+    btn.style.display = locked ? 'none' : '';
+    btn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(!locked) openCraftModal(id); };
+    btn.onclick = (e) => e.preventDefault();
+  });
+}
+
+function render(){
+  bindHouseButtons();
+  renderMainPageNav();
+  document.getElementById('gold').textContent = format(state.gold);
+  document.getElementById('level').textContent = state.level;
+  document.getElementById('exp').textContent = format(state.exp);
+  document.getElementById('expNext').textContent = expToNext(state.level);
+  document.getElementById('expBar').style.width = `${(state.exp / expToNext(state.level)) * 100}%`;
+  document.getElementById('intelligence').textContent = state.intelligence;
+  document.getElementById('cycleTime').textContent = getPlayerCycleTime(state.autoWork).toFixed(2);
+  document.getElementById('stamina').textContent = format(state.stamina);
+  document.getElementById('maxStamina').textContent = maxStamina();
+  document.getElementById('staminaBar').style.width = `${(state.stamina / maxStamina()) * 100}%`;
+  document.getElementById('staminaLevel').textContent = state.staminaLevel;
+  document.getElementById('staminaExp').textContent = format(state.staminaExp);
+  document.getElementById('staminaExpNext').textContent = expToNext(state.staminaLevel);
+  document.getElementById('staminaExpBar').style.width = `${(state.staminaExp / expToNext(state.staminaLevel)) * 100}%`;
+  document.getElementById('managementLevel').textContent = state.managementLevel;
+  document.getElementById('managementExp').textContent = format(state.managementExp);
+  document.getElementById('managementExpNext').textContent = expToNext(state.managementLevel);
+  document.getElementById('managementBar').style.width = `${(state.managementExp / expToNext(state.managementLevel)) * 100}%`;
+  document.getElementById('housingUsed').textContent = state.workers.length;
+  document.getElementById('housingCap').textContent = housingCap();
+  document.getElementById('salaryTimer').textContent = Math.ceil(state.salaryTimer);
+  document.getElementById('salaryDebt').textContent = format(state.salaryDebt);
+  document.getElementById('campfireSec').textContent = Math.ceil(state.campfireSec);
+  document.getElementById('castleLevel').textContent = state.castleLevel;
+  document.getElementById('taxIncome').textContent = format(state.pendingTax);
+  const safetyEl = document.getElementById('safetyValue'); if(safetyEl) safetyEl.textContent = format(safetyValue());
+  const tradeLvEl = document.getElementById('tradeLevel'); if(tradeLvEl) tradeLvEl.textContent = state.tradeLevel;
+  const repEl = document.getElementById('reputationValue'); if(repEl) repEl.textContent = format(state.reputation);
+  const castlePill = document.getElementById('castlePill'); if(castlePill) castlePill.title = getCastleLevelEffectText();
+  const safetyPill = document.getElementById('safetyPill'); if(safetyPill) safetyPill.title = `安全值：${safetyValue()}\n安全帶：${getSafetyBand().label}\n${getSafetyBand().desc}\n作用：提高商人到訪率、商人攜帶資金與高品質訂單機率。`;
+  const tradePill = document.getElementById('tradePill'); if(tradePill) tradePill.title = getTradeLevelEffectText();
+  const repPill = document.getElementById('reputationPill'); if(repPill) repPill.title = getReputationEffectText();
+  const taxPill = document.getElementById('taxPill'); if(taxPill) taxPill.title = getTaxEffectText();
+  const mgCard = document.getElementById('managementLevel'); if(mgCard && mgCard.parentElement && mgCard.parentElement.parentElement) mgCard.parentElement.parentElement.title = getManagementLevelEffectText();
+  document.getElementById('campfireBar').style.width = `${Math.min(100, (state.campfireSec / 180) * 100)}%`;
+  const stage = getTownStage();
+  const nextStage = getNextTownStage();
+  const researchTextEl = document.getElementById('researchUnlockText');
+  if(researchTextEl){
+    researchTextEl.textContent = nextStage ? `${stage.name} → ${nextStage.name}` : `${stage.name}（最高）`;
+    researchTextEl.title = nextStage ? getMissingReqText(nextStage) : '目前已達最高城鎮階段。';
+  }
+  document.getElementById('farmingLevel').textContent = state.skills.farming.level;
+  document.getElementById('seedReturnRate').textContent = Math.round(getSeedReturnChance('wheatSeed') * 100);
+  const farmerBtn = document.getElementById('farmerAutoFertilizeBtn'); if(farmerBtn) farmerBtn.textContent = `農夫自動施肥：${state.farmerAutoFertilize ? '開' : '關'}`;
+  document.getElementById('workerCycle').textContent = getWorkerCycleTime().toFixed(2);
+  renderWorkActionButtons();
+  renderCraftActionButtons();
+
+  document.getElementById('restBtn').textContent = state.isResting ? '停止休息' : '開始休息';
+  document.getElementById('payDebtBtn').disabled = state.salaryDebt <= 0;
+  document.getElementById('claimTaxBtn').disabled = state.pendingTax <= 0;
+  document.getElementById('toggleResourcesBtn').textContent = allResourcesOpen ? '收合全部' : '展開全部';
+  document.querySelectorAll('[data-work]').forEach(btn => btn.classList.toggle('active', btn.dataset.work === state.autoWork));
+
+  const tl = document.getElementById('tradeLevel');
+  if(tl) tl.parentElement.title = `貿易等級：Lv.${state.tradeLevel}
+經驗：${format(state.tradeExp)} / ${expToNext(state.tradeLevel)}
+效果：每級讓商人到訪率額外 +0.5%`;
+  const rp = document.getElementById('reputationValue');
+  if(rp) rp.parentElement.title = `聲望：${format(state.reputation)}
+效果：工人工作速度 +${Math.round(getReputationWorkerSpeedBonus()*100)}%
+工人經驗 +${Math.round(getReputationExpBonus()*100)}%
+工人產量 +${Math.round(getReputationYieldBonus()*100)}%`;
+  const castleLevelEl = document.getElementById('castleLevel');
+  if(castleLevelEl){
+    const pill = document.getElementById('castlePill');
+    if(pill) pill.title = `城池等級：Lv.${state.castleLevel}｜${getTownStage().name}
+經驗：${format(state.castleExp)} / ${expToNext(state.castleLevel)}
+安全值：${safetyValue()}
+城牆上限：${wallCap()}
+效果：提升商人到訪率、攜帶資金與訂單品質`;
+  }
+  const topStats = document.querySelectorAll('.top-grid .stat');
+  if(topStats[1]) topStats[1].title = `主等級：Lv.${state.level}
+經驗：${format(state.exp)} / ${expToNext(state.level)}
+效果：村莊打工收入 +${(state.level - 1) * 10}%`;
+  if(topStats[3]) topStats[3].title = `體力等級：Lv.${state.staminaLevel}
+經驗：${format(state.staminaExp)} / ${expToNext(state.staminaLevel)}
+效果：最大體力 ${maxStamina()}
+休息恢復 +${Math.round(getRestEfficiencyBonus()*100)}%
+食物恢復 +${Math.round(getFoodEffectivenessBonus()*100)}%`;
+  if(topStats[4]) topStats[4].title = `管理等級：Lv.${state.managementLevel}
+經驗：${format(state.managementExp)} / ${expToNext(state.managementLevel)}
+效果：工人工作速度 +${(state.managementLevel - 1) * 2}%
+工人薪資 -${Math.round(getManagementWageDiscount()*100)}%
+建築材料需求 -${Math.round(getManagementMaterialDiscount()*100)}%`;
+  renderSkills();
+  renderAction();
+  renderResources();
+  renderSeedSelect();
+  renderQuickAssign();
+  renderWorkers();
+  renderPlots();
+  renderPasture();
+  renderBuildingButtons();
+  renderResearch();
+  const merchantActiveEl = document.activeElement;
+  const merchantFocused = !!(merchantActiveEl && merchantActiveEl.closest && merchantActiveEl.closest('#merchantArea') && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/i.test(merchantActiveEl.tagName || ''));
+  if(!merchantFocused && !isMerchantUiInteractionLocked()) renderMerchant();
+  renderWorkerCraftSelect();
+  renderWorkQueue();
+  renderCraftQueue();
+  renderResearchQueue();
+  renderLog();
+}
+
+function getSkillLevelEffectText(id){
+  const lv = state.skills[id]?.level || 1;
+  const common = `等級：Lv.${lv}\n經驗：${format(state.skills[id]?.exp || 0)} / ${expToNext(lv)}\n`;
+  const map = {
+    labor: `效果：村莊打工收入主要受主等級影響。`,
+    lumber: `效果：伐木熟練度記錄。伐木廠額外讓技能經驗 +${state.buildings.lumberMill * 10}%`,
+    mining: `效果：Lv.10 解鎖銀礦/磁石/水晶，Lv.20 解鎖金礦/寶石。`,
+    fishing: `效果：更高熟練度更容易累積釣魚進度；釣魚小屋額外讓技能經驗 +${state.buildings.fishingShack * 10}%`,
+    hunting: `效果：狩獵熟練度記錄，影響高階狩獵內容擴充基礎。`,
+    gathering: `效果：森林採集與海邊採集共用此技能。`,
+    digging: `效果：挖掘熟練度記錄；挖掘場額外讓技能經驗 +${state.buildings.quarry * 10}%`,
+    farming: `效果：目前種子返還率約 ${Math.round(getSeedReturnChance('wheatSeed') * 100)}%。`,
+    woodworking: `效果：木工製作熟練度記錄。`,
+    masonry: `效果：石工與燒製熟練度記錄。`,
+    cooking: `效果：烹飪熟練度記錄。`,
+    smelting: `效果：冶煉熟練度記錄。`,
+    alchemy: `效果：煉金熟練度記錄。`,
+    tanning: `效果：裁縫與皮料加工熟練度記錄。`
+  };
+  return common + (map[id] || '效果：記錄此技能熟練度。');
+}
+function setMainPage(page){
+  state.ui.mainPage = page;
+  renderMainPageNav();
+  render();
+}
+function renderMainPageNav(){
+  const allowed = ['production','farm','trade','build','workers','log'];
+  if(!allowed.includes(state.ui.mainPage)) state.ui.mainPage = 'production';
+  document.querySelectorAll('[data-main-nav]').forEach(btn => {
+    const page = btn.dataset.mainNav;
+    btn.classList.toggle('active', page === state.ui.mainPage);
+  });
+  document.querySelectorAll('[data-main-page]').forEach(panel => {
+    panel.classList.toggle('page-hidden', panel.dataset.mainPage !== state.ui.mainPage);
+  });
+}
+
+function renderSkills(){
+  const root = document.getElementById('skillPills');
+  root.innerHTML = '';
+  Object.entries(skillLabels).forEach(([id,label]) => {
+    const skill = state.skills[id];
+    const div = document.createElement('div');
+    div.className = 'pill';
+    div.textContent = `${label} Lv.${skill.level}`;
+    div.title = `${label}\n${getSkillLevelEffectText(id)}`;
+    root.appendChild(div);
+  });
+}
+
+function renderAction(){
+  const setLane = (prefix, action, idleText, activeTextFn) => {
+    const textEl = document.getElementById(prefix + 'Text');
+    const barEl = document.getElementById(prefix + 'Bar');
+    if(action){
+      textEl.textContent = activeTextFn(action);
+      barEl.style.width = `${clamp((1 - action.remaining / action.total) * 100, 0, 100)}%`;
+    }else{
+      textEl.textContent = idleText;
+      barEl.style.width = '0%';
+    }
+  };
+  const workQueued = getQueueCount(state.workQueue);
+  if(state.productionAction){
+    const a = state.productionAction;
+    const modeText = state.autoWorkCount < 0 ? '∞' : (state.autoWorkCount > 0 ? `×${state.autoWorkCount}` : '');
+    setLane('production', a, '生產：閒置', act => `生產：${workDefs[act.id].name}${modeText ? ` ${modeText}` : ''}｜剩餘 ${Math.max(0,act.remaining).toFixed(1)} 秒`);
+  }else if(state.isResting){
+    document.getElementById('productionText').textContent = '生產：休息中';
+    document.getElementById('productionBar').style.width = '100%';
+  }else if(state.autoWork){
+    const modeText = state.autoWorkCount < 0 ? '∞' : (state.autoWorkCount > 0 ? `×${state.autoWorkCount}` : '');
+    document.getElementById('productionText').textContent = `生產：待命，${workDefs[state.autoWork].name}${modeText}`;
+    document.getElementById('productionBar').style.width = '0%';
+  }else if(workQueued){
+    document.getElementById('productionText').textContent = '生產：待命';
+    document.getElementById('productionBar').style.width = '0%';
+  }else{
+    document.getElementById('productionText').textContent = '生產：閒置';
+    document.getElementById('productionBar').style.width = '0%';
+  }
+  const qCount = getQueueCount(state.craftQueue);
+  const craftIdleText = state.craftPausedForStamina && state.craftPausedName ? `製作：體力不足暫停（${state.craftPausedName}）` : state.autoCraft ? `製作：待命，重複${crafts[state.autoCraft].name}` : qCount ? `製作：待命` : '製作：閒置';
+  setLane('craft', state.craftAction, craftIdleText, act => `製作：${crafts[act.id].name}${state.autoCraft===act.id?'（重複）':''}｜剩餘 ${Math.max(0,act.remaining).toFixed(1)} 秒`);
+  const rQueued = getQueueCount(state.researchQueue);
+  if(state.researchAction){
+    const a = state.researchAction;
+    const label = a.type === 'read' ? `研究：閱讀《${books[a.id].name}》` : `研究：${researchDefs[a.id].name}`;
+    document.getElementById('researchText').textContent = `${label}｜剩餘 ${Math.max(0,a.remaining).toFixed(1)} 秒`;
+    document.getElementById('researchBar').style.width = `${clamp((1 - a.remaining / a.total) * 100, 0, 100)}%`;
+  }else{
+    document.getElementById('researchText').textContent = rQueued ? '研究：待命' : '研究：閒置';
+    document.getElementById('researchBar').style.width = '0%';
+  }
+}
+
+function getResourceUseMeta(id){
+  const food = edibleValues[id];
+  if(id === 'staminaPotion') return { action:'potion', label:`點擊使用｜180 秒內提高體力回復速度，冷卻 300 秒` };
+  if(typeof food === 'number') return { action:'eat', label: food >= 0 ? `點擊使用｜恢復 ${food} 體力` : `點擊食用｜體力 ${food}` };
+  if(id === 'boneMeal') return { action:'fertilize', label:'點擊施肥｜對目前作物縮短 5% 成長時間' };
+  if(id === 'compost') return { action:'fertilize', label:'點擊施肥｜對目前作物縮短 10% 成長時間' };
+  if(id in fuelDurations) return { action:'fuel', label:`點擊投入篝火｜+${fuelDurations[id]} 秒` };
+  return null;
+}
+
+function renderResources(){
+  const groups = {
+    '食物與飲品':['rawMeat','rawChicken','fish','sashimi','grilledMeat','grilledFish','grilledSausage','bearStew','applePie','clamSoup','staminaPotion'],
+    '基礎資源':['wood','stone','dirt','sand','branch','leaf','firewood','coal'],
+    '農作與種子':['apple','wheat','cotton','carrot','wheatFlour','cottonThread','cottonCloth','grassThread','grassCloth','wheatSeed','mushroomSpore','appleSeed','cottonSeed','carrotSeed','egg','boneMeal','compost'],
+    '礦物':['copperOre','ironOre','silverOre','goldOre','magnetite','crystal','gem','copperIngot','ironIngot','coalPowder','copperPowder','ironPowder','silverPowder','goldPowder','magnetitePowder','crystalPowder','gemPowder'],
+    '採集':['herb','rareHerb','mushroom','fiber','ginseng','shellfish','shell','clamMeat','pearl','coral','snail'],
+    '漁獲':['shrimp','crab'],
+    '獵物與分解材料':['chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear','milk','cowHorn','offal','hide','bone','feather','boarTusk','deerAntler','bearPaw','bearFang','leather','softLeather','clothes'],
+    '工具與建材':['stoneAxeTool','shovelTool','woodBowTool','stoneBowTool','fishingRodTool','fishNetTool','ironBowTool','ironFishingRodTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHoeTool','copperPitchforkTool','copperBowTool','copperFishingRodTool','planks','stoneBrick','brick','glass','glassBottle']
+  };
+  const root = document.getElementById('resources');
+  root.innerHTML = '';
+  Object.entries(groups).forEach(([title, ids]) => {
+    const group = document.createElement('div');
+    group.className = 'resource-group';
+    const isOpen = title in resourceOpenState ? resourceOpenState[title] : allResourcesOpen;
+    resourceOpenState[title] = isOpen;
+
+    const summary = document.createElement('button');
+    summary.type = 'button';
+    summary.className = 'resource-summary';
+    summary.dataset.group = title;
+    summary.innerHTML = `<span>${title}</span><span class="resource-arrow">${isOpen ? '▼' : '▶'}</span>`;
+    summary.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const current = resourceOpenState[title] ?? allResourcesOpen;
+      resourceOpenState[title] = !current;
+      renderResources();
+    });
+    group.appendChild(summary);
+
+    const body = document.createElement('div');
+    body.className = 'resource-body' + (isOpen ? '' : ' closed');
+    const list = document.createElement('div');
+    list.className = 'resource-list';
+
+    ids.forEach(id => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      const meta = getResourceUseMeta(id);
+      item.className = 'resource-item' + (meta ? ' clickable' : '');
+      if(meta){
+        item.dataset.action = meta.action;
+        item.dataset.id = id;
+        item.title = meta.label;
+        item.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openResourceModal(id, meta.action);
+        });
+      } else {
+        item.disabled = true;
+        item.title = `${resourceLabels[id]}：${format(state.resources[id] || 0)}`;
+      }
+      item.innerHTML = `<strong>${resourceLabels[id]}：${format(state.resources[id] || 0)}</strong>${meta ? `<span class="meta">${meta.label}</span>` : ''}`;
+      list.appendChild(item);
+    });
+    body.appendChild(list);
+    group.appendChild(body);
+    root.appendChild(group);
+  });
+}
+
+function getSelectedManualSeed(){
+  const key = state.ui.manualSeedSelection;
+  return farmingDefs[key] ? key : 'wheatSeed';
+}
+function getFarmerSeedPreference(){
+  const key = state.ui.farmerSeedPreference;
+  return key === 'auto' || farmingDefs[key] ? key : 'auto';
+}
+function getFarmerSeedOrder(){
+  const all = Object.keys(farmingDefs);
+  const pref = getFarmerSeedPreference();
+  if(pref === 'auto') return all;
+  return [pref, ...all.filter(id => id !== pref)];
+}
+function findEmptyPlotIndex(){
+  return Array.isArray(state.plots) ? state.plots.findIndex(plot => !plot) : -1;
+}
+function tryPlantSeed(seedId, source='manual', targetIndex=null){
+  const def = farmingDefs[seedId];
+  if(!def) return false;
+  if((state.resources[seedId] || 0) < 1) return false;
+  const index = targetIndex == null ? findEmptyPlotIndex() : Number(targetIndex);
+  if(!Number.isInteger(index) || index < 0 || index >= state.plots.length || state.plots[index]) return false;
+  if(!spendResource(seedId, 1)) return false;
+  const total = getCropDuration(seedId);
+  state.plots[index] = {
+    seedId,
+    total,
+    remaining: total,
+    boneMealUsed: 0,
+    compostUsed: 0,
+    plantedAt: Date.now()
+  };
+  if(source === 'manual') addLog(`你在農地 ${index + 1} 種下了${def.name}。`, false, 'loot');
+  return true;
+}
+function harvestPlot(index, source='manual'){
+  const plot = state.plots[index];
+  if(!plot || plot.remaining > 0) return false;
+  const def = farmingDefs[plot.seedId];
+  if(!def){
+    state.plots[index] = null;
+    return false;
+  }
+  const drops = {};
+  const cropMult = getCropYieldMultiplier(plot.seedId) * (1 + getReputationYieldBonus());
+  Object.entries(def.yields).forEach(([id, range]) => {
+    const raw = Array.isArray(range) ? randInt(range[0], range[1]) : toFiniteNumber(range, 1);
+    const amt = Math.max(1, Math.floor(raw * cropMult));
+    gainResource(id, amt);
+    drops[id] = (drops[id] || 0) + amt;
+  });
+  if(roll(getSeedReturnChance(plot.seedId))){
+    gainResource(plot.seedId, 1);
+    drops[plot.seedId] = (drops[plot.seedId] || 0) + 1;
+  }
+  state.plots[index] = null;
+  if(source === 'manual'){
+    addSkillExp('farming', 1);
+    addMainExp(1);
+  }else{
+    addSkillExp('farming', 0.05 * (1 + getReputationExpBonus()));
+    addMainExp(0.10 * (1 + getReputationExpBonus()));
+    addManagementExp(0.3);
+  }
+  const lootText = Object.entries(drops).map(([id, amt]) => `${resourceLabels[id]}${amt}`).join('、');
+  if(source === 'manual') addLog(`你收成了農地 ${index + 1} 的${def.name}：${lootText}。`, false, 'loot');
+  else addLog(`工人 #${source} 收成了農地 ${index + 1} 的${def.name}：${lootText}。`, false, 'worker');
+  return true;
+}
+function openManualSeedChoice(targetIndex=null){
+  const selected = getSelectedManualSeed();
+  openChoiceModal({
+    title: targetIndex == null ? '選擇手動種植作物' : `選擇農地 ${Number(targetIndex) + 1} 要種的作物`,
+    desc: targetIndex == null ? '選擇後可按「種下目前選擇」直接播種到第一塊空農地。' : '選擇後會直接種到指定農地。',
+    options: Object.keys(farmingDefs).map(id => ({
+      label: `${farmingDefs[id].name}（種子 ${format(state.resources[id] || 0)}）${id === selected ? ' ✓' : ''}`,
+      onSelect: () => {
+        state.ui.manualSeedSelection = id;
+        if(targetIndex != null){
+          if(!tryPlantSeed(id, 'manual', targetIndex)) addLog(`無法在農地 ${Number(targetIndex) + 1} 種下${farmingDefs[id].name}。可能是種子不足或該農地已被使用。`);
+        }
+        render();
+      }
+    }))
+  });
+}
+function openFarmerSeedChoice(){
+  const current = getFarmerSeedPreference();
+  openChoiceModal({
+    title: '設定農夫自動種植偏好',
+    desc: '可指定農夫優先種哪一種作物；材料不足時會自動改種其他可種的種子。',
+    options: [
+      {label: `自動（依可用種子判定）${current === 'auto' ? ' ✓' : ''}`, onSelect: () => { state.ui.farmerSeedPreference = 'auto'; render(); }},
+      ...Object.keys(farmingDefs).map(id => ({
+        label: `${farmingDefs[id].name}${current === id ? ' ✓' : ''}`,
+        onSelect: () => { state.ui.farmerSeedPreference = id; render(); }
+      }))
+    ]
+  });
+}
+function renderSeedSelect(){
+  const seedBtn = document.getElementById('seedSelectBtn');
+  if(seedBtn){
+    const seedId = getSelectedManualSeed();
+    seedBtn.textContent = `手動種植：${farmingDefs[seedId]?.name || '未選擇'}（種子 ${format(state.resources[seedId] || 0)}）`;
+    seedBtn.title = '點擊選擇手動種植作物';
+  }
+  const farmerSeedBtn = document.getElementById('farmerSeedBtn');
+  if(farmerSeedBtn){
+    const pref = getFarmerSeedPreference();
+    farmerSeedBtn.textContent = `農夫自動種植：${pref === 'auto' ? '自動' : farmingDefs[pref]?.name || '自動'}`;
+    farmerSeedBtn.title = '點擊設定農夫自動種植偏好';
+  }
+}
+
+function renderQuickAssign(){
+  const root = document.getElementById('quickAssignArea');
+  if(!root) return;
+  root.innerHTML = '';
+  if(state.workers.length === 0) return;
+  const title = document.createElement('div');
+  title.className = 'small muted';
+  const idleReady = state.workers.filter(w => w.job === 'idle' && w.switchCooldown <= 0).length;
+  title.textContent = `快速指派：按 + 從待命工人派往崗位，按 − 把該崗位工人調回待命。可立即調度的待命工人：${idleReady} 人。`;
+  root.appendChild(title);
+  const grid = document.createElement('div');
+  grid.className = 'quick-assign-grid';
+  workerJobs.filter(job => job !== 'idle').forEach(job => {
+    const row = document.createElement('div');
+    row.className = 'qa-row';
+    const left = document.createElement('div');
+    left.innerHTML = `<strong>${jobDisplayName(job)}</strong><div class="small muted">目前 ${state.workers.filter(w => w.job === job).length} 人</div>`;
+    row.appendChild(left);
+    const controls = document.createElement('div');
+    controls.className = 'qa-controls';
+    const minus = document.createElement('button');
+    minus.className = 'tiny-btn';
+    minus.textContent = '−';
+    minus.type = 'button';
+    minus.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); adjustWorkersForJob(job, -1); });
+    const count = document.createElement('span');
+    count.className = 'job-count';
+    count.textContent = state.workers.filter(w => w.job === job).length;
+    const plus = document.createElement('button');
+    plus.className = 'tiny-btn';
+    plus.textContent = '+';
+    plus.type = 'button';
+    plus.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); adjustWorkersForJob(job, 1); });
+    controls.appendChild(minus);
+    controls.appendChild(count);
+    controls.appendChild(plus);
+    row.appendChild(controls);
+    grid.appendChild(row);
+  });
+  root.appendChild(grid);
+}
+
+function renderWorkers(){
+  const root = document.getElementById('workers');
+  root.innerHTML = '';
+  if(state.workers.length === 0){
+    root.innerHTML = '<div class="muted small" style="margin-top:8px">還沒有工人。先蓋房，再招募。</div>';
+    return;
+  }
+  const summary = document.createElement('div');
+  summary.className = 'small muted';
+  summary.style.marginTop = '10px';
+  const byJob = {};
+  workerJobs.forEach(job => byJob[job] = 0);
+  state.workers.forEach(w => byJob[w.job] = (byJob[w.job] || 0) + 1);
+  const cooldown = state.workers.filter(w => w.switchCooldown > 0).length;
+  summary.textContent = `工人總數 ${state.workers.length} 人｜待命 ${byJob.idle || 0} 人｜工匠 ${byJob.crafting || 0} 人｜廚師 ${byJob.cook || 0} 人｜村民正在回程/前往 ${cooldown} 人${state.salaryDebt > 0 ? '｜欠薪暫停中' : ''}`;
+  root.appendChild(summary);
+  const pref = document.createElement('div');
+  pref.className = 'small muted';
+  pref.style.marginTop = '8px';
+  pref.textContent = '工人設定列表：每名工人可個別設定工具優先、食物偏好；工匠可個別指定製作配方。';
+  root.appendChild(pref);
+
+  const grid = document.createElement('div');
+  grid.className = 'workers-grid';
+  const artisanSkills = new Set(['woodworking','masonry','smelting','alchemy','tanning']);
+  const craftOptions = Object.entries(crafts).filter(([id, def]) => (!def.unlock || state.research[def.unlock]) && artisanSkills.has(def.skill));
+  const foodChoices = getWorkerFoodChoices();
+
+  state.workers.forEach(worker => {
+    const card = document.createElement('div');
+    card.className = 'worker';
+    let label = '待命中';
+    let remaining = 0;
+    let total = 1;
+    if(state.salaryDebt > 0){ label = '欠薪暫停'; }
+    else if(worker.switchCooldown > 0){ label = `回程/前往 ${worker.switchCooldown.toFixed(1)} 秒`; remaining = worker.switchCooldown; total = 10; }
+    else if(worker.job === 'idle'){ label = '待命中'; }
+    else {
+      const needsTool = getToolOptionsForJob(worker.job).length > 0;
+      const staminaNeed = getWorkerStaminaCost(worker.job) * (worker.clothesEquipped && worker.clothesDurability > 0 ? 1 : 1.35);
+      if(needsTool && (!worker.toolId || worker.toolDurability <= 0)) label = '缺少工具';
+      else if(worker.stamina < staminaNeed) label = '體力不足';
+      else label = `${jobDisplayName(worker.job)} ${worker.remaining.toFixed(1)} 秒`;
+      total = getWorkerEffectiveCycleTime(worker);
+      remaining = Math.min(worker.remaining, total);
+    }
+    const progress = total > 0 ? clamp((1 - remaining / total) * 100, 0, 100) : 0;
+    const clothesText = worker.clothesEquipped && worker.clothesDurability > 0 ? `衣服（${Math.ceil(worker.clothesDurability)}/${getToolDurabilityMax('clothes')}）` : '無衣服';
+    const toolText = worker.toolId && worker.toolDurability > 0 ? `${resourceLabels[worker.toolId]}（${Math.ceil(worker.toolDurability)}/${getToolDurabilityMax(worker.toolId)}）` : '缺工具';
+    const needToolText = getWorkerToolRequirementText(worker.job);
+    card.innerHTML = `
+      <div class="worker-status">
+        <span class="worker-label">工人 #${worker.id}</span>
+        <span class="small muted">${label}</span>
+      </div>
+      <div class="bar"><div class="fill action" style="width:${progress}%"></div></div>
+      <div class="small muted" style="margin-top:4px">${jobDisplayName(worker.job)}</div>
+      <div class="small muted">體力：${worker.stamina.toFixed(1)} / ${worker.maxStamina}</div>
+      <div class="small muted">需求工具：${needToolText}</div>
+      <div class="small muted">工具：${toolText}</div>
+      <div class="small muted">衣服：${clothesText}</div>
+    `;
+
+    const prefWrap = document.createElement('div');
+    prefWrap.className = 'row';
+    prefWrap.style.marginTop = '6px';
+    prefWrap.style.alignItems = 'center';
+
+    const toolOptions = getToolOptionsForJob(worker.job);
+    const currentToolPref = toolOptions.includes(worker.toolPreference) ? worker.toolPreference : 'auto';
+    const toolBtn = document.createElement('button');
+    toolBtn.type = 'button';
+    toolBtn.textContent = toolOptions.length ? `工具優先：${currentToolPref === 'auto' ? '自動' : resourceLabels[currentToolPref]}` : '工具優先：不需要';
+    toolBtn.disabled = !toolOptions.length;
+    toolBtn.onpointerdown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if(!toolOptions.length) return;
+      openChoiceModal({
+        title: `工人 #${worker.id} 工具優先`,
+        desc: `目前工作：${jobDisplayName(worker.job)}
+需求工具：${needToolText}`,
+        options: [
+          {label: `自動${currentToolPref === 'auto' ? ' ✓' : ''}`, onSelect: () => { worker.toolPreference = 'auto'; render(); }},
+          ...toolOptions.map(id => ({ label: `${resourceLabels[id]}${currentToolPref === id ? ' ✓' : ''}`, onSelect: () => { worker.toolPreference = id; render(); }}))
+        ]
+      });
+    };
+    toolBtn.onclick = (e) => e.preventDefault();
+    prefWrap.appendChild(toolBtn);
+
+    const currentFoodPref = foodChoices.includes(worker.foodPreference) ? worker.foodPreference : 'auto';
+    const foodBtn = document.createElement('button');
+    foodBtn.type = 'button';
+    foodBtn.textContent = `食物：${currentFoodPref === 'auto' ? '自動' : resourceLabels[currentFoodPref]}`;
+    foodBtn.onpointerdown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openChoiceModal({
+        title: `工人 #${worker.id} 食物偏好`,
+        desc: '選擇工人優先食用的恢復食物。若為自動，工人會先吃便宜或低階食物，並盡量保留一部分熟食庫存給玩家。若指定食物不足，工人會等待或休息。',
+        options: [
+          {label: `自動${currentFoodPref === 'auto' ? ' ✓' : ''}`, onSelect: () => { worker.foodPreference = 'auto'; render(); }},
+          ...foodChoices.map(id => ({ label: `${resourceLabels[id]}（庫存 ${format(state.resources[id] || 0)}）${currentFoodPref === id ? ' ✓' : ''}`, onSelect: () => { worker.foodPreference = id; render(); }}))
+        ]
+      });
+    };
+    foodBtn.onclick = (e) => e.preventDefault();
+    prefWrap.appendChild(foodBtn);
+    card.appendChild(prefWrap);
+
+    if(worker.job === 'crafting'){
+      const availableCraftOptions = craftOptions.length ? craftOptions : [['plank', crafts.plank]];
+      if(!availableCraftOptions.some(([id]) => id === worker.craftRecipe)) worker.craftRecipe = availableCraftOptions[0][0];
+      const craftBtn = document.createElement('button');
+      craftBtn.type = 'button';
+      craftBtn.style.marginTop = '6px';
+      craftBtn.textContent = crafts[worker.craftRecipe]?.name || '選擇配方';
+      craftBtn.onpointerdown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openChoiceModal({
+          title: `工人 #${worker.id} 工匠配方`,
+          desc: '點選後立即切換該工匠的製作目標。已研究的配方都會顯示在這裡。',
+          options: availableCraftOptions.map(([id, def]) => ({ label: `${def.name}${worker.craftRecipe === id ? ' ✓' : ''}`, onSelect: () => { worker.craftRecipe = id; render(); }}))
+        });
+      };
+      craftBtn.onclick = (e) => e.preventDefault();
+      card.appendChild(craftBtn);
+    }
+    grid.appendChild(card);
+  });
+  root.appendChild(grid);
+}
+
+function applyFertilizer(index, type, source='manual'){
+  const plot = state.plots[index];
+  if(!plot || plot.remaining <= 0) return false;
+  const item = type === 'boneMeal' ? 'boneMeal' : 'compost';
+  const reduction = type === 'boneMeal' ? 0.05 : 0.10;
+  if(!spendResource(item,1)){
+    if(source !== 'worker') addLog(`沒有可使用的${resourceLabels[item]}。`);
+    return false;
+  }
+  plot.remaining = Math.max(0, plot.remaining - plot.total * reduction);
+  if(type === 'boneMeal') plot.boneMealUsed = (plot.boneMealUsed || 0) + 1;
+  else plot.compostUsed = (plot.compostUsed || 0) + 1;
+  const actor = source === 'worker' ? '農夫' : '已';
+  addLog(`${actor}對${farmingDefs[plot.seedId].name}使用${resourceLabels[item]}，成長時間縮短 ${Math.round(reduction*100)}%。`);
+  return true;
+}
+function findBestGrowingPlotIndex(){
+  let best = -1;
+  let bestRemaining = -1;
+  state.plots.forEach((plot, idx) => {
+    if(plot && plot.remaining > 0 && plot.remaining > bestRemaining){
+      bestRemaining = plot.remaining;
+      best = idx;
+    }
+  });
+  return best;
+}
+function useFertilizerOnBestPlot(type){
+  const idx = findBestGrowingPlotIndex();
+  if(idx < 0){
+    addLog('目前沒有可施肥的作物。');
+    return false;
+  }
+  const ok = applyFertilizer(idx, type, 'resource');
+  if(ok) render();
+  return ok;
+}
+function renderPlots(){
+  const root = document.getElementById('plots');
+  root.innerHTML = '';
+  const summary = document.createElement('div');
+  summary.className = 'row';
+  summary.style.justifyContent = 'space-between';
+  summary.style.alignItems = 'center';
+  summary.style.marginBottom = '8px';
+  const info = document.createElement('div');
+  info.className = 'small muted';
+  info.textContent = `已建農田：${countBuiltPlots()}/${getFarmPlotCap()}`;
+  const cost = getFarmBuildCost();
+  info.title = `建造下一塊農田\n需求金幣：${cost.gold}\n需求材料：${formatCostBundle(applyBuildingResourceDiscount(cost.resources))}\n目前已建：${countBuiltPlots()} / ${getFarmPlotCap()}\n城鎮中心每級提高農田上限 +2`;
+  summary.appendChild(info);
+  const buildBtn = document.createElement('button');
+  buildBtn.type = 'button';
+  buildBtn.className = 'tiny-btn';
+  buildBtn.textContent = countBuiltPlots() >= getFarmPlotCap() ? '建造農田（已上限）' : '建造農田';
+  buildBtn.title = info.title;
+  buildBtn.disabled = countBuiltPlots() >= getFarmPlotCap();
+  buildBtn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(!buildBtn.disabled && buildFarmPlot()) render(); };
+  buildBtn.onclick = (e) => e.preventDefault();
+  summary.appendChild(buildBtn);
+  root.appendChild(summary);
+
+  const grid = document.createElement('div');
+  grid.className = 'plot-grid';
+  state.plots.forEach((plot, idx) => {
+    const box = document.createElement('div');
+    box.className = 'plot';
+    if(!plot){
+      const selectedSeed = getSelectedManualSeed();
+      box.innerHTML = `
+        <div class="plot-header">
+          <div class="plot-label">農地 ${idx + 1}</div>
+          <div class="plot-note">空地</div>
+        </div>
+        <div class="plot-note">目前選擇：${farmingDefs[selectedSeed]?.name || '未選擇'}</div>`;
+      const row = document.createElement('div');
+      row.className = 'plot-actions';
+      const plantBtn = document.createElement('button');
+      plantBtn.type = 'button';
+      plantBtn.className = 'tiny-btn';
+      plantBtn.textContent = '種下';
+      plantBtn.title = `在農地 ${idx + 1} 種下目前選擇的作物`;
+      plantBtn.onpointerdown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if(!tryPlantSeed(selectedSeed, 'manual', idx)) addLog(`無法在農地 ${idx + 1} 種下${farmingDefs[selectedSeed]?.name || '作物'}。`);
+        render();
+      };
+      plantBtn.onclick = (e) => e.preventDefault();
+      const chooseBtn = document.createElement('button');
+      chooseBtn.type = 'button';
+      chooseBtn.className = 'tiny-btn';
+      chooseBtn.textContent = '選作物';
+      chooseBtn.onpointerdown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openManualSeedChoice(idx);
+      };
+      chooseBtn.onclick = (e) => e.preventDefault();
+      row.appendChild(plantBtn);
+      row.appendChild(chooseBtn);
+      box.appendChild(row);
+    }else{
+      const def = farmingDefs[plot.seedId];
+      const matured = plot.remaining <= 0;
+      box.innerHTML = `
+        <div class="plot-header">
+          <div class="plot-label">農地 ${idx + 1}：${def.name}</div>
+          <div class="plot-note">${matured ? '可收成' : `剩 ${plot.remaining.toFixed(1)} 秒`}</div>
+        </div>
+        <div class="plot-note">${matured ? '已成熟，點收成即可。' : `骨粉 ${plot.boneMealUsed || 0}｜肥料 ${plot.compostUsed || 0}`}</div>
+        <div class="bar"><div class="fill exp" style="width:${(1 - plot.remaining / plot.total) * 100}%"></div></div>`;
+      if(matured){
+        const doHarvest = (e) => {
+          if(e){
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          if(harvestPlot(idx, 'manual')) render();
+        };
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = '收成';
+        btn.className = 'tiny-btn';
+        btn.style.marginTop = '6px';
+        btn.onclick = doHarvest;
+        btn.onpointerdown = doHarvest;
+        box.onclick = (e) => {
+          if(e.target !== btn) doHarvest(e);
+        };
+        box.onpointerdown = (e) => {
+          if(e.target !== btn) doHarvest(e);
+        };
+        box.style.cursor = 'pointer';
+        box.appendChild(btn);
+      }else{
+        const row = document.createElement('div');
+        row.className = 'plot-actions';
+        const boneBtn = document.createElement('button');
+        boneBtn.className = 'tiny-btn';
+        boneBtn.textContent = `骨粉（${format(state.resources.boneMeal || 0)}）`;
+        boneBtn.title = `點擊使用骨粉，${def.name}剩餘時間立即縮短 5%`;
+        boneBtn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(applyFertilizer(idx, 'boneMeal', 'manual')) render(); };
+        boneBtn.onclick = (e) => e.preventDefault();
+        const compBtn = document.createElement('button');
+        compBtn.className = 'tiny-btn';
+        compBtn.textContent = `肥料（${format(state.resources.compost || 0)}）`;
+        compBtn.title = `點擊使用肥料堆，${def.name}剩餘時間立即縮短 10%`;
+        compBtn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(applyFertilizer(idx, 'compost', 'manual')) render(); };
+        compBtn.onclick = (e) => e.preventDefault();
+        row.appendChild(boneBtn);
+        row.appendChild(compBtn);
+        box.appendChild(row);
+      }
+    }
+    grid.appendChild(box);
+  });
+  root.appendChild(grid);
+}
+function renderPasture(){
+  const root = document.getElementById('pastureArea');
+  if(!root) return;
+  const ranchLv = state.buildings.ranch || 0;
+  const ranchWorkers = state.workers.filter(w => w.job === 'ranch').length;
+  const levelEl = document.getElementById('ranchLevel'); if(levelEl) levelEl.textContent = ranchLv;
+  const workerEl = document.getElementById('ranchWorkers'); if(workerEl) workerEl.textContent = ranchWorkers;
+  const animals = ['chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear'];
+  const totalCap = getRanchTotalCapacity();
+  const usedCap = getRanchUsedCapacity();
+  const animalCards = animals.map(id => {
+    const have = Math.floor(toFiniteNumber(state.resources[id] || 0, 0));
+    const cap = getAnimalCap(id);
+    const rarity = getAnimalRarityLabel(id);
+    const ratioText = getAnimalCapRatioText(id);
+    const feed = animalFeedDefs[id];
+    const ranchState = state.ranchData[id] || {fed:0, timer:0};
+    const ready = ranchState.timer >= getAnimalBreedSeconds(id) && ranchState.fed > 0;
+    const pairHint = id === 'dairyCow' ? '｜需至少 1 公牛配對' : id === 'bull' ? '｜需至少 1 乳牛配對' : '';
+    return `<div class="mini" title="稀有度：${rarity}
+物種上限比例：${ratioText}
+物種上限：${cap}
+超出上限會自動屠宰。"><strong>${resourceLabels[id]}</strong><div class="small muted">現有 ${format(have)} / 上限 ${format(cap)} 隻</div><div class="small muted">${rarity}｜餵養 ${resourceLabels[feed.food]} × ${feed.amount}${pairHint}</div><div class="small muted">已餵 ${format(ranchState.fed)} 次｜繁殖計時 ${Math.floor(ranchState.timer)}/${getAnimalBreedSeconds(id)} 秒${ready ? '｜可繁殖' : ''}</div><div class="row" style="margin-top:6px"><button class="tiny-btn" onclick="feedAnimal('${id}')">餵養</button></div></div>`;
+  }).join('');
+  const bonus = Math.round(ranchLv * 20);
+  const eggBonus = Math.round(ranchLv * 10);
+  root.innerHTML = `
+    <div class="small muted">${ranchLv > 0 ? `牧場容量 ${format(usedCap)} / ${format(totalCap)}｜繁殖速度加成 ${bonus}%｜雞蛋額外產量加成 ${eggBonus}%` : '尚未建造牧場。可先在建築區升級牧場，再指派工人到牧場工作。'}</div>
+    <div class="info-grid" style="margin-top:8px">${animalCards}</div>
+    <div class="small muted" style="margin-top:8px">繁殖需要先餵食；乳牛與公牛需要成對餵養後才會繁殖。普通動物約 180 秒，常見 240 秒，稀有 300 秒，珍稀 360 秒，會再受牧場等級縮短。</div>
+  `;
+}
+
+function renderBuildingButtons(){
+  const root = document.getElementById('buildingButtons');
+  root.innerHTML = '';
+
+  const farmBtn = document.createElement('button');
+  farmBtn.type = 'button';
+  const farmCost = getFarmBuildCost();
+  const farmCap = getFarmPlotCap();
+  const farmBuilt = countBuiltPlots();
+  farmBtn.textContent = farmBuilt >= farmCap ? `農田（已上限）` : `農田 ${farmBuilt}/${farmCap}`;
+  farmBtn.title = `建造農田\n需求金幣：${farmCost.gold}\n需求材料：${formatCostBundle(applyBuildingResourceDiscount(farmCost.resources))}\n目前已建：${farmBuilt}/${farmCap}\n效果：提供耕種空地，可種植作物。\n建成城池經驗：2`;
+  farmBtn.disabled = farmBuilt >= farmCap;
+  farmBtn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(!farmBtn.disabled && buildFarmPlot()) render(); };
+  farmBtn.onclick = (e) => e.preventDefault();
+  root.appendChild(farmBtn);
+
+  Object.entries(buildingDefs).forEach(([key, def]) => {
+    const unlocked = isBuildUnlocked(key);
+    const currentLv = state.buildings[key] || 0;
+    if(!unlocked && currentLv === 0) return;
+    const nextLv = currentLv + 1;
+    const btn = document.createElement('button');
+    const rawCost = currentLv >= def.max ? null : def.cost(nextLv);
+    const cost = rawCost ? {gold: rawCost.gold, resources: applyBuildingResourceDiscount(rawCost.resources)} : null;
+    btn.textContent = currentLv >= def.max
+      ? `${def.name} Lv.${currentLv}（已上限）`
+      : `${def.name} Lv.${currentLv} → ${Math.min(nextLv, def.max)}`;
+    btn.title = currentLv >= def.max
+      ? `${def.name}\n${def.desc}\n已達最高等級（已上限）`
+      : `${def.name}\n需求金幣：${cost.gold}\n需求材料：${formatCostBundle(cost.resources)}\n效果：${def.desc}\n建成城池經驗：${castleExpBase[key] || 0}\n升級城池經驗：${castleExpUpgrade[key] || 0}`;
+    if(currentLv >= def.max){
+      btn.disabled = true;
+    } else {
+      btn.type = 'button';
+      btn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); upgradeBuilding(key); };
+      btn.onclick = (e) => { e.preventDefault(); };
+    }
+    root.appendChild(btn);
+  });
+}
+
+
+function renderResearch(){
+  const root = document.getElementById('researchArea');
+  root.innerHTML = '';
+  const info = document.createElement('div');
+  info.className = 'small muted';
+  const stage = getTownStage();
+  const nextStage = getNextTownStage();
+  info.textContent = `目前智力：${state.intelligence}｜城鎮階段：${stage.name}${nextStage ? `｜下一階段：${nextStage.name}` : '｜已達最高階段'}`;
+  if(nextStage) info.title = getMissingReqText(nextStage);
+  root.appendChild(info);
+
+  const tools = document.createElement('div');
+  tools.className = 'row';
+  tools.style.marginTop = '8px';
+  const hideBtn = document.createElement('button');
+  hideBtn.type = 'button';
+  hideBtn.className = 'tiny-btn';
+  hideBtn.textContent = `已完成研究：${state.ui.hideCompletedResearch ? '隱藏' : '顯示'}`;
+  hideBtn.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); state.ui.hideCompletedResearch = !state.ui.hideCompletedResearch; renderResearch(); };
+  hideBtn.onclick = (e)=>e.preventDefault();
+  tools.appendChild(hideBtn);
+  root.appendChild(tools);
+
+  const bookTitle = document.createElement('div');
+  bookTitle.className = 'section-title';
+  bookTitle.style.marginTop = '8px';
+  bookTitle.innerHTML = '<strong>研究書籍</strong><span class="small muted">書籍併入研究線，可直接閱讀或排入列隊</span>';
+  root.appendChild(bookTitle);
+  const bookGrid = document.createElement('div');
+  bookGrid.className = 'book-grid';
+  Object.entries(books).forEach(([id, book]) => {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    card.innerHTML = `<strong>${book.name}</strong><div class="small muted">費用：${book.cost} 金</div><div class="small muted">閱讀時間：${formatSecondsLabel(getReadingDuration(book.duration))}</div><div class="small muted">完成後：智力 +${book.intGain}、主經驗 +${book.expGain}</div>`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '開啟閱讀排程';
+    btn.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); openBookModal(id); };
+    btn.onclick = (e)=>e.preventDefault();
+    card.appendChild(btn);
+    bookGrid.appendChild(card);
+  });
+  root.appendChild(bookGrid);
+
+  const tabs = document.createElement('div');
+  tabs.className = 'tab-row';
+  const tabDefs = [
+    {id:'available', label:'可研究'},
+    {id:'completed', label:'已完成'},
+    {id:'locked', label:'未達條件'}
+  ];
+  tabDefs.forEach(tab => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tiny-btn tab-btn' + (state.ui.researchTab === tab.id ? ' active' : '');
+    btn.textContent = tab.label;
+    btn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); state.ui.researchTab = tab.id; renderResearch(); };
+    btn.onclick = (e) => e.preventDefault();
+    tabs.appendChild(btn);
+  });
+  root.appendChild(tabs);
+
+  const list = document.createElement('div');
+  list.className = 'research-grid';
+  let items = Object.entries(researchDefs).filter(([key]) => getResearchStatus(key) === state.ui.researchTab);
+  if(state.ui.hideCompletedResearch && state.ui.researchTab === 'completed') items = [];
+  if(!items.length){
+    const empty = document.createElement('div');
+    empty.className = 'small muted';
+    empty.textContent = state.ui.researchTab === 'completed' ? '目前沒有要顯示的已完成研究。' : state.ui.researchTab === 'available' ? '目前沒有可研究項目。' : '目前沒有被鎖定的研究。';
+    list.appendChild(empty);
+  } else {
+    items.forEach(([key, def]) => {
+      const card = document.createElement('div');
+      card.className = 'research-card';
+      const status = getResearchStatus(key);
+      const title = document.createElement('strong');
+      title.textContent = def.name;
+      const type = document.createElement('div');
+      type.className = 'small muted';
+      type.textContent = def.category === 'tool' ? '工具研究' : '建築藍圖研究';
+      const desc = document.createElement('div');
+      desc.className = 'small muted';
+      desc.textContent = def.desc;
+      const req = document.createElement('div');
+      req.className = 'small muted';
+      const reqParts = [];
+      if(def.levelReq) reqParts.push(`主等級 ${def.levelReq}`);
+      if(def.intReq) reqParts.push(`智力 ${def.intReq}`);
+      if(def.reqPlots) reqParts.push(`農田 ${def.reqPlots}`);
+      if(def.reqHouses) reqParts.push(...Object.entries(def.reqHouses).map(([k,v]) => `${houseBuilds[k]?.name || k} ${v}`));
+      if(def.reqBuildings) reqParts.push(...Object.entries(def.reqBuildings).map(([k,v]) => `${buildingDefs[k]?.name || k} ${v}`));
+      req.textContent = reqParts.length ? `需求：${reqParts.join('、')}` : '需求：無';
+      card.appendChild(title); card.appendChild(type); card.appendChild(desc); card.appendChild(req);
+      if(status === 'available'){
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const canStartNow = !state.researchAction;
+        btn.textContent = canStartNow ? '開始研究' : '加入列隊';
+        btn.onpointerdown = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          scheduleResearchAction('research', key, 1, canStartNow ? 'start' : 'queue');
+        };
+        btn.onclick = (e) => e.preventDefault();
+        card.appendChild(btn);
+      } else if(status === 'completed'){
+        const done = document.createElement('div');
+        done.className = 'small good';
+        done.textContent = '已完成';
+        card.appendChild(done);
+      } else {
+        const miss = document.createElement('div');
+        miss.className = 'small muted';
+        miss.textContent = getMissingReqText(def);
+        card.appendChild(miss);
+      }
+      list.appendChild(card);
+    });
+  }
+  root.appendChild(list);
+}
+
+function renderCraftQueue(){
+  const label = document.getElementById('autoCraftLabel');
+  if(label) label.textContent = state.autoCraft && crafts[state.autoCraft] ? `${crafts[state.autoCraft].name}${state.autoCraftInfinite ? '（∞）' : ''}` : '無';
+  const root = document.getElementById('craftQueueTop');
+  if(!root) return;
+  root.innerHTML = '';
+  const qCount = getQueueCount(state.craftQueue);
+  const qTotal = getQueueTotalActions(state.craftQueue);
+  const qInfo = estimateCraftQueueSeconds();
+  const qInfinite = qInfo.infinite;
+  const hasCurrent = !!(state.craftAction && crafts[state.craftAction.id]);
+  const hasAuto = !!(state.autoCraft && crafts[state.autoCraft]);
+  const summary = document.createElement('div');
+  summary.className = 'queue-summary';
+  const pill = document.createElement('span');
+  pill.className = 'queue-pill' + ((qCount || state.autoCraftInfinite || hasCurrent || hasAuto) ? ' clickable' : '');
+  if(hasCurrent) pill.textContent = `製作中：${crafts[state.craftAction.id].name}`;
+  else if(qCount) pill.textContent = `+${qCount} 列隊｜${formatQueueTimeShort(qInfo.total, qInfinite)}`;
+  else pill.textContent = state.autoCraftInfinite ? '自動連作：∞' : (hasAuto ? `待命：${crafts[state.autoCraft].name}` : '等待隊列：空');
+  pill.title = qCount || state.autoCraftInfinite || hasCurrent || hasAuto
+    ? `目前共有 ${qCount} 格列隊${hasCurrent ? '，且有 1 項正在製作中' : ''}${qInfinite ? '，其中含有無限項目或正在無限連作' : `，總次數 ${qTotal}`}。點擊可查看列隊詳情。`
+    : '目前沒有等待中的製作列隊。';
+  if(qCount || state.autoCraftInfinite || hasCurrent || hasAuto){
+    pill.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); openQueueModal('craft'); };
+    pill.onclick = (e)=>e.preventDefault();
+  }
+  summary.appendChild(pill);
+  if(hasCurrent || hasAuto){
+    const cancel = document.createElement('button');
+    cancel.type='button';
+    cancel.className='tiny-btn queue-toggle';
+    cancel.textContent='取消目前';
+    cancel.onpointerdown=(e)=>{ e.preventDefault(); e.stopPropagation(); cancelCurrentCraft(); };
+    cancel.onclick=(e)=>e.preventDefault();
+    summary.appendChild(cancel);
+  }
+  if(qCount){
+    const clear = document.createElement('button');
+    clear.type='button';
+    clear.className='tiny-btn queue-toggle';
+    clear.textContent='清空';
+    clear.onpointerdown=(e)=>{ e.preventDefault(); e.stopPropagation(); state.craftQueue=[]; renderCraftQueue(); renderAction(); };
+    clear.onclick=(e)=>e.preventDefault();
+    summary.appendChild(clear);
+  }
+  root.appendChild(summary);
+  return;
+  const list = document.createElement('div');
+  list.className='queue-list';
+  if(state.autoCraftInfinite && state.autoCraft && crafts[state.autoCraft]){
+    const autoRow = document.createElement('div');
+    autoRow.className = 'queue-row';
+    autoRow.innerHTML = `<div><strong>∞. ${crafts[state.autoCraft].name}</strong><div class="small muted">狀態：無限重複製作｜預估：∞</div></div>`;
+    const ops = document.createElement('div');
+    ops.className = 'ops';
+    const stop = document.createElement('button');
+    stop.type='button';
+    stop.className='tiny-btn';
+    stop.textContent='停止';
+    stop.onpointerdown=(e)=>{ e.preventDefault(); e.stopPropagation(); stopAutoCraft(); };
+    stop.onclick=(e)=>e.preventDefault();
+    ops.appendChild(stop);
+    autoRow.appendChild(ops);
+    list.appendChild(autoRow);
+  }
+  state.craftQueue.forEach((item, idx) => {
+    const itemInfinite = item.count === 9999 || item.count < 0;
+    const itemTime = itemInfinite ? 0 : getCraftDuration(item.id) * Math.max(1, item.count || 1);
+    const row = document.createElement('div');
+    row.className='queue-row';
+    row.innerHTML = `<div><strong>${idx+1}. ${crafts[item.id].name}</strong><div class="small muted">數量：${itemInfinite ? '∞' : item.count}｜預估：${formatQueueTimeShort(itemTime, itemInfinite)}</div></div>`;
+    const ops = document.createElement('div');
+    ops.className='ops';
+    [['↑',-1],['↓',1]].forEach(([txt,delta])=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='tiny-btn';
+      b.textContent=txt;
+      b.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); moveCraftQueueItem(idx, delta);};
+      b.onclick=(e)=>e.preventDefault();
+      ops.appendChild(b);
+    });
+    const del=document.createElement('button');
+    del.type='button';
+    del.className='tiny-btn';
+    del.textContent='取消';
+    del.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); removeCraftQueueItem(idx);};
+    del.onclick=(e)=>e.preventDefault();
+    ops.appendChild(del);
+    row.appendChild(ops);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
+}
+
+function getSellableResources(){
+  return ['wood','stone','dirt','sand','copperOre','coal','ironOre','silverOre','goldOre','magnetite','crystal','gem','coalPowder','copperPowder','ironPowder','silverPowder','goldPowder','magnetitePowder','crystalPowder','gemPowder','herb','rareHerb','mushroom','branch','leaf','fiber','ginseng','apple','wheat','cotton','carrot','egg','clamMeat','fish','shrimp','crab','rawMeat','rawChicken','hide','bone','feather','milk','cowHorn','leather','softLeather','cottonThread','cottonCloth','grassThread','grassCloth','clothes','herbTonic','staminaPotion','paper','ink','note','manual','planks','stoneBrick','brick','glass','glassBottle','chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear','stoneAxeTool','shovelTool','woodBowTool','stoneBowTool','fishingRodTool','fishNetTool','ironBowTool','ironFishingRodTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHoeTool','copperPitchforkTool','copperBowTool','copperFishingRodTool'];
+}
+const baseValues = {
+  wood:2, stone:2, dirt:1, sand:1, branch:1, leaf:1, firewood:3, coal:5,
+  herb:4, rareHerb:16, mushroom:5, fiber:4, ginseng:25, apple:4, wheat:3, cotton:5, wheatFlour:8, cottonThread:9, cottonCloth:14,
+  fish:5, shrimp:6, crab:8, snail:10, shellfish:4, shell:2, clamMeat:6, pearl:28, coral:12, carrot:3, grassThread:6, grassCloth:12,
+  rawMeat:6, rawChicken:5, offal:4, hide:5, bone:4, feather:3, milk:8, cowHorn:12,
+  boarTusk:10, deerAntler:12, bearPaw:18, bearFang:16,
+  copperOre:6, ironOre:8, silverOre:14, goldOre:22, magnetite:12, crystal:20, gem:35,
+  coalPowder:10, copperPowder:12, ironPowder:15, silverPowder:22, goldPowder:32, magnetitePowder:18, crystalPowder:28, gemPowder:48,
+  copperIngot:16, ironIngot:22,
+  planks:12, stoneBrick:12, brick:10, glass:11, glassBottle:16,
+  leather:14, softLeather:26, boneMeal:10, compost:9, clothes:28, herbTonic:20, staminaPotion:30, paper:10, ink:18, note:45, manual:120,
+  sashimi:12, grilledMeat:14, grilledFish:13, grilledSausage:20, bearStew:60, applePie:22, clamSoup:18,
+  stoneAxeTool:18, shovelTool:18, woodBowTool:16, stoneBowTool:22, fishingRodTool:20, fishNetTool:34, ironBowTool:46, ironFishingRodTool:42,
+  copperAxeTool:34, copperShovelTool:34, copperPickTool:38, copperCarvingKnifeTool:30, copperHoeTool:30, copperPitchforkTool:30, copperFishingRodTool:36
+};
+const sellPrices = Object.fromEntries(Object.entries(baseValues).map(([k,v]) => [k, Math.max(1, Math.floor(v))]));
+const shopPrices = {
+  // 一般商店：基礎採集物
+  wood:6, stone:6, dirt:3, sand:3, branch:3, leaf:3, herb:12, mushroom:15, fiber:12, apple:12, wheat:9, cotton:15, carrot:10, coal:15, glassBottle:36, paper:28, ink:45,
+
+  // 農牧：種子、動物、非食品副產品、肥料與骨粉
+  wheatSeed:15, mushroomSpore:23, appleSeed:40, cottonSeed:26, carrotSeed:20,
+  chicken:35, rabbit:49, dairyCow:180, bull:180, boar:95, deer:110, wolf:140,
+  hide:15, bone:12, feather:10, cowHorn:36, boneMeal:28, compost:24, herbTonic:40,
+
+  // 工具與衣服
+  clothes:120,
+  stoneAxeTool:55, shovelTool:55, stonePickTool:62, stoneCarvingKnifeTool:50, stoneHoeTool:52, stonePitchforkTool:52, stoneHammerTool:58, stonePotTool:58,
+  woodBowTool:48, stoneBowTool:68, fishingRodTool:60, fishNetTool:92,
+  copperAxeTool:110, copperShovelTool:110, copperPickTool:126, copperCarvingKnifeTool:98, copperHoeTool:102, copperPitchforkTool:102, copperHammerTool:116, copperPotTool:116,
+  copperBowTool:118, copperFishingRodTool:122,
+  ironBowTool:178, ironFishingRodTool:168,
+
+  // 食品
+  sashimi:24, grilledMeat:28, grilledFish:26, grilledSausage:38, bearStew:110, applePie:42, clamSoup:30,
+  egg:12, rawMeat:18, rawChicken:16, fish:15, shrimp:18, crab:24, shellfish:12, clamMeat:18
+};
+const shopCategories = {
+  general: {
+    label:'一般商店',
+    desc:'販售基礎採集物與常見素材。',
+    items:['wood','stone','dirt','sand','branch','leaf','herb','mushroom','fiber','apple','wheat','cotton','carrot','coal','glassBottle','paper','ink']
+  },
+  farm: {
+    label:'農牧',
+    desc:'販售種子、動物、非食品用動物副產品、肥料與骨粉。',
+    items:['wheatSeed','mushroomSpore','appleSeed','cottonSeed','carrotSeed','chicken','rabbit','dairyCow','bull','boar','deer','wolf','hide','bone','feather','cowHorn','boneMeal','compost','herbTonic']
+  },
+  tools: {
+    label:'工具',
+    desc:'販售工具與衣服。',
+    items:['clothes','stoneAxeTool','shovelTool','stonePickTool','stoneCarvingKnifeTool','stoneHoeTool','stonePitchforkTool','stoneHammerTool','stonePotTool','woodBowTool','stoneBowTool','fishingRodTool','fishNetTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHoeTool','copperPitchforkTool','copperHammerTool','copperPotTool','copperBowTool','copperFishingRodTool','ironBowTool','ironFishingRodTool']
+  },
+  food: {
+    label:'食品',
+    desc:'販售成品食物、雞蛋與各類肉品。',
+    items:['sashimi','grilledMeat','grilledFish','grilledSausage','bearStew','applePie','clamSoup','egg','rawMeat','rawChicken','fish','shrimp','crab','shellfish','clamMeat']
+  }
+};
+function getBuyableResources(){ return Object.keys(shopPrices); }
+function getShopTabItems(tab){
+  return (shopCategories[tab] && shopCategories[tab].items) ? shopCategories[tab].items.filter(id => shopPrices[id] != null) : getBuyableResources();
+}
+function getStoredShopQty(bucket, id, fallback=1){
+  const store = (state.ui && state.ui[bucket] && typeof state.ui[bucket] === 'object') ? state.ui[bucket] : {};
+  return Math.max(1, Math.floor(toFiniteNumber(store[id], fallback)));
+}
+function setStoredShopQty(bucket, id, value){
+  if(!state.ui[bucket] || typeof state.ui[bucket] !== 'object') state.ui[bucket] = {};
+  state.ui[bucket][id] = Math.max(1, Math.floor(toFiniteNumber(value, 1)));
+}
+function buyFromShop(id, qty=1){
+  qty = Math.max(1, Math.floor(toFiniteNumber(qty, 1)));
+  const unit = shopPrices[id];
+  if(!unit) return;
+  const maxAffordable = Math.floor(Math.max(0, state.gold) / unit);
+  if(maxAffordable <= 0) return addLog(`金幣不足，購買${resourceLabels[id]}需要 ${unit} 金。`);
+  qty = Math.min(qty, maxAffordable);
+  const total = unit * qty;
+  if(!spendGold(total)) return addLog(`金幣不足，購買${resourceLabels[id]}${qty}需要 ${total} 金。`);
+  gainResource(id, qty);
+  state.merchant.storeFunds = Math.max(0, Math.floor(toFiniteNumber(state.merchant.storeFunds, 0))) + total;
+  addLog(`你在商店購買了${resourceLabels[id]}${qty}，花費 ${total} 金。商店資金 +${total}。`);
+  render();
+}
+function sellToMerchant(id, qty=1){
+  qty = Math.max(1, Math.floor(toFiniteNumber(qty, 1)));
+  const unit = sellPrices[id];
+  if(!unit) return addLog(`${resourceLabels[id]}目前不可賣出。`);
+  const stock = Math.floor(toFiniteNumber(state.resources[id], 0));
+  if(stock <= 0) return addLog(`目前沒有可賣出的${resourceLabels[id]}。`);
+  qty = Math.min(qty, stock);
+  const storeFunds = Math.floor(Math.max(0, toFiniteNumber(state.merchant.storeFunds, 0)));
+  const maxByCash = Math.floor(storeFunds / unit);
+  if(maxByCash <= 0) return addLog('商店資金不足，暫時無法收購。');
+  qty = Math.min(qty, maxByCash);
+  if(qty <= 0) return addLog('商店資金不足，暫時無法收購。');
+  addResource(id, -qty);
+  const earned = qty * unit;
+  state.merchant.storeFunds = Math.max(0, storeFunds - earned);
+  gainGold(earned);
+  addTradeExp(earned);
+  addLog(`商店收購了${resourceLabels[id]}${qty}，獲得 ${earned} 金與 ${earned} 點貿易經驗。商店剩餘資金 ${state.merchant.storeFunds}。`);
+  render();
+}
+function merchantSell(silent=false){
+  if(!silent) addLog('現在改成手動輸入賣出數量。請直接在商品卡片內輸入數量後按「賣出」。');
+}
+
+function renderMerchant(){
+  const root = document.getElementById('merchantArea');
+  if(!root) return;
+  markMerchantUiInteraction(250);
+  root.innerHTML = '';
+
+  const top = document.createElement('div');
+  top.className = 'row';
+  const status = document.createElement('span');
+  status.className = 'pill';
+  const safetyBand = getSafetyBand();
+  status.textContent = state.merchant.present ? `商人到訪中（${Math.ceil(state.merchant.presentSec)} 秒）｜安全值 ${safetyValue()}｜${safetyBand.label}` : `每分鐘到訪率 ${Math.round(merchantChancePerMinute()*100)}%｜安全值 ${safetyValue()}｜${safetyBand.label}`;
+  status.title = `安全值：${safetyValue()}
+${safetyBand.desc}`;
+  const orderInfo = document.createElement('span');
+  orderInfo.className = 'pill';
+  const highCount = state.merchant.orders.filter(o => (o.tier || 'common') !== 'common').length;
+  orderInfo.textContent = `布告欄訂單：${state.merchant.orders.length} 張｜高階 ${highCount} 張`;
+  const cashInfo = document.createElement('span');
+  cashInfo.className = 'pill';
+  cashInfo.textContent = `商店資金：${Math.floor(toFiniteNumber(state.merchant.storeFunds, 0))} 金`;
+  cashInfo.title = `商人來訪時會把帶來的資金投入商店。玩家購買時，消費金額也會流入商店；玩家賣出時，會直接扣除商店資金。`;
+  top.appendChild(status);
+  top.appendChild(orderInfo);
+  top.appendChild(cashInfo);
+  root.appendChild(top);
+
+  const help = document.createElement('div');
+  help.className = 'small muted';
+  help.style.marginTop = '6px';
+  help.textContent = '商人到訪時會在布告欄張貼收購訂單，並把本次帶來的金幣投入商店。玩家平時也能直接向商店賣貨；商店會用現有資金收購，而玩家購買商品花掉的金額也會回流到商店。';
+  root.appendChild(help);
+
+  const boardTitle = document.createElement('div');
+  boardTitle.className = 'section-title';
+  boardTitle.style.marginTop = '8px';
+  boardTitle.innerHTML = '<strong>布告欄</strong><span class="small muted">訂單會保留到你完成為止</span>';
+  root.appendChild(boardTitle);
+
+  const board = document.createElement('div');
+  board.className = 'merchant-board';
+  if(!state.merchant.orders.length){
+    const empty = document.createElement('div');
+    empty.className = 'order-card';
+    empty.innerHTML = '<div class="small muted">目前沒有待完成的商人訂單。</div>';
+    board.appendChild(empty);
+  } else {
+    state.merchant.orders.forEach(order => {
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      const have = Math.floor(toFiniteNumber(state.resources[order.resource], 0));
+      const title = document.createElement('strong');
+      title.textContent = `${order.from}【${order.tierLabel || getOrderTierMeta(order.tier || 'common').label}】收購 ${resourceLabels[order.resource]}`;
+      const need = document.createElement('div');
+      need.className = 'small muted';
+      need.textContent = `需求：${resourceLabels[order.resource]} ${order.qty}｜現有 ${have}`;
+      const reward = document.createElement('div');
+      reward.className = 'small muted';
+      reward.textContent = `報酬：${order.rewardGold} 金、貿易 EXP ${order.rewardTrade}、聲望 ${order.rewardRep}`;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '繳交訂單';
+      btn.disabled = have < order.qty;
+      btn.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(!btn.disabled) fulfillMerchantOrder(order.id); };
+      btn.onclick = (e) => e.preventDefault();
+      card.appendChild(title);
+      card.appendChild(need);
+      card.appendChild(reward);
+      card.appendChild(btn);
+      board.appendChild(card);
+    });
+  }
+  root.appendChild(board);
+
+  const marketTitle = document.createElement('div');
+  marketTitle.className = 'section-title';
+  marketTitle.style.marginTop = '10px';
+  marketTitle.innerHTML = '<strong>商店與商人買賣</strong><span class="small muted">直接輸入要買或賣的數量，避免誤觸大量交易</span>';
+  root.appendChild(marketTitle);
+
+  const tabRow = document.createElement('div');
+  tabRow.className = 'tab-row';
+  const activeTab = shopCategories[state.ui.shopTab] ? state.ui.shopTab : 'general';
+  state.ui.shopTab = activeTab;
+  Object.entries(shopCategories).forEach(([key, cfg]) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn' + (key === activeTab ? ' active' : '');
+    btn.textContent = cfg.label;
+    btn.onclick = () => {
+      markMerchantUiInteraction(1200);
+      state.ui.shopTab = key;
+      renderMerchant();
+    };
+    tabRow.appendChild(btn);
+  });
+  root.appendChild(tabRow);
+
+  const tabHelp = document.createElement('div');
+  tabHelp.className = 'small muted';
+  tabHelp.style.marginTop = '6px';
+  tabHelp.textContent = shopCategories[activeTab].desc;
+  root.appendChild(tabHelp);
+
+  const grid = document.createElement('div');
+  grid.className = 'merchant-grid';
+  const ids = getShopTabItems(activeTab);
+  ids.forEach(id => {
+    const card = document.createElement('div');
+    card.className = 'merchant-item';
+    const stock = Math.floor(toFiniteNumber(state.resources[id], 0));
+    const buyPrice = shopPrices[id];
+    const sellPrice = sellPrices[id];
+    const keepVal = Math.max(0, Math.floor(toFiniteNumber(state.merchant.keep[id], 0)));
+
+    const lab = document.createElement('strong');
+    lab.textContent = `${resourceLabels[id] || id}（現有 ${format(stock)}）`;
+    card.appendChild(lab);
+
+    const info = document.createElement('div');
+    info.className = 'small muted';
+    const parts = [];
+    if(buyPrice != null) parts.push(`買 ${buyPrice} 金`);
+    if(sellPrice != null) parts.push(`賣 ${sellPrice} 金`);
+    info.textContent = parts.join('｜') || '不可買賣';
+    card.appendChild(info);
+
+    if(buyPrice != null){
+      const rowBuy = document.createElement('div');
+      rowBuy.className = 'row';
+      rowBuy.style.gap = '6px';
+      rowBuy.style.alignItems = 'center';
+      const buyLabel = document.createElement('span');
+      buyLabel.className = 'small muted';
+      buyLabel.textContent = '買';
+      const buyInput = document.createElement('input');
+      buyInput.type = 'number';
+      buyInput.min = '1';
+      buyInput.step = '1';
+      buyInput.inputMode = 'numeric';
+      buyInput.value = getStoredShopQty('shopBuyQty', id, 1);
+      buyInput.title = '輸入想購買的數量。';
+      buyInput.oninput = () => {
+        markMerchantUiInteraction(1800);
+        setStoredShopQty('shopBuyQty', id, buyInput.value);
+      };
+      buyInput.onchange = buyInput.oninput;
+      buyInput.onclick = () => markMerchantUiInteraction(1800);
+      buyInput.onfocus = () => markMerchantUiInteraction(1800);
+      buyInput.onkeydown = () => markMerchantUiInteraction(1800);
+      rowBuy.appendChild(buyLabel);
+      rowBuy.appendChild(buyInput);
+
+      const buyBtn = document.createElement('button');
+      buyBtn.className = 'tiny-btn';
+      buyBtn.type = 'button';
+      buyBtn.textContent = '購買';
+      buyBtn.onclick = () => {
+        markMerchantUiInteraction(1800);
+        buyFromShop(id, getStoredShopQty('shopBuyQty', id, buyInput.value || 1));
+      };
+      rowBuy.appendChild(buyBtn);
+
+            card.appendChild(rowBuy);
+    } else {
+      const tag = document.createElement('span');
+      tag.className = 'small muted';
+      tag.textContent = '不可購買';
+      card.appendChild(tag);
+    }
+
+    if(sellPrice != null){
+      const rowSell = document.createElement('div');
+      rowSell.className = 'row';
+      rowSell.style.gap = '6px';
+      rowSell.style.alignItems = 'center';
+      const sellLabel = document.createElement('span');
+      sellLabel.className = 'small muted';
+      sellLabel.textContent = '賣';
+      const sellInput = document.createElement('input');
+      sellInput.type = 'number';
+      sellInput.min = '1';
+      sellInput.step = '1';
+      sellInput.inputMode = 'numeric';
+      sellInput.value = getStoredShopQty('shopSellQty', id, 1);
+      sellInput.title = '輸入想賣給商店的數量。';
+      sellInput.oninput = () => {
+        markMerchantUiInteraction(1800);
+        setStoredShopQty('shopSellQty', id, sellInput.value);
+      };
+      sellInput.onchange = sellInput.oninput;
+      sellInput.onclick = () => markMerchantUiInteraction(1800);
+      sellInput.onfocus = () => markMerchantUiInteraction(1800);
+      sellInput.onkeydown = () => markMerchantUiInteraction(1800);
+      rowSell.appendChild(sellLabel);
+      rowSell.appendChild(sellInput);
+
+      const sellBtn = document.createElement('button');
+      sellBtn.className = 'tiny-btn';
+      sellBtn.type = 'button';
+      sellBtn.textContent = '賣出';
+      sellBtn.disabled = false;
+      sellBtn.onclick = () => {
+        markMerchantUiInteraction(1800);
+        sellToMerchant(id, getStoredShopQty('shopSellQty', id, sellInput.value || 1));
+      };
+      rowSell.appendChild(sellBtn);
+
+            card.appendChild(rowSell);
+    } else {
+      const note = document.createElement('div');
+      note.className = 'small muted';
+      note.textContent = '不可賣出';
+      card.appendChild(note);
+    }
+    grid.appendChild(card);
+  });
+  root.appendChild(grid);
+}
+function renderWorkerCraftSelect(){ const box = document.getElementById('workerCraftSelect'); if(box) box.closest('label')?.parentElement?.remove(); }
+
+function renderLog(){
+  const root = document.getElementById('log');
+  const tab = state.ui.logTab || 'important';
+  const rows = (state.logs || []).filter(item => {
+    if(tab === 'all') return true;
+    return (item.type || 'important') === tab;
+  });
+  root.innerHTML = rows.length
+    ? rows.map(item => `<div class="log-item"><span class="small muted">${item.time}</span> ${item.text}</div>`).join('')
+    : '<div class="log-item muted">目前沒有符合此分類的紀錄。</div>';
+  document.getElementById('logImportantBtn')?.classList.toggle('active', tab === 'important');
+  document.getElementById('logWorkerBtn')?.classList.toggle('active', tab === 'worker');
+  document.getElementById('logLootBtn')?.classList.toggle('active', tab === 'loot');
+  document.getElementById('logAllBtn')?.classList.toggle('active', tab === 'all');
+}
+
+
+document.querySelectorAll('[data-process]').forEach(btn => btn.addEventListener('click', () => openProcessModal(btn.dataset.process)));
+document.getElementById('seedSelectBtn')?.addEventListener('click', () => openManualSeedChoice());
+document.getElementById('farmerSeedBtn')?.addEventListener('click', () => openFarmerSeedChoice());
+document.getElementById('plantBtn').addEventListener('click', () => {
+  const seedId = getSelectedManualSeed();
+  if(!seedId || !farmingDefs[seedId]) return addLog('請先選擇可種植的種子。');
+  if(!tryPlantSeed(seedId,'manual')) return addLog('沒有空農地、尚未建造農田，或種子不足。');
+  render();
+});
+document.getElementById('farmerAutoFertilizeBtn')?.addEventListener('click', () => {
+  state.farmerAutoFertilize = !state.farmerAutoFertilize;
+  addLog(`農夫自動施肥已${state.farmerAutoFertilize ? '開啟' : '關閉'}。`);
+  render();
+});
+document.getElementById('restBtn').addEventListener('click', () => {
+  if(!state.isResting){
+    const resumeWork = state.autoWork || (state.productionAction && state.productionAction.type === 'work' ? state.productionAction.id : null);
+    state.isResting = true;
+    state.autoResting = false;
+    state.autoRestResume = resumeWork;
+    state.productionAction = null;
+    state.autoWork = null;
+    addLog('開始休息。');
+  }else{
+    state.isResting = false;
+    const resumeWork = state.autoRestResume;
+    state.autoResting = false;
+    state.autoRestResume = null;
+    addLog('停止休息。');
+    if(resumeWork){
+      state.autoWork = resumeWork;
+      beginWorkCycle(resumeWork, {silent:true});
+      addLog(`恢復${workDefs[resumeWork].name}。`);
+    }
+  }
+  render();
+});
+document.getElementById('recruitBtn').addEventListener('click', recruitWorker);
+document.getElementById('payDebtBtn').addEventListener('click', () => payDebt());
+document.getElementById('claimTaxBtn').addEventListener('click', () => claimTax());
+document.getElementById('logImportantBtn')?.addEventListener('click', () => { state.ui.logTab = 'important'; renderLog(); });
+document.getElementById('logWorkerBtn')?.addEventListener('click', () => { state.ui.logTab = 'worker'; renderLog(); });
+document.getElementById('logLootBtn')?.addEventListener('click', () => { state.ui.logTab = 'loot'; renderLog(); });
+document.getElementById('logAllBtn')?.addEventListener('click', () => { state.ui.logTab = 'all'; renderLog(); });
+bindHouseButtons();
+document.getElementById('saveBtn').addEventListener('click', saveGame);
+document.getElementById('toggleResourcesBtn').addEventListener('click', () => {
+  allResourcesOpen = !allResourcesOpen;
+  document.getElementById('toggleResourcesBtn').textContent = allResourcesOpen ? '收合全部' : '展開全部';
+  Object.keys(resourceOpenState).forEach(key => { resourceOpenState[key] = allResourcesOpen; });
+  renderResources();
+});
+document.querySelectorAll('[data-main-nav]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setMainPage(btn.dataset.mainNav);
+  });
+});
+
+const actionModal = document.getElementById('actionModal');
+document.getElementById('actionCancelBtn').addEventListener('click', closeActionModal);
+actionModal.addEventListener('click', (e) => { if(e.target === actionModal) closeActionModal(); });
+document.getElementById('actionQtyInput').addEventListener('input', () => { actionModalInfinite = false; renderActionQuickStates(); });
+document.getElementById('actionStartBtn').addEventListener('click', () => applyActionModal('start'));
+document.getElementById('actionQueueBtn').addEventListener('click', () => applyActionModal('queue'));
+const queueModal = document.getElementById('queueModal');
+document.getElementById('queueModalCloseBtn').addEventListener('click', closeQueueModal);
+queueModal.addEventListener('click', (e) => { if(e.target === queueModal) closeQueueModal(); });
+
+const resetModal = document.getElementById('resetModal');
+const resetAck = document.getElementById('resetAcknowledge');
+const resetConfirmBtn = document.getElementById('resetConfirmBtn');
+const resetCancelBtn = document.getElementById('resetCancelBtn');
+function openResetModal(){
+  resetModal.classList.add('show');
+  resetModal.setAttribute('aria-hidden','false');
+}
+function closeResetModal(){
+  resetModal.classList.remove('show');
+  resetModal.setAttribute('aria-hidden','true');
+  resetAck.checked = false;
+  resetConfirmBtn.disabled = true;
+}
+document.getElementById('resetBtn').addEventListener('click', openResetModal);
+resetCancelBtn.addEventListener('click', closeResetModal);
+resetModal.addEventListener('click', (e) => { if(e.target === resetModal) closeResetModal(); });
+document.getElementById('choiceModalCloseBtn')?.addEventListener('click', closeChoiceModal);
+document.getElementById('choiceModal')?.addEventListener('click', (e) => { if(e.target === document.getElementById('choiceModal')) closeChoiceModal(); });
+resetAck.addEventListener('change', () => { resetConfirmBtn.disabled = !resetAck.checked; });
+resetConfirmBtn.addEventListener('click', () => {
+  if(!resetAck.checked) return;
+  getLoadCandidates().forEach(key => localStorage.removeItem(key));
+  Object.keys(state).forEach(key => delete state[key]);
+  Object.assign(state, createInitialState());
+  normalizeState(state);
+applyV060Migration(state);
+  closeResetModal();
+  addLog('已重置遊戲。');
+  render();
+});
+
+function loop(now){
+  const delta = Math.min(0.25, (now - lastTick) / 1000);
+  lastTick = now;
+  try{
+    update(delta);
+  }catch(err){
+    console.error('[loop:update]', err);
+    addLog('主循環保護：更新時發生錯誤，已跳過本幀避免整體停止。', false, 'important');
+  }
+  try{
+    render();
+  }catch(err){
+    console.error('[loop:render]', err);
+  }
+  requestAnimationFrame(loop);
+}
+window.addEventListener('error', (e) => {
+  console.error('[window.error]', e.error || e.message);
+});
+render();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
