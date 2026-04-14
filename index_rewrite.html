@@ -37,6 +37,22 @@
       flex-wrap:wrap;
       align-items:center;
     }
+    .resource-list{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(120px, 1fr));
+      gap:8px;
+      margin-top:8px;
+    }
+    .resource-item{
+      background:#0f172a;
+      border:1px solid #334155;
+      border-radius:10px;
+      padding:10px;
+    }
+    .log-item{
+      padding:6px 0;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+    }
   </style>
 </head>
 <body>
@@ -55,9 +71,17 @@
       <div class="row">
         <button id="workBtn">打工 +1 金</button>
         <button id="restBtn">休息 +5 體力</button>
+        <button id="woodBtn">撿木頭 +1</button>
+        <button id="stoneBtn">撿石頭 +1</button>
+        <button id="foodBtn">拿食物 +1</button>
         <button id="saveBtn">存檔</button>
         <button id="loadBtn">讀檔</button>
       </div>
+    </section>
+
+    <section class="panel">
+      <h2>資源倉庫</h2>
+      <div id="resources" class="resource-list"></div>
     </section>
 
     <section class="panel">
@@ -73,7 +97,18 @@
       gold: 0,
       level: 1,
       stamina: 100,
+      resources: {
+        wood: 0,
+        stone: 0,
+        food: 0
+      },
       logs: []
+    };
+
+    const resourceLabels = {
+      wood: "木頭",
+      stone: "石頭",
+      food: "食物"
     };
 
     function addLog(text){
@@ -82,13 +117,34 @@
       render();
     }
 
+    function renderResources(){
+      const root = document.getElementById("resources");
+      root.innerHTML = Object.entries(state.resources)
+        .map(([id, value]) => {
+          return `
+            <div class="resource-item">
+              <div>${resourceLabels[id]}</div>
+              <strong>${value}</strong>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function renderLog(){
+      const log = document.getElementById("log");
+      log.innerHTML = state.logs
+        .map(t => `<div class="log-item">${t}</div>`)
+        .join("");
+    }
+
     function render(){
       document.getElementById("gold").textContent = state.gold;
       document.getElementById("level").textContent = state.level;
       document.getElementById("stamina").textContent = state.stamina;
 
-      const log = document.getElementById("log");
-      log.innerHTML = state.logs.map(t => `<div>${t}</div>`).join("");
+      renderResources();
+      renderLog();
     }
 
     function saveGame(){
@@ -102,10 +158,12 @@
         addLog("沒有存檔");
         return;
       }
+
       const data = JSON.parse(raw);
       state.gold = data.gold ?? 0;
       state.level = data.level ?? 1;
       state.stamina = data.stamina ?? 100;
+      state.resources = data.resources ?? { wood: 0, stone: 0, food: 0 };
       state.logs = Array.isArray(data.logs) ? data.logs : [];
       addLog("已讀檔");
     }
@@ -118,6 +176,21 @@
     document.getElementById("restBtn").addEventListener("click", () => {
       state.stamina = Math.min(100, state.stamina + 5);
       addLog("你休息恢復 5 體力");
+    });
+
+    document.getElementById("woodBtn").addEventListener("click", () => {
+      state.resources.wood += 1;
+      addLog("你獲得了 1 木頭");
+    });
+
+    document.getElementById("stoneBtn").addEventListener("click", () => {
+      state.resources.stone += 1;
+      addLog("你獲得了 1 石頭");
+    });
+
+    document.getElementById("foodBtn").addEventListener("click", () => {
+      state.resources.food += 1;
+      addLog("你獲得了 1 食物");
     });
 
     document.getElementById("saveBtn").addEventListener("click", saveGame);
