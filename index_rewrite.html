@@ -8,12 +8,14 @@
     :root{
       --bg:#0f172a;
       --panel:#172235;
+      --panel2:#1b2940;
       --line:#334155;
       --text:#eef2ff;
       --muted:#cbd5e1;
       --accent:#f59e0b;
       --good:#34d399;
       --bad:#f87171;
+      --blue:#60a5fa;
     }
 
     *{ box-sizing:border-box; }
@@ -25,14 +27,27 @@
       color:var(--text);
     }
 
+    button{
+      font:inherit;
+      background:#0f172a;
+      color:var(--text);
+      border:1px solid #475569;
+      border-radius:10px;
+      padding:8px 12px;
+      cursor:pointer;
+    }
+
+    button:hover{ border-color:var(--accent); }
+    button:disabled{ opacity:.45; cursor:not-allowed; }
+
     .wrap{
-      max-width:1200px;
+      max-width:1280px;
       margin:0 auto;
       padding:16px;
     }
 
     .panel{
-      background:linear-gradient(180deg,var(--panel),#1b2940);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
       border:1px solid var(--line);
       border-radius:16px;
       padding:16px;
@@ -40,28 +55,36 @@
       box-shadow:0 12px 24px rgba(0,0,0,.18);
     }
 
-    h1,h2{
-      margin:0 0 12px 0;
+    .title-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
     }
 
-    .row{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
+    .title-row h1,
+    .panel h2,
+    .panel h3{ margin:0 0 12px 0; }
+
+    .muted{ color:var(--muted); }
+    .small{ font-size:13px; }
+    .good{ color:var(--good); }
+    .bad{ color:var(--bad); }
 
     .stats{
       display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
+      grid-template-columns:repeat(4,minmax(0,1fr));
       gap:10px;
-      margin-top:10px;
+      margin-top:12px;
     }
 
-    @media (max-width:700px){
-      .stats{
-        grid-template-columns:1fr;
-      }
+    @media (max-width:900px){
+      .stats{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+
+    @media (max-width:600px){
+      .stats{ grid-template-columns:1fr; }
     }
 
     .stat-card{
@@ -69,6 +92,7 @@
       border:1px solid var(--line);
       border-radius:12px;
       padding:12px;
+      min-height:96px;
     }
 
     .stat-label{
@@ -78,28 +102,45 @@
     }
 
     .stat-value{
-      font-size:26px;
+      font-size:24px;
       font-weight:700;
+      margin-bottom:6px;
     }
 
-    button{
-      background:#0f172a;
-      color:var(--text);
-      border:1px solid #475569;
-      border-radius:10px;
-      padding:8px 12px;
-      cursor:pointer;
+    .bar{
+      height:10px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:999px;
+      overflow:hidden;
+      margin:6px 0;
     }
 
-    button:hover{
-      border-color:var(--accent);
+    .fill{ height:100%; width:0%; transition:width .18s ease; }
+    .fill.exp{ background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .fill.stamina{ background:linear-gradient(90deg,#22c55e,#10b981); }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:12px;
     }
 
-    .hint{
-      color:var(--muted);
-      font-size:13px;
-      margin-top:8px;
-      line-height:1.5;
+    @media (max-width:960px){
+      .grid-2{ grid-template-columns:1fr; }
+    }
+
+    .row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .button-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:8px;
     }
 
     .resource-list{
@@ -110,9 +151,7 @@
     }
 
     @media (max-width:700px){
-      .resource-list{
-        grid-template-columns:1fr;
-      }
+      .resource-list{ grid-template-columns:1fr; }
     }
 
     .resource-item{
@@ -133,175 +172,319 @@
       font-weight:700;
     }
 
+    .recipe-list{ display:grid; gap:8px; }
+
+    .recipe-card{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .recipe-card .top{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      font-size:12px;
+    }
+
     .log{
-      max-height:320px;
+      max-height:420px;
       overflow:auto;
     }
 
     .log-item{
       padding:8px 0;
-      border-bottom:1px solid rgba(255,255,255,0.08);
+      border-bottom:1px solid rgba(255,255,255,.08);
       line-height:1.5;
       font-size:14px;
     }
-
-    .good{ color:var(--good); }
-    .bad{ color:var(--bad); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="panel">
-      <h1>城主村莊測試版 Rewrite</h1>
+      <div class="title-row">
+        <div>
+          <h1>城主村莊測試版 Rewrite</h1>
+          <div class="muted small">這是一份可直接延伸的重寫基礎完整版：主狀態、資源、手動工作、簡單製作、吃食物、事件紀錄、存檔/讀檔都已接好。</div>
+        </div>
+        <div class="row">
+          <button id="saveBtn">存檔</button>
+          <button id="loadBtn">讀檔</button>
+          <button id="resetBtn">重置</button>
+        </div>
+      </div>
+
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">金幣</div>
           <div class="stat-value" id="gold">0</div>
+          <div class="small muted">打工可獲得</div>
         </div>
+
         <div class="stat-card">
-          <div class="stat-label">等級</div>
-          <div class="stat-value" id="level">1</div>
+          <div class="stat-label">主等級</div>
+          <div class="stat-value">Lv.<span id="level">1</span></div>
+          <div class="bar"><div id="expBar" class="fill exp"></div></div>
+          <div class="small muted">EXP：<span id="exp">0</span> / <span id="expNext">5</span></div>
         </div>
+
         <div class="stat-card">
           <div class="stat-label">體力</div>
           <div class="stat-value"><span id="stamina">100</span> / <span id="maxStamina">100</span></div>
+          <div class="bar"><div id="staminaBar" class="fill stamina"></div></div>
+          <div class="small muted">工作與製作都會消耗</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">快速操作</div>
+          <div class="row">
+            <button id="restBtn">休息 +5 體力</button>
+            <button id="eatBestBtn">吃最佳食物</button>
+          </div>
+          <div class="small muted" id="eatHint">目前沒有可吃的食物</div>
         </div>
       </div>
     </section>
 
-    <section class="panel">
-      <h2>手動操作</h2>
-      <div class="row">
-        <button id="laborBtn">打工 +1 金</button>
-        <button id="restBtn">休息 +5 體力</button>
-        <button id="lumberBtn">伐木（-3 體力）</button>
-        <button id="miningBtn">採石（-4 體力）</button>
-        <button id="foodBtn">拿食物 +1</button>
-        <button id="eatBtn">吃食物（-1 食物，+10 體力）</button>
-        <button id="saveBtn">存檔</button>
-        <button id="loadBtn">讀檔</button>
-      </div>
-      <div class="hint">
-        目前是重寫版基礎架構。先把狀態、資源、工作、食物、事件紀錄和存檔做穩，再慢慢加研究、建築、工人。
-      </div>
-    </section>
+    <div class="grid-2">
+      <div>
+        <section class="panel">
+          <h2>手動工作</h2>
+          <div class="button-grid" id="workButtons"></div>
+          <div class="small muted" style="margin-top:10px;">目前是即時結算版本，先把資料結構做穩，之後再加工作進度條與列隊會更容易。</div>
+        </section>
 
-    <section class="panel">
-      <h2>資源倉庫</h2>
-      <div id="resources" class="resource-list"></div>
-    </section>
+        <section class="panel">
+          <h2>製作與加工</h2>
+          <div class="recipe-list" id="craftList"></div>
+        </section>
 
-    <section class="panel">
-      <h2>事件紀錄</h2>
-      <div id="log" class="log"></div>
-    </section>
+        <section class="panel">
+          <h2>資源倉庫</h2>
+          <div id="resources" class="resource-list"></div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>事件紀錄</h2>
+        <div id="log" class="log"></div>
+      </section>
+    </div>
   </div>
 
   <script>
-    const STORAGE_KEY = "city_lord_rewrite_save_v1";
-    const MAX_STAMINA = 100;
-    const FOOD_RECOVER_VALUE = 10;
-
-    const state = {
-      gold: 0,
-      level: 1,
-      stamina: 100,
-      resources: {
-        wood: 0,
-        stone: 0,
-        food: 0
-      },
-      logs: []
-    };
+    const STORAGE_KEY = "city_lord_rewrite_save_v3";
 
     const resourceLabels = {
       wood: "木頭",
       stone: "石頭",
-      food: "食物"
+      berry: "莓果",
+      herb: "草藥",
+      fish: "魚",
+      copperOre: "銅礦",
+      plank: "木板",
+      firewood: "柴火",
+      cookedFish: "烤魚"
+    };
+
+    const edibleDefs = {
+      berry: { name: "莓果", stamina: 3 },
+      cookedFish: { name: "烤魚", stamina: 12 }
     };
 
     const workDefs = {
+      labor: {
+        name: "村莊打工",
+        staminaCost: 2,
+        expGain: 1,
+        run() {
+          const gold = randInt(1, 3);
+          return {
+            gold,
+            resources: {},
+            log: `你打工獲得 ${gold} 金，經驗 +1`
+          };
+        }
+      },
       lumber: {
         name: "伐木",
         staminaCost: 3,
-        reward: { wood: 2 }
+        expGain: 1,
+        run() {
+          const wood = randInt(2, 5);
+          return {
+            gold: 0,
+            resources: { wood },
+            log: `你伐木獲得 木頭 +${wood}，經驗 +1`
+          };
+        }
       },
       mining: {
         name: "採石",
         staminaCost: 4,
-        reward: { stone: 2 }
+        expGain: 1,
+        run() {
+          const stone = randInt(2, 5);
+          const copperOre = roll(0.35) ? 1 : 0;
+          const resources = { stone };
+          if(copperOre > 0) resources.copperOre = copperOre;
+          const parts = [`石頭 +${stone}`];
+          if(copperOre > 0) parts.push(`銅礦 +${copperOre}`);
+          return {
+            gold: 0,
+            resources,
+            log: `你採石獲得 ${parts.join("、")}，經驗 +1`
+          };
+        }
+      },
+      fishing: {
+        name: "釣魚",
+        staminaCost: 2,
+        expGain: 1,
+        run() {
+          const fish = randInt(1, 3);
+          return {
+            gold: 0,
+            resources: { fish },
+            log: `你釣魚獲得 魚 +${fish}，經驗 +1`
+          };
+        }
+      },
+      forage: {
+        name: "野外採集",
+        staminaCost: 2,
+        expGain: 1,
+        run() {
+          const berry = randInt(1, 4);
+          const herb = roll(0.35) ? 1 : 0;
+          const resources = { berry };
+          if(herb > 0) resources.herb = herb;
+          const parts = [`莓果 +${berry}`];
+          if(herb > 0) parts.push(`草藥 +${herb}`);
+          return {
+            gold: 0,
+            resources,
+            log: `你野外採集獲得 ${parts.join("、")}，經驗 +1`
+          };
+        }
       }
     };
 
+    const craftDefs = {
+      plank: {
+        name: "木板",
+        staminaCost: 1,
+        expGain: 1,
+        costs: { wood: 2 },
+        yields: { plank: 1 },
+        desc: "2 木頭 → 1 木板"
+      },
+      firewood: {
+        name: "柴火",
+        staminaCost: 1,
+        expGain: 1,
+        costs: { wood: 1 },
+        yields: { firewood: 2 },
+        desc: "1 木頭 → 2 柴火"
+      },
+      cookedFish: {
+        name: "烤魚",
+        staminaCost: 1,
+        expGain: 1,
+        costs: { fish: 1, firewood: 1 },
+        yields: { cookedFish: 1 },
+        desc: "1 魚 + 1 柴火 → 1 烤魚"
+      }
+    };
+
+    const state = {
+      gold: 0,
+      level: 1,
+      exp: 0,
+      stamina: 100,
+      resources: {
+        wood: 0,
+        stone: 0,
+        berry: 0,
+        herb: 0,
+        fish: 0,
+        copperOre: 0,
+        plank: 0,
+        firewood: 0,
+        cookedFish: 0
+      },
+      logs: []
+    };
+
+    function randInt(min, max){
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function roll(chance){
+      return Math.random() < chance;
+    }
+
+    function expToNext(level){
+      return 5 + (level - 1) * 3;
+    }
+
+    function maxStamina(){
+      return 100 + (state.level - 1) * 10;
+    }
+
     function addLog(text){
       state.logs.unshift(text);
-      state.logs = state.logs.slice(0, 30);
+      state.logs = state.logs.slice(0, 50);
       render();
     }
 
-    function renderTopStats(){
-      document.getElementById("gold").textContent = state.gold;
-      document.getElementById("level").textContent = state.level;
-      document.getElementById("stamina").textContent = state.stamina;
-      document.getElementById("maxStamina").textContent = MAX_STAMINA;
+    function gainResource(id, amount){
+      state.resources[id] = (state.resources[id] || 0) + amount;
     }
 
-    function renderResources(){
-      const root = document.getElementById("resources");
-
-      root.innerHTML = Object.entries(state.resources)
-        .map(([id, value]) => {
-          return `
-            <div class="resource-item">
-              <div class="resource-name">${resourceLabels[id]}</div>
-              <div class="resource-value">${value}</div>
-            </div>
-          `;
-        })
-        .join("");
+    function spendResource(id, amount){
+      if((state.resources[id] || 0) < amount) return false;
+      state.resources[id] -= amount;
+      return true;
     }
 
-    function renderLog(){
-      const log = document.getElementById("log");
+    function canAfford(costs){
+      return Object.entries(costs).every(([id, amount]) => (state.resources[id] || 0) >= amount);
+    }
 
-      if(state.logs.length === 0){
-        log.innerHTML = `<div class="log-item">目前還沒有事件紀錄</div>`;
-        return;
+    function spendCosts(costs){
+      if(!canAfford(costs)) return false;
+      for(const [id, amount] of Object.entries(costs)){
+        state.resources[id] -= amount;
       }
-
-      log.innerHTML = state.logs
-        .map(text => `<div class="log-item">${text}</div>`)
-        .join("");
+      return true;
     }
 
-    function render(){
-      renderTopStats();
-      renderResources();
-      renderLog();
-    }
+    function addMainExp(amount){
+      state.exp += amount;
 
-    function saveGame(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      addLog("已存檔");
-    }
-
-    function loadGame(){
-      const raw = localStorage.getItem(STORAGE_KEY);
-
-      if(!raw){
-        addLog("沒有存檔");
-        return;
+      while(state.exp >= expToNext(state.level)){
+        state.exp -= expToNext(state.level);
+        state.level += 1;
+        state.stamina = maxStamina();
+        state.logs.unshift(`主等級提升到 Lv.${state.level}，體力已回滿`);
+        state.logs = state.logs.slice(0, 50);
       }
-
-      const data = JSON.parse(raw);
-
-      state.gold = data.gold ?? 0;
-      state.level = data.level ?? 1;
-      state.stamina = data.stamina ?? 100;
-      state.resources = data.resources ?? { wood: 0, stone: 0, food: 0 };
-      state.logs = Array.isArray(data.logs) ? data.logs : [];
-
-      addLog("已讀檔");
     }
 
     function performWork(workId){
@@ -314,21 +497,50 @@
       }
 
       state.stamina -= def.staminaCost;
+      const result = def.run();
 
-      for(const [resourceId, amount] of Object.entries(def.reward)){
-        state.resources[resourceId] += amount;
+      state.gold += result.gold || 0;
+      for(const [resourceId, amount] of Object.entries(result.resources || {})){
+        gainResource(resourceId, amount);
       }
 
-      const rewardText = Object.entries(def.reward)
-        .map(([resourceId, amount]) => `${resourceLabels[resourceId]} +${amount}`)
+      addMainExp(def.expGain || 0);
+      addLog(result.log);
+    }
+
+    function craftItem(craftId){
+      const def = craftDefs[craftId];
+      if(!def) return;
+
+      if(state.stamina < def.staminaCost){
+        addLog(`${def.name}製作失敗，體力不足`);
+        return;
+      }
+
+      if(!canAfford(def.costs)){
+        addLog(`${def.name}製作失敗，材料不足`);
+        return;
+      }
+
+      spendCosts(def.costs);
+      state.stamina -= def.staminaCost;
+
+      for(const [resourceId, amount] of Object.entries(def.yields)){
+        gainResource(resourceId, amount);
+      }
+
+      addMainExp(def.expGain || 0);
+
+      const gainText = Object.entries(def.yields)
+        .map(([id, amount]) => `${resourceLabels[id]} +${amount}`)
         .join("、");
 
-      addLog(`${def.name}完成，消耗 ${def.staminaCost} 體力，獲得 ${rewardText}`);
+      addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +${def.expGain || 0}`);
     }
 
     function rest(){
       const before = state.stamina;
-      state.stamina = Math.min(MAX_STAMINA, state.stamina + 5);
+      state.stamina = Math.min(maxStamina(), state.stamina + 5);
       const actual = state.stamina - before;
 
       if(actual <= 0){
@@ -339,45 +551,213 @@
       addLog(`你休息恢復 ${actual} 體力`);
     }
 
-    function takeFood(){
-      state.resources.food += 1;
-      addLog("你獲得了 1 食物");
+    function getBestFoodId(){
+      const choices = Object.entries(edibleDefs)
+        .filter(([id]) => (state.resources[id] || 0) > 0)
+        .sort((a, b) => b[1].stamina - a[1].stamina);
+
+      return choices[0]?.[0] || "";
     }
 
-    function eatFood(){
-      if(state.resources.food <= 0){
-        addLog("沒有食物可以吃");
+    function eatResource(resourceId){
+      const def = edibleDefs[resourceId];
+      if(!def) return;
+
+      if((state.resources[resourceId] || 0) <= 0){
+        addLog(`沒有${def.name}可以吃`);
         return;
       }
 
-      if(state.stamina >= MAX_STAMINA){
+      if(state.stamina >= maxStamina()){
         addLog("體力已滿，不需要吃食物");
         return;
       }
 
-      state.resources.food -= 1;
-
+      spendResource(resourceId, 1);
       const before = state.stamina;
-      state.stamina = Math.min(MAX_STAMINA, state.stamina + FOOD_RECOVER_VALUE);
+      state.stamina = Math.min(maxStamina(), state.stamina + def.stamina);
       const actual = state.stamina - before;
-
-      addLog(`你吃了 1 食物，恢復 ${actual} 體力`);
+      addLog(`你吃了 1 ${def.name}，恢復 ${actual} 體力`);
     }
 
-    function labor(){
-      state.gold += 1;
-      addLog("你打工獲得 1 金");
+    function eatBestFood(){
+      const best = getBestFoodId();
+      if(!best){
+        addLog("目前沒有可吃的食物");
+        return;
+      }
+      eatResource(best);
     }
 
-    document.getElementById("laborBtn").addEventListener("click", labor);
+    function saveGame(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      addLog("已存檔");
+    }
+
+    function loadGame(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        addLog("沒有存檔");
+        return;
+      }
+
+      const data = JSON.parse(raw);
+      state.gold = data.gold ?? 0;
+      state.level = data.level ?? 1;
+      state.exp = data.exp ?? 0;
+      state.stamina = data.stamina ?? 100;
+      state.logs = Array.isArray(data.logs) ? data.logs : [];
+
+      const defaultResources = {
+        wood: 0,
+        stone: 0,
+        berry: 0,
+        herb: 0,
+        fish: 0,
+        copperOre: 0,
+        plank: 0,
+        firewood: 0,
+        cookedFish: 0
+      };
+
+      state.resources = {
+        ...defaultResources,
+        ...(data.resources || {})
+      };
+
+      addLog("已讀檔");
+    }
+
+    function resetGame(){
+      if(!confirm("確定要重置這個 rewrite 存檔嗎？")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state.gold = 0;
+      state.level = 1;
+      state.exp = 0;
+      state.stamina = 100;
+      state.resources = {
+        wood: 0,
+        stone: 0,
+        berry: 0,
+        herb: 0,
+        fish: 0,
+        copperOre: 0,
+        plank: 0,
+        firewood: 0,
+        cookedFish: 0
+      };
+      state.logs = [];
+      addLog("已重置 rewrite 存檔");
+    }
+
+    function renderTopStats(){
+      document.getElementById("gold").textContent = state.gold;
+      document.getElementById("level").textContent = state.level;
+      document.getElementById("exp").textContent = state.exp;
+      document.getElementById("expNext").textContent = expToNext(state.level);
+      document.getElementById("stamina").textContent = state.stamina;
+      document.getElementById("maxStamina").textContent = maxStamina();
+
+      const expRate = Math.max(0, Math.min(100, (state.exp / expToNext(state.level)) * 100));
+      const staminaRate = Math.max(0, Math.min(100, (state.stamina / maxStamina()) * 100));
+      document.getElementById("expBar").style.width = `${expRate}%`;
+      document.getElementById("staminaBar").style.width = `${staminaRate}%`;
+
+      const bestFood = getBestFoodId();
+      const eatHint = document.getElementById("eatHint");
+      if(bestFood){
+        eatHint.textContent = `目前最佳食物：${edibleDefs[bestFood].name}（恢復 ${edibleDefs[bestFood].stamina} 體力）`;
+      }else{
+        eatHint.textContent = "目前沒有可吃的食物";
+      }
+    }
+
+    function renderResources(){
+      const root = document.getElementById("resources");
+      root.innerHTML = Object.entries(state.resources)
+        .map(([id, value]) => {
+          const edible = edibleDefs[id] ? `<div class="small muted">可食用：+${edibleDefs[id].stamina} 體力</div>` : "";
+          return `
+            <div class="resource-item">
+              <div class="resource-name">${resourceLabels[id]}</div>
+              <div class="resource-value">${value}</div>
+              ${edible}
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function renderWorkButtons(){
+      const root = document.getElementById("workButtons");
+      root.innerHTML = Object.entries(workDefs)
+        .map(([id, def]) => `
+          <button data-work="${id}">${def.name}（-${def.staminaCost} 體力）</button>
+        `)
+        .join("");
+
+      root.querySelectorAll("[data-work]").forEach(btn => {
+        btn.addEventListener("click", () => performWork(btn.dataset.work));
+      });
+    }
+
+    function renderCraftList(){
+      const root = document.getElementById("craftList");
+      root.innerHTML = Object.entries(craftDefs)
+        .map(([id, def]) => {
+          const costText = Object.entries(def.costs)
+            .map(([resId, amount]) => `${resourceLabels[resId]} ${amount}`)
+            .join("、");
+          const yieldText = Object.entries(def.yields)
+            .map(([resId, amount]) => `${resourceLabels[resId]} ${amount}`)
+            .join("、");
+          return `
+            <div class="recipe-card">
+              <div class="top">
+                <strong>${def.name}</strong>
+                <button data-craft="${id}">製作</button>
+              </div>
+              <div class="small muted">${def.desc}</div>
+              <div class="row" style="margin-top:8px;">
+                <span class="pill">消耗體力：${def.staminaCost}</span>
+                <span class="pill">材料：${costText}</span>
+                <span class="pill">產出：${yieldText}</span>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      root.querySelectorAll("[data-craft]").forEach(btn => {
+        btn.addEventListener("click", () => craftItem(btn.dataset.craft));
+      });
+    }
+
+    function renderLog(){
+      const root = document.getElementById("log");
+      if(state.logs.length === 0){
+        root.innerHTML = `<div class="log-item">目前還沒有事件紀錄</div>`;
+        return;
+      }
+      root.innerHTML = state.logs
+        .map(text => `<div class="log-item">${text}</div>`)
+        .join("");
+    }
+
+    function render(){
+      renderTopStats();
+      renderResources();
+      renderLog();
+    }
+
     document.getElementById("restBtn").addEventListener("click", rest);
-    document.getElementById("lumberBtn").addEventListener("click", () => performWork("lumber"));
-    document.getElementById("miningBtn").addEventListener("click", () => performWork("mining"));
-    document.getElementById("foodBtn").addEventListener("click", takeFood);
-    document.getElementById("eatBtn").addEventListener("click", eatFood);
+    document.getElementById("eatBestBtn").addEventListener("click", eatBestFood);
     document.getElementById("saveBtn").addEventListener("click", saveGame);
     document.getElementById("loadBtn").addEventListener("click", loadGame);
+    document.getElementById("resetBtn").addEventListener("click", resetGame);
 
+    renderWorkButtons();
+    renderCraftList();
     render();
   </script>
 </body>
