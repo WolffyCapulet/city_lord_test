@@ -206,3 +206,43 @@ button:disabled{ opacity:.45; cursor:not-allowed; }
   line-height:1.5;
   font-size:14px;
 }
+.action-lane{
+  margin-bottom:12px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.03);
+}
+
+.action-status{
+  margin-bottom:8px;
+  font-size:14px;
+  color:var(--text);
+}
+
+.action-bar{
+  margin-bottom:8px;
+}
+
+.fill.action{
+  background:linear-gradient(90deg,#60a5fa,#a78bfa);
+}
+
+.queue-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:center;
+  min-height:28px;
+}
+
+.queue-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+  font-size:12px;
+}
