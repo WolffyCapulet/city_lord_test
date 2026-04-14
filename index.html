@@ -5,161 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>城主村莊測試版 v0.1.0.4</title>
-  <style>
-    :root{
-      --bg:#0f172a;
-      --panel:#172235;
-      --panel2:#1d2b40;
-      --line:#334155;
-      --text:#eef2ff;
-      --muted:#cbd5e1;
-      --accent:#f59e0b;
-      --good:#34d399;
-      --bad:#f87171;
-      --blue:#60a5fa;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0b1324,#0f172a 30%,#101826);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
-    button,select{font:inherit}
-    .wrap{max-width:1500px;margin:0 auto;padding:12px;}
-    .layout{display:grid;grid-template-columns:180px minmax(0,1fr) 330px;gap:12px;align-items:stretch;margin-top:12px}
-    .nav-rail{display:flex;flex-direction:column;gap:8px;position:sticky;top:10px}
-    .nav-btn{width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);cursor:pointer}
-    .nav-btn:hover{border-color:var(--accent);background:rgba(245,158,11,.10)}
-    .nav-btn.active{border-color:var(--accent);background:rgba(245,158,11,.16);box-shadow:0 0 0 1px rgba(245,158,11,.2) inset}
-    .main-stack{display:flex;flex-direction:column;gap:12px;min-width:0}
-    .main-page-panel.page-hidden{display:none !important}
-    @media (max-width:1250px){.layout{grid-template-columns:160px minmax(0,1fr)}.sidebar{grid-column:1 / -1;position:static}}
-    @media (max-width:900px){.layout{grid-template-columns:1fr}.nav-rail{position:static;flex-direction:row;flex-wrap:wrap}.sidebar{position:static}}
-    .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 26px rgba(0,0,0,.2)}
-    .panel + .panel{margin-top:12px}
-    .header h1{margin:0;font-size:26px}
-    .muted{color:var(--muted)}
-    .small{font-size:12px}
-    .top-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px}
-    @media (max-width:1200px){.top-grid{grid-template-columns:repeat(3,1fr)}}
-    @media (max-width:700px){.top-grid{grid-template-columns:repeat(2,1fr)}}
-    .stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px;min-height:92px}
-    .stat strong{font-size:18px}
-    .bar{height:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:6px}
-    .fill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#10b981);transition:width .12s linear}
-    .fill.exp{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
-    .fill.action{background:linear-gradient(90deg,#60a5fa,#a78bfa)}
-    .fill.fire{background:linear-gradient(90deg,#fb7185,#f59e0b)}
-    .pill-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-    .pill{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px}
-    .sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .main-two-col{display:grid;grid-template-columns:minmax(320px,430px) minmax(0,1fr);gap:12px;margin-top:12px;align-items:start}
-    .right-stack{display:flex;flex-direction:column;gap:12px}
-    .log-panel{min-width:0}
-    @media (max-width:900px){.sub-grid{grid-template-columns:1fr}.main-two-col{grid-template-columns:1fr}}
-    .compact-actions{display:flex;flex-wrap:wrap;gap:6px}
-    .compact-actions button{flex:0 0 120px;width:120px;padding:6px 10px;min-height:34px;font-size:13px;line-height:1.1;white-space:nowrap;text-align:center}
-    [data-main-page="production"] details .row{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
-    [data-main-page="production"] details .row button[data-craft],
-    [data-main-page="production"] details .row button[data-process]{flex:0 0 104px;width:104px;padding:6px 8px;min-height:34px;font-size:13px;line-height:1.1;white-space:nowrap;text-align:center;overflow:hidden;text-overflow:ellipsis}
-    
-    @media (max-width:700px){.compact-actions button{flex-basis:108px;width:108px;padding:6px 8px}[data-main-page="production"] details .row button[data-craft],[data-main-page="production"] details .row button[data-process]{flex-basis:96px;width:96px;padding:6px 6px}}
-    button{background:#0f172a;color:var(--text);border:1px solid #475569;border-radius:10px;padding:8px 10px;cursor:pointer}
-    button:hover,select:hover{border-color:var(--accent)}
-    button:disabled{opacity:.45;cursor:not-allowed}
-    select{background:#0f172a;color:var(--text);border:1px solid #475569;border-radius:10px;padding:7px 8px}
-    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-    .section-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-    .info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-    .mini{padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
-    .worker,.plot{padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);margin-top:8px}
-    .workers-grid,.plot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px;margin-top:8px}
-    .worker,.plot{margin-top:0;padding:6px 8px;min-height:84px}
-    .worker .bar,.plot .bar{max-width:100%;width:100%;height:10px;margin-top:4px}
-    .plot .bar{height:8px}
-    .worker-status,.plot-header{display:flex;justify-content:space-between;gap:6px;margin-bottom:4px;align-items:flex-start}
-    .worker-label,.plot-label{font-weight:700;font-size:13px}
-    .plot-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-    .plot-actions .tiny-btn{padding:5px 8px;font-size:12px}
-    .plot-note{font-size:12px;color:var(--muted);line-height:1.3}
-    .quick-assign-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:10px}
-    .qa-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
-    .qa-controls{display:flex;align-items:center;gap:6px}
-    .job-count{min-width:28px;text-align:center;font-weight:700}
-    .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
-    .sidebar{position:sticky;top:10px}
-    .resource-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
-    .resource-group{margin-top:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);overflow:hidden}
-    .resource-summary{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:transparent;border:0;border-radius:0;font-weight:700;text-align:left}
-    .resource-summary:hover{background:rgba(255,255,255,.04);border-color:transparent}
-    .resource-arrow{font-size:12px;color:var(--muted)}
-    .resource-body{padding:0 8px 8px}
-    .resource-body.closed{display:none}
-    .resource-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-    .resource-item{padding:7px 8px;border-radius:9px;border:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.75);font-size:13px;display:flex;flex-direction:column;gap:3px;min-height:48px;justify-content:center}
-    .resource-item.clickable{cursor:pointer}
-    .resource-item.clickable:hover{border-color:var(--accent);background:rgba(30,41,59,.95)}
-    .resource-item .meta{font-size:11px;color:var(--muted)}
-    .log{max-height:520px;overflow:auto}
-    .log-item{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
-    .active{border-color:var(--accent)!important;box-shadow:0 0 0 1px rgba(245,158,11,.32) inset}
-    .good{color:var(--good)}
-    .bad{color:var(--bad)}
-    .tiny-btn{padding:5px 8px;font-size:12px}
-
-    .craft-queue{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-    .queue-pill{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px}
-    .queue-pill.clickable{cursor:pointer;user-select:none}
-    .queue-pill.clickable:hover{border-color:var(--accent);background:rgba(245,158,11,.10)}
-    #buildingButtons button, #researchArea button, [data-build], #payDebtBtn, #claimTaxBtn{pointer-events:auto; position:relative; z-index:2}
-    details summary{cursor:pointer;padding:4px 0}
-    details summary:hover{color:var(--accent)}
-    .lane-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-    .lane-card{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03)}
-    .lane-label{font-size:12px;color:var(--muted);min-height:32px}
-    .merchant-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
-    .merchant-item{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px}
-    .merchant-item input[type="number"]{width:72px;background:#0f172a;color:var(--text);border:1px solid #475569;border-radius:8px;padding:4px 6px}
-
-    .merchant-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}
-.order-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px}
-.order-actions button{width:100%;justify-content:center}
-.main-page-panel[data-main-page="trade"]{min-height:calc(100vh - 240px)}
-
-    .tab-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .tab-btn.active{outline:2px solid var(--accent);background:rgba(245,158,11,.18)}
-    .research-card{padding:7px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:4px;min-width:120px;min-height:58px;justify-content:flex-start}
-    .research-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:8px}
-
-    .order-card{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px}
-
-    .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-    .header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
-    .modal-backdrop.show{display:flex}
-    .modal-card{width:min(480px,100%);background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 20px 40px rgba(0,0,0,.35)}
-    .modal-card h3{margin:0 0 10px}
-    .check-row{display:flex;align-items:flex-start;gap:8px;margin-top:10px}
-    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
-  
-    .action-modal-grid{display:grid;grid-template-columns:1fr;gap:10px}
-    .action-quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    .action-quick button.active{outline:2px solid var(--accent);background:rgba(245,158,11,.18)}
-    .modal-desc{max-height:280px;overflow:auto;white-space:pre-wrap;line-height:1.45}
-    .queue-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
-    .queue-toggle{padding:4px 8px;font-size:12px}
-    .queue-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-    .queue-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03)}
-    .queue-row .ops{display:flex;gap:4px;flex-wrap:wrap}
-    .book-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:8px 0 0}
-    .book-card{padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:4px;min-height:96px;justify-content:flex-start}
-    .research-summary{display:flex;flex-direction:column;gap:3px;min-width:0}
-    .research-status{font-size:11px;color:var(--muted);line-height:1.2}
-    .research-status.done{color:var(--good)}
-    .research-mini-btn{padding:3px 8px;font-size:10px;line-height:1.1;align-self:flex-start;min-width:52px;border-radius:999px}
-    .farm-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
-    .farm-control-btn{padding:6px 10px;font-size:12px;line-height:1.2;border-radius:10px}
-    .farm-control-btn.compact{min-width:0}
-    .farm-control-btn.short{padding:6px 9px;min-width:0}
-
-    .tag{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
-  </style>
+  <link rel="stylesheet" href="./styles/main.css" />
 </head>
 <body>
 <div class="wrap">
@@ -542,29 +388,9 @@
     </div>
   </div>
 </div>
+<script src="./scripts/constants.js"></script>
+<script src="./scripts/utils.js"></script>
 <script>
-const GAME_VERSION = 'v0.1.0.4';
-const GAME_TITLE = '城主村莊測試版 ' + GAME_VERSION;
-const GAME_CHANGELOG = '穩定回復版：以可運行的 0.1.0.2 為基礎，保留舊存檔相容與既有數據。';
-function syncGameVersionLabels(){
-  document.title = GAME_TITLE;
-  const titleEl = document.getElementById('gameTitle');
-  if(titleEl) titleEl.textContent = GAME_TITLE;
-  const noteEl = document.getElementById('gameVersionNote');
-  if(noteEl) noteEl.textContent = `${GAME_VERSION}：${GAME_CHANGELOG}`;
-}
-syncGameVersionLabels();
-const STORAGE_KEY = 'city_lord_test_shared';
-const STORAGE_KEY_LEGACY = 'city_lord_test_v4';
-const SAVE_SCHEMA_VERSION = 16;
-const LEGACY_STORAGE_KEYS = [
-  'city_lord_test_v4',
-  'city_lord_test_v3',
-  'city_lord_test_v2',
-  'city_lord_test'
-];
-const rarityMultipliers = { common:1, rare:1.2, epic:1.5, legendary:2.0 };
-
 const resourceLabels = {
   wood:'木頭', stone:'石頭', dirt:'泥土', sand:'沙子',
   copperOre:'銅礦', coal:'煤炭', ironOre:'鐵礦', silverOre:'銀礦', goldOre:'金礦', magnetite:'磁石', crystal:'水晶', gem:'寶石', coalPowder:'碳粉', copperPowder:'銅粉', ironPowder:'鐵粉', silverPowder:'銀粉', goldPowder:'金粉', magnetitePowder:'磁石粉', crystalPowder:'水晶粉', gemPowder:'寶石粉',
@@ -1221,149 +1047,13 @@ const townStageDefs = [
 ];
 
 
-function expToNext(level){ return Math.round(5 + 2.5 * level * (level - 1)); }
-function clamp(n,min,max){ return Math.min(max, Math.max(min,n)); }
-function toFiniteNumber(value, fallback=0){
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-function roll(chance){ return Math.random()<chance; }
-function nowTime(){ const d=new Date(); return `[${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}]`; }
 function jobDisplayName(job){
   const extra = {idle:'待命', farming:'農務', crafting:'工匠', cook:'廚師', ranch:'牧場'};
   if(extra[job]) return extra[job];
   return workDefs[job] ? workDefs[job].name : job;
 }
 
-function createInitialState(){
-  const skills = {};
-  Object.keys(skillLabels).forEach(k => skills[k] = {level:1, exp:0});
-  return {
-    gold:0, level:1, exp:0, intelligence:0,
-    stamina:100, staminaLevel:1, staminaExp:0,
-    managementLevel:1, managementExp:0,
-    castleLevel:1, castleExp:0,
-    tradeLevel:1, tradeExp:0, reputation:0,
-    pendingTax:0,
-    campfireSec:0, isResting:false, autoWork:null, autoWorkCount:0, workQueue:[], autoCraft:null, autoCraftInfinite:false, craftQueue:[], craftRepeat:false, productionAction:null, craftAction:null, researchAction:null, researchQueue:[], playerAction:null, autoResting:false, autoRestResume:null, craftPausedForStamina:false, craftPausedName:'',
-    staminaPotionBuff:0, staminaPotionCooldown:0,
-    nextWorkerId:1, workers:[], salaryTimer:300, salaryDebt:0,
-    craftYieldCarry:{},
-    houses:{cabin:0, stoneHouse:0, wall:0},
-    buildings:{well:0, library:0, mill:0, alchemyHut:0, lumberMill:0, quarry:0, fishingShack:0, tannery:0, smithy:0, townCenter:0, ranch:0, waterChannel:0, windmill:0},
-    research:Object.fromEntries(Object.keys(researchDefs).map(k=>[k,false])),
-    ui:{researchTab:'available', hideCompletedResearch:false, craftQueueExpanded:false, logTab:'important', mainPage:'production', shopTab:'all', smithyTab:'ingot', manualSeedSelection:'wheatSeed', farmerSeedPreference:'auto', playerAutoEatThreshold:0, playerAutoEatFood:'auto', shopBuyQty:{}, shopSellQty:{}},
-    merchant:{minuteCounter:0, present:false, presentSec:0, cash:0, maxCash:0, storeFunds:0, lastStoreInjection:0, keep:{}, orders:[], nextOrderId:1},
-    farmerAutoFertilize:false,
-    ranchData:createInitialRanchData(),
-    plots:[null,null,null],
-    logs:[{time:nowTime(), text:'開始遊戲。你是剛起步的城主。', type:'important'}],
-    resources:Object.fromEntries(Object.keys(resourceLabels).map(k=>[k,0])),
-    skills
-  };
-}
-
-function getLoadCandidates(){
-  const keys = [STORAGE_KEY, STORAGE_KEY_LEGACY, ...LEGACY_STORAGE_KEYS];
-  return [...new Set(keys)];
-}
-
-function unwrapSaveData(parsed){
-  if(!parsed || typeof parsed !== 'object') return null;
-  if(parsed && typeof parsed === 'object' && parsed.data && typeof parsed.data === 'object'){
-    return {
-      data: parsed.data,
-      meta: {
-        schemaVersion: parsed.schemaVersion || 1,
-        savedAt: parsed.savedAt || null,
-        gameVersion: parsed.gameVersion || null,
-        sourceKey: parsed.sourceKey || null
-      }
-    };
-  }
-  return {
-    data: parsed,
-    meta: { schemaVersion: 1, savedAt: null, gameVersion: null, sourceKey: null }
-  };
-}
-
-function migrateLoadedState(data, meta={}){
-  const migrated = JSON.parse(JSON.stringify(data));
-  if(typeof migrated.saveSchemaVersion !== 'number') migrated.saveSchemaVersion = meta.schemaVersion || 1;
-  if(!migrated.meta || typeof migrated.meta !== 'object') migrated.meta = {};
-  if(meta.sourceKey) migrated.meta.lastLoadedFrom = meta.sourceKey;
-  if(!Array.isArray(migrated.workers) && Array.isArray(migrated.workerList)) migrated.workers = migrated.workerList;
-  if(!Array.isArray(migrated.plots)){
-    if(Array.isArray(migrated.fields)) migrated.plots = migrated.fields;
-    else if(Array.isArray(migrated.farmPlots)) migrated.plots = migrated.farmPlots;
-  }
-  return migrated;
-}
-
-function getSaveTimestamp(unwrapped){
-  if(!unwrapped || !unwrapped.data || typeof unwrapped.data !== 'object') return 0;
-  const metaSavedAt = Number(unwrapped.meta && unwrapped.meta.savedAt);
-  const dataSavedAt = Number(unwrapped.data && unwrapped.data.meta && unwrapped.data.meta.lastSavedAt);
-  if(Number.isFinite(metaSavedAt) && metaSavedAt > 0) return metaSavedAt;
-  if(Number.isFinite(dataSavedAt) && dataSavedAt > 0) return dataSavedAt;
-  return 0;
-}
-
-function loadGame(){
-  try{
-    let best = null;
-    for(const key of getLoadCandidates()){
-      const raw = localStorage.getItem(key);
-      if(!raw) continue;
-      try{
-        const parsed = JSON.parse(raw);
-        const unwrapped = unwrapSaveData(parsed);
-        if(!unwrapped || !unwrapped.data || typeof unwrapped.data !== 'object') continue;
-        unwrapped.meta.sourceKey = key;
-        unwrapped.meta.detectedSavedAt = getSaveTimestamp(unwrapped);
-        if(!best || unwrapped.meta.detectedSavedAt > best.meta.detectedSavedAt){
-          best = unwrapped;
-        }
-      }catch(err){
-        console.warn('讀取存檔失敗:', key, err);
-      }
-    }
-    return best ? migrateLoadedState(best.data, best.meta) : null;
-  }catch(err){
-    console.warn('讀取存檔失敗:', err);
-    return null;
-  }
-}
-
-const state = loadGame() || createInitialState();
-normalizeState(state);
-applyV060Migration(state);
-if(state.meta && state.meta.lastLoadedFrom && state.meta.lastLoadedFrom !== 'new'){
-  const sourceName = state.meta.lastLoadedFrom === STORAGE_KEY ? '共用存檔' : `舊版存檔（${state.meta.lastLoadedFrom}）`;
-  if(!Array.isArray(state.logs)) state.logs = [];
-  state.logs.unshift({time:nowTime(), text:`已載入${sourceName}。`, type:'important'});
-  if(state.meta.housingRecovered){
-    state.logs.unshift({time:nowTime(), text:'已自動修復住房容量。', type:'important'});
-    state.meta.housingRecovered = false;
-  }
-  state.logs = state.logs.slice(0, 220);
-}
-let lastTick = performance.now();
-let allResourcesOpen = true;
-let resourceOpenState = {};
-let merchantUiInteractionUntil = 0;
-function markMerchantUiInteraction(ms=1200){
-  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-  merchantUiInteractionUntil = Math.max(merchantUiInteractionUntil, now + ms);
-}
-function isMerchantUiInteractionLocked(){
-  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-  const root = document.getElementById('merchantArea');
-  const hovering = !!(root && root.matches && root.matches(':hover'));
-  const focused = !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#merchantArea'));
-  return hovering || focused || now < merchantUiInteractionUntil;
-}
+// state/save lifecycle moved to scripts/state.js
 
 function normalizeState(s){
   if(typeof s.saveSchemaVersion !== 'number') s.saveSchemaVersion = SAVE_SCHEMA_VERSION;
@@ -3735,238 +3425,10 @@ function craftCompletionText(def, yieldsOverride=null, outputMultiplier=1){
   return `製作${resourceLabels[mainProduct] || def.name}完成${multiplierText}：${yieldText}。`;
 }
 
-function renderWorkActionButtons(){
-  document.querySelectorAll('[data-work]').forEach(btn => {
-    const id = btn.dataset.work;
-    const def = workDefs[id];
-    const cycle = getProductionDuration(id);
-    btn.type = 'button';
-    btn.textContent = def.name;
-    const outputPreview = getProductionOutputPreviewText(id);
-    btn.title = `${def.name}
-體力：${def.staminaCost}
-生產節奏：${formatSecondsLabel(cycle)}${outputPreview ? `
-${outputPreview}` : ''}`;
-    btn.onpointerdown = null;
-    btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openWorkModal(id); };
-  });
-}
+// moved to scripts/render.js
+// moved to scripts/render.js
 
-const craftGroupMap = {
-  plank:'基礎加工', stoneBrick:'基礎加工', brickFirewood:'基礎加工', brickCoal:'基礎加工', glassFirewood:'基礎加工', glassCoal:'基礎加工', bottle:'基礎加工',
-  sashimi:'烹飪', grilledMeat:'烹飪', grilledFish:'烹飪', bread:'烹飪', grilledSausage:'烹飪', bearStew:'烹飪', applePie:'烹飪', clamSoup:'烹飪',
-  flour:'研磨', boneMeal:'研磨', compost:'研磨', wheatSeedBundle:'研磨', coalPowder:'研磨', copperPowder:'研磨', ironPowder:'研磨', silverPowder:'研磨', goldPowder:'研磨', magnetitePowder:'研磨', crystalPowder:'研磨', gemPowder:'研磨',
-  ironFirewood:'冶煉與工具', ironCoal:'冶煉與工具', copperFirewood:'冶煉與工具', copperCoal:'冶煉與工具', woodAxeTool:'冶煉與工具', woodPickTool:'冶煉與工具', woodShovelTool:'冶煉與工具', woodCarvingKnifeTool:'冶煉與工具', woodHammerTool:'冶煉與工具', woodPotTool:'冶煉與工具', woodHoeTool:'冶煉與工具', woodPitchforkTool:'冶煉與工具', woodFishingRodTool:'冶煉與工具', stoneAxeTool:'冶煉與工具', stonePickTool:'冶煉與工具', shovelTool:'冶煉與工具', stoneCarvingKnifeTool:'冶煉與工具', stoneHammerTool:'冶煉與工具', stonePotTool:'冶煉與工具', stoneHoeTool:'冶煉與工具', stonePitchforkTool:'冶煉與工具', fishingRodTool:'冶煉與工具', woodBowTool:'冶煉與工具', stoneBowTool:'冶煉與工具', copperAxeTool:'冶煉與工具', copperPickTool:'冶煉與工具', copperShovelTool:'冶煉與工具', copperCarvingKnifeTool:'冶煉與工具', copperHammerTool:'冶煉與工具', copperPotTool:'冶煉與工具', copperHoeTool:'冶煉與工具', copperPitchforkTool:'冶煉與工具', copperFishingRodTool:'冶煉與工具', copperBowTool:'冶煉與工具', ironAxeTool:'冶煉與工具', ironPickTool:'冶煉與工具', ironShovelTool:'冶煉與工具', ironCarvingKnifeTool:'冶煉與工具', ironHammerTool:'冶煉與工具', ironPotTool:'冶煉與工具', ironHoeTool:'冶煉與工具', ironPitchforkTool:'冶煉與工具', ironFishingRodTool:'冶煉與工具', ironBowTool:'冶煉與工具',
-  herbTonic:'煉金與文具', staminaPotion:'煉金與文具', paper:'煉金與文具', ink:'煉金與文具', note:'煉金與文具', manual:'煉金與文具',
-  leather:'製革與裁縫', softLeather:'製革與裁縫', cottonThread:'製革與裁縫', cottonCloth:'製革與裁縫', grassThread:'製革與裁縫', grassCloth:'製革與裁縫', clothes:'製革與裁縫', fishNetTool:'製革與裁縫'
-};
-function ensureCraftButtonsExist(){
-  const page = document.querySelector('[data-main-page="production"]');
-  if(!page) return;
-  const groups = {};
-  page.querySelectorAll('details').forEach(detail => {
-    const summary = detail.querySelector('summary');
-    const row = detail.querySelector('.row');
-    if(summary && row) groups[summary.textContent.trim()] = row;
-  });
-  Object.keys(crafts).forEach(id => {
-    if(crafts[id]?.hidden) return;
-    if(page.querySelector(`[data-craft="${id}"]`)) return;
-    const groupName = craftGroupMap[id];
-    const row = groups[groupName];
-    if(!row) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.dataset.craft = id;
-    btn.textContent = crafts[id].name;
-    row.appendChild(btn);
-  });
-}
-const smithyTabDefs = [
-  {id:'ingot', label:'錠'},
-  {id:'wood', label:'木製'},
-  {id:'stone', label:'石製'},
-  {id:'copper', label:'銅製'},
-  {id:'iron', label:'鐵製'},
-  {id:'other', label:'其他'}
-];
-const smithyCraftCategoryMap = {
-  ironFirewood:'ingot', ironCoal:'ingot', copperFirewood:'ingot', copperCoal:'ingot',
-  woodAxeTool:'wood', woodPickTool:'wood', woodShovelTool:'wood', woodCarvingKnifeTool:'wood', woodHammerTool:'wood', woodPotTool:'wood', woodHoeTool:'wood', woodPitchforkTool:'wood', woodFishingRodTool:'wood', woodBowTool:'wood',
-  stoneAxeTool:'stone', stonePickTool:'stone', shovelTool:'stone', stoneCarvingKnifeTool:'stone', stoneHammerTool:'stone', stonePotTool:'stone', stoneHoeTool:'stone', stonePitchforkTool:'stone', fishingRodTool:'stone', stoneBowTool:'stone',
-  copperAxeTool:'copper', copperPickTool:'copper', copperShovelTool:'copper', copperCarvingKnifeTool:'copper', copperHammerTool:'copper', copperPotTool:'copper', copperHoeTool:'copper', copperPitchforkTool:'copper', copperFishingRodTool:'copper', copperBowTool:'copper',
-  ironAxeTool:'iron', ironPickTool:'iron', ironShovelTool:'iron', ironCarvingKnifeTool:'iron', ironHammerTool:'iron', ironPotTool:'iron', ironHoeTool:'iron', ironPitchforkTool:'iron', ironFishingRodTool:'iron', ironBowTool:'iron',
-  fishNetTool:'other'
-};
-function renderSmithyTabs(){
-  const page = document.querySelector('[data-main-page="production"]');
-  if(!page) return;
-  const detail = Array.from(page.querySelectorAll('details')).find(d => d.querySelector('summary') && d.querySelector('summary').textContent.trim() === '冶煉與工具');
-  if(!detail) return;
-  let tabRow = detail.querySelector('.smithy-tab-row');
-  if(!tabRow){
-    tabRow = document.createElement('div');
-    tabRow.className = 'tab-row smithy-tab-row';
-    tabRow.style.marginTop = '8px';
-    const row = detail.querySelector('.row');
-    detail.insertBefore(tabRow, row);
-  }
-  tabRow.innerHTML = '';
-  smithyTabDefs.forEach(tab => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'tiny-btn tab-btn' + (state.ui.smithyTab === tab.id ? ' active' : '');
-    btn.textContent = tab.label;
-    btn.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); state.ui.smithyTab = tab.id; renderCraftActionButtons(); };
-    btn.onclick = (e)=>e.preventDefault();
-    tabRow.appendChild(btn);
-  });
-}
-function renderCraftActionButtons(){
-  ensureCraftButtonsExist();
-  renderSmithyTabs();
-  document.querySelectorAll('[data-craft]').forEach(btn => {
-    const id = btn.dataset.craft;
-    const def = crafts[id];
-    if(!def || def.hidden) return;
-    const cycle = getCraftDuration(id);
-    const outputPreview = getCraftOutputPreviewText(id);
-    const recipe = `${bundleText(def.costs)} → ${bundleText(def.yields)}`;
-    const locked = !!(def.unlock && !state.research[def.unlock]);
-    const groupName = craftGroupMap[id] || '';
-    const isSmithy = groupName === '冶煉與工具';
-    const category = smithyCraftCategoryMap[id] || 'other';
-    const hiddenByTab = isSmithy && category !== (state.ui.smithyTab || 'ingot');
-    btn.type = 'button';
-    btn.textContent = def.name;
-    btn.title = locked
-      ? `${def.name}
-尚未研究${researchDefs[def.unlock]?.name || def.unlock}。`
-      : `${def.name}
-體力：${def.stamina || 1}
-配方：${recipe}
-製作節奏：${formatSecondsLabel(cycle)}${outputPreview ? `\n${outputPreview}` : ''}`;
-    btn.style.display = (locked || hiddenByTab) ? 'none' : '';
-    btn.onpointerdown = null;
-    btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if(!locked && !hiddenByTab) openCraftModal(id); };
-  });
-}
-
-function render(){
-  bindHouseButtons();
-  renderMainPageNav();
-  document.getElementById('gold').textContent = format(state.gold);
-  document.getElementById('level').textContent = state.level;
-  document.getElementById('exp').textContent = format(state.exp);
-  document.getElementById('expNext').textContent = expToNext(state.level);
-  document.getElementById('expBar').style.width = `${(state.exp / expToNext(state.level)) * 100}%`;
-  document.getElementById('intelligence').textContent = state.intelligence;
-  const activeProductionWorkId = (state.productionAction && state.productionAction.id) || state.autoWork || null;
-  document.getElementById('cycleTime').textContent = getProductionDuration(activeProductionWorkId).toFixed(2);
-  document.getElementById('stamina').textContent = format(state.stamina);
-  document.getElementById('maxStamina').textContent = maxStamina();
-  document.getElementById('staminaBar').style.width = `${(state.stamina / maxStamina()) * 100}%`;
-  document.getElementById('staminaLevel').textContent = state.staminaLevel;
-  document.getElementById('staminaExp').textContent = format(state.staminaExp);
-  document.getElementById('staminaExpNext').textContent = expToNext(state.staminaLevel);
-  document.getElementById('staminaExpBar').style.width = `${(state.staminaExp / expToNext(state.staminaLevel)) * 100}%`;
-  document.getElementById('managementLevel').textContent = state.managementLevel;
-  document.getElementById('managementExp').textContent = format(state.managementExp);
-  document.getElementById('managementExpNext').textContent = expToNext(state.managementLevel);
-  document.getElementById('managementBar').style.width = `${(state.managementExp / expToNext(state.managementLevel)) * 100}%`;
-  document.getElementById('housingUsed').textContent = state.workers.length;
-  document.getElementById('housingCap').textContent = housingCap();
-  document.getElementById('salaryTimer').textContent = formatReadableDuration(state.salaryTimer);
-  document.getElementById('salaryDebt').textContent = format(state.salaryDebt);
-  document.getElementById('campfireSec').textContent = formatReadableDuration(state.campfireSec);
-  document.getElementById('castleLevel').textContent = state.castleLevel;
-  document.getElementById('taxIncome').textContent = format(state.pendingTax);
-  const safetyEl = document.getElementById('safetyValue'); if(safetyEl) safetyEl.textContent = format(safetyValue());
-  const tradeLvEl = document.getElementById('tradeLevel'); if(tradeLvEl) tradeLvEl.textContent = state.tradeLevel;
-  const repEl = document.getElementById('reputationValue'); if(repEl) repEl.textContent = format(state.reputation);
-  const castlePill = document.getElementById('castlePill'); if(castlePill) castlePill.title = getCastleLevelEffectText();
-  const safetyPill = document.getElementById('safetyPill'); if(safetyPill) safetyPill.title = `安全值：${safetyValue()}\n安全帶：${getSafetyBand().label}\n${getSafetyBand().desc}\n作用：提高商人到訪率、商人攜帶資金與高品質訂單機率。`;
-  const tradePill = document.getElementById('tradePill'); if(tradePill) tradePill.title = getTradeLevelEffectText();
-  const repPill = document.getElementById('reputationPill'); if(repPill) repPill.title = getReputationEffectText();
-  const taxPill = document.getElementById('taxPill'); if(taxPill) taxPill.title = getTaxEffectText();
-  const salaryPill = document.getElementById('salaryPill'); if(salaryPill) salaryPill.title = `薪資倒數：${formatReadableDuration(state.salaryTimer)}\n下次結算時會依工人數量與薪資扣款。`;
-  const campfirePill = document.getElementById('campfirePill'); if(campfirePill) campfirePill.title = `篝火剩餘：${formatReadableDuration(state.campfireSec)}\n篝火持續時，玩家與工人行動速度都會獲得額外加成。`;
-  const farmingPill = document.getElementById('farmingPill'); if(farmingPill) farmingPill.title = `耕種\n${getSkillLevelEffectText('farming')}`;
-  const ranchLevelPill = document.getElementById('ranchLevelPill'); if(ranchLevelPill) ranchLevelPill.title = getRanchLevelEffectText();
-  const levelCard = document.getElementById('level'); if(levelCard && levelCard.parentElement) levelCard.parentElement.title = `主等級\n等級：Lv.${state.level}\n經驗：${format(state.exp)} / ${expToNext(state.level)}\n效果：提升整體進度基礎與部分解鎖條件。`;
-  const staminaCard = document.getElementById('staminaLevel'); if(staminaCard && staminaCard.parentElement) staminaCard.parentElement.title = `體力等級\n等級：Lv.${state.staminaLevel}\n經驗：${format(state.staminaExp)} / ${expToNext(state.staminaLevel)}\n效果：最大體力提升，休息與進食恢復效率提高。`;
-  const mgCard = document.getElementById('managementLevel'); if(mgCard && mgCard.parentElement && mgCard.parentElement.parentElement) mgCard.parentElement.parentElement.title = getManagementLevelEffectText();
-  document.getElementById('campfireBar').style.width = `${Math.min(100, (state.campfireSec / 180) * 100)}%`;
-  const stage = getTownStage();
-  const nextStage = getNextTownStage();
-  const researchTextEl = document.getElementById('researchUnlockText');
-  if(researchTextEl){
-    researchTextEl.textContent = nextStage ? `${stage.name} → ${nextStage.name}` : `${stage.name}（最高）`;
-    researchTextEl.title = nextStage ? getMissingReqText(nextStage) : '目前已達最高城鎮階段。';
-  }
-  document.getElementById('farmingLevel').textContent = state.skills.farming.level;
-  document.getElementById('seedReturnRate').textContent = getSeedReturnDisplayText('wheatSeed');
-  document.getElementById('workerCycle').textContent = getWorkerCycleTime().toFixed(2);
-  renderWorkActionButtons();
-  renderCraftActionButtons();
-
-  document.getElementById('restBtn').textContent = state.isResting ? '停止休息' : '開始休息';
-  document.getElementById('payDebtBtn').disabled = state.salaryDebt <= 0;
-  document.getElementById('claimTaxBtn').disabled = state.pendingTax <= 0;
-  document.getElementById('toggleResourcesBtn').textContent = allResourcesOpen ? '收合全部' : '展開全部';
-  document.querySelectorAll('[data-work]').forEach(btn => btn.classList.toggle('active', btn.dataset.work === state.autoWork));
-
-  const tl = document.getElementById('tradeLevel');
-  if(tl) tl.parentElement.title = `貿易等級：Lv.${state.tradeLevel}
-經驗：${format(state.tradeExp)} / ${expToNext(state.tradeLevel)}
-效果：每級讓商人到訪率額外 +0.5%`;
-  const rp = document.getElementById('reputationValue');
-  if(rp) rp.parentElement.title = `聲望：${format(state.reputation)}
-效果：工人工作速度 +${Math.round(getReputationWorkerSpeedBonus()*100)}%
-工人經驗 +${Math.round(getReputationExpBonus()*100)}%
-工人產量 +${Math.round(getReputationYieldBonus()*100)}%`;
-  const castleLevelEl = document.getElementById('castleLevel');
-  if(castleLevelEl){
-    const pill = document.getElementById('castlePill');
-    if(pill) pill.title = `城池等級：Lv.${state.castleLevel}｜${getTownStage().name}
-經驗：${format(state.castleExp)} / ${expToNext(state.castleLevel)}
-安全值：${safetyValue()}
-城牆上限：${wallCap()}
-效果：提升商人到訪率、攜帶資金與訂單品質`;
-  }
-  const topStats = document.querySelectorAll('.top-grid .stat');
-  if(topStats[1]) topStats[1].title = `主等級：Lv.${state.level}
-經驗：${format(state.exp)} / ${expToNext(state.level)}
-效果：村莊打工收入 +${(state.level - 1) * 10}%`;
-  if(topStats[3]) topStats[3].title = `體力等級：Lv.${state.staminaLevel}
-經驗：${format(state.staminaExp)} / ${expToNext(state.staminaLevel)}
-效果：最大體力 ${maxStamina()}
-休息恢復 +${Math.round(getRestEfficiencyBonus()*100)}%
-食物恢復 +${Math.round(getFoodEffectivenessBonus()*100)}%`;
-  if(topStats[4]) topStats[4].title = `管理等級：Lv.${state.managementLevel}
-經驗：${format(state.managementExp)} / ${expToNext(state.managementLevel)}
-效果：工人工作速度 +${(state.managementLevel - 1) * 2}%
-工人薪資 -${Math.round(getManagementWageDiscount()*100)}%
-建築材料需求 -${Math.round(getManagementMaterialDiscount()*100)}%`;
-  renderSkills();
-  renderAction();
-  renderResources();
-  renderSeedSelect();
-  renderQuickAssign();
-  renderWorkers();
-  renderPlots();
-  renderPasture();
-  renderBuildingButtons();
-  renderResearch();
-  const merchantActiveEl = document.activeElement;
-  const merchantFocused = !!(merchantActiveEl && merchantActiveEl.closest && merchantActiveEl.closest('#merchantArea') && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/i.test(merchantActiveEl.tagName || ''));
-  if(!merchantFocused && !isMerchantUiInteractionLocked()) renderMerchant();
-  renderWorkerCraftSelect();
-  renderWorkQueue();
-  renderCraftQueue();
-  renderResearchQueue();
-  renderLog();
-}
+// moved to scripts/render.js
 
 function getSkillLevelEffectText(id){
   const lv = state.skills[id]?.level || 1;
@@ -3989,170 +3451,13 @@ function getSkillLevelEffectText(id){
   };
   return common + (map[id] || '效果：記錄此技能熟練度。');
 }
-function setMainPage(page){
-  state.ui.mainPage = page;
-  renderMainPageNav();
-  render();
-}
-function renderMainPageNav(){
-  const allowed = ['production','farm','trade','build','workers','log'];
-  if(!allowed.includes(state.ui.mainPage)) state.ui.mainPage = 'production';
-  document.querySelectorAll('[data-main-nav]').forEach(btn => {
-    const page = btn.dataset.mainNav;
-    btn.classList.toggle('active', page === state.ui.mainPage);
-  });
-  document.querySelectorAll('[data-main-page]').forEach(panel => {
-    panel.classList.toggle('page-hidden', panel.dataset.mainPage !== state.ui.mainPage);
-  });
-}
+// moved to scripts/render.js
 
-function renderSkills(){
-  const root = document.getElementById('skillPills');
-  root.innerHTML = '';
-  Object.entries(skillLabels).forEach(([id,label]) => {
-    const skill = state.skills[id];
-    const div = document.createElement('div');
-    div.className = 'pill';
-    div.textContent = `${label} Lv.${skill.level}`;
-    div.title = `${label}\n${getSkillLevelEffectText(id)}`;
-    root.appendChild(div);
-  });
-}
+// moved to scripts/render.js
 
-function renderAction(){
-  const setLane = (prefix, action, idleText, activeTextFn) => {
-    const textEl = document.getElementById(prefix + 'Text');
-    const barEl = document.getElementById(prefix + 'Bar');
-    if(action){
-      textEl.textContent = activeTextFn(action);
-      barEl.style.width = `${clamp((1 - action.remaining / action.total) * 100, 0, 100)}%`;
-    }else{
-      textEl.textContent = idleText;
-      barEl.style.width = '0%';
-    }
-  };
-  const workQueued = getQueueCount(state.workQueue);
-  if(state.productionAction){
-    const a = state.productionAction;
-    const modeText = state.autoWorkCount < 0 ? '∞' : (state.autoWorkCount > 0 ? `×${state.autoWorkCount}` : '');
-    setLane('production', a, '生產：閒置', act => `生產：${workDefs[act.id].name}${modeText ? ` ${modeText}` : ''}${(act.outputMultiplier || 1) > 1.001 ? `｜${PRODUCTION_MIN_CYCLE_SECONDS} 秒產出 ×${(act.outputMultiplier || 1).toFixed(2)}` : ''}｜剩餘 ${Math.max(0,act.remaining).toFixed(1)} 秒`);
-  }else if(state.isResting){
-    document.getElementById('productionText').textContent = '生產：休息中';
-    document.getElementById('productionBar').style.width = '100%';
-  }else if(state.autoWork){
-    const modeText = state.autoWorkCount < 0 ? '∞' : (state.autoWorkCount > 0 ? `×${state.autoWorkCount}` : '');
-    document.getElementById('productionText').textContent = `生產：待命，${workDefs[state.autoWork].name}${modeText}`;
-    document.getElementById('productionBar').style.width = '0%';
-  }else if(workQueued){
-    document.getElementById('productionText').textContent = '生產：待命';
-    document.getElementById('productionBar').style.width = '0%';
-  }else{
-    document.getElementById('productionText').textContent = '生產：閒置';
-    document.getElementById('productionBar').style.width = '0%';
-  }
-  const qCount = getQueueCount(state.craftQueue);
-  const craftIdleText = state.craftPausedForStamina && state.craftPausedName ? `製作：體力不足暫停（${state.craftPausedName}）` : state.autoCraft ? `製作：待命，重複${crafts[state.autoCraft].name}` : qCount ? `製作：待命` : '製作：閒置';
-  setLane('craft', state.craftAction, craftIdleText, act => `製作：${crafts[act.id].name}${state.autoCraft===act.id?'（重複）':''}${(act.outputMultiplier || 1) > 1.001 ? `｜${CRAFT_MIN_CYCLE_SECONDS} 秒產出 ×${(act.outputMultiplier || 1).toFixed(2)}` : ''}｜剩餘 ${Math.max(0,act.remaining).toFixed(1)} 秒`);
-  const rQueued = getQueueCount(state.researchQueue);
-  if(state.researchAction){
-    const a = state.researchAction;
-    const label = a.type === 'read' ? `研究：閱讀《${books[a.id].name}》` : `研究：${researchDefs[a.id].name}`;
-    document.getElementById('researchText').textContent = `${label}｜剩餘 ${Math.max(0,a.remaining).toFixed(1)} 秒`;
-    document.getElementById('researchBar').style.width = `${clamp((1 - a.remaining / a.total) * 100, 0, 100)}%`;
-  }else{
-    document.getElementById('researchText').textContent = rQueued ? '研究：待命' : '研究：閒置';
-    document.getElementById('researchBar').style.width = '0%';
-  }
-}
+// moved to scripts/render.js
 
-function getResourceUseMeta(id){
-  const food = edibleValues[id];
-  if(id === 'staminaPotion') return { action:'potion', label:`點擊使用｜180 秒內提高體力回復速度，冷卻 300 秒` };
-  if(typeof food === 'number') return { action:'eat', label: food >= 0 ? `點擊使用｜恢復 ${food} 體力` : `點擊食用｜體力 ${food}` };
-  if(id === 'boneMeal') return { action:'fertilize', label:'點擊施肥｜對目前作物縮短 5% 成長時間' };
-  if(id === 'compost') return { action:'fertilize', label:'點擊施肥｜對目前作物縮短 10% 成長時間' };
-  if(id in fuelDurations) return { action:'fuel', label:`點擊投入篝火｜+${fuelDurations[id]} 秒` };
-  return null;
-}
-
-function renderResources(){
-  const groups = {
-    '食物與飲品':['rawMeat','rawChicken','fish','sashimi','grilledMeat','grilledFish','bread','grilledSausage','bearStew','applePie','clamSoup','staminaPotion'],
-    '基礎資源':['wood','stone','dirt','sand','branch','leaf','firewood','coal'],
-    '農作與種子':['apple','wheat','cotton','carrot','wheatFlour','cottonThread','cottonCloth','grassThread','grassCloth','wheatSeed','mushroomSpore','appleSeed','cottonSeed','carrotSeed','egg','boneMeal','compost'],
-    '礦物':['copperOre','ironOre','silverOre','goldOre','magnetite','crystal','gem','copperIngot','ironIngot','coalPowder','copperPowder','ironPowder','silverPowder','goldPowder','magnetitePowder','crystalPowder','gemPowder'],
-    '採集':['herb','rareHerb','mushroom','fiber','ginseng','shellfish','shell','clamMeat','pearl','coral','snail'],
-    '漁獲':['shrimp','crab'],
-    '獵物與分解材料':['chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear','milk','cowHorn','offal','hide','bone','feather','boarTusk','deerAntler','bearPaw','bearFang','leather','softLeather','clothes'],
-    '工具與建材':['woodAxeTool','woodPickTool','woodShovelTool','woodCarvingKnifeTool','woodHammerTool','woodPotTool','woodHoeTool','woodPitchforkTool','woodFishingRodTool','stoneAxeTool','stonePickTool','shovelTool','stoneCarvingKnifeTool','stoneHammerTool','stonePotTool','stoneHoeTool','stonePitchforkTool','woodBowTool','stoneBowTool','fishingRodTool','fishNetTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHammerTool','copperPotTool','copperHoeTool','copperPitchforkTool','copperBowTool','copperFishingRodTool','ironAxeTool','ironShovelTool','ironPickTool','ironCarvingKnifeTool','ironHammerTool','ironPotTool','ironHoeTool','ironPitchforkTool','ironBowTool','ironFishingRodTool','planks','stoneBrick','brick','glass','glassBottle']
-  };
-  const root = document.getElementById('resources');
-  root.innerHTML = '';
-  Object.entries(groups).forEach(([title, ids]) => {
-    const group = document.createElement('div');
-    group.className = 'resource-group';
-    const isOpen = title in resourceOpenState ? resourceOpenState[title] : allResourcesOpen;
-    resourceOpenState[title] = isOpen;
-
-    const summary = document.createElement('button');
-    summary.type = 'button';
-    summary.className = 'resource-summary';
-    summary.dataset.group = title;
-    summary.innerHTML = `<span>${title}</span><span class="resource-arrow">${isOpen ? '▼' : '▶'}</span>`;
-    summary.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const current = resourceOpenState[title] ?? allResourcesOpen;
-      resourceOpenState[title] = !current;
-      renderResources();
-    });
-    group.appendChild(summary);
-
-    const body = document.createElement('div');
-    body.className = 'resource-body' + (isOpen ? '' : ' closed');
-    if(title === '食物與飲品'){
-      const settingRow = document.createElement('div');
-      settingRow.className = 'row';
-      settingRow.style.padding = '8px 8px 0';
-      const autoEatBtn = document.createElement('button');
-      autoEatBtn.type = 'button';
-      autoEatBtn.className = 'tiny-btn';
-      autoEatBtn.textContent = state.research.autoMealPlan ? `自動進食：${getPlayerAutoEatThreshold() > 0 ? `${getPlayerAutoEatThreshold()}%` : '關'} / ${getPlayerAutoEatFood() === 'auto' ? '自動' : resourceLabels[getPlayerAutoEatFood()]}` : '研究後可解鎖自動進食';
-      autoEatBtn.disabled = !state.research.autoMealPlan;
-      autoEatBtn.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); if(!autoEatBtn.disabled) openPlayerAutoEatSettings(); };
-      autoEatBtn.onclick = (e)=>e.preventDefault();
-      settingRow.appendChild(autoEatBtn);
-      body.appendChild(settingRow);
-    }
-    const list = document.createElement('div');
-    list.className = 'resource-list';
-
-    ids.forEach(id => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      const meta = getResourceUseMeta(id);
-      item.className = 'resource-item' + (meta ? ' clickable' : '');
-      if(meta){
-        item.dataset.action = meta.action;
-        item.dataset.id = id;
-        item.title = meta.label;
-        item.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          openResourceModal(id, meta.action);
-        });
-      } else {
-        item.disabled = true;
-        item.title = `${resourceLabels[id]}：${format(state.resources[id] || 0)}`;
-      }
-      item.innerHTML = `<strong>${resourceLabels[id]}：${format(state.resources[id] || 0)}</strong>${meta ? `<span class="meta">${meta.label}</span>` : ''}`;
-      list.appendChild(item);
-    });
-    body.appendChild(list);
-    group.appendChild(body);
-    root.appendChild(group);
-  });
-}
+// moved to scripts/render.js
 
 function getSelectedManualSeed(){
   const key = state.ui.manualSeedSelection;
@@ -4275,7 +3580,18 @@ function openFarmerSeedChoice(){
     ]
   });
 }
-function renderSeedSelect(){
+/* moved to scripts/render.js:
+renderSeedSelect
+renderQuickAssign
+renderWorkers
+renderPlots
+renderPasture
+renderBuildingButtons
+getResearchCategoryLabel
+bindCardOpen
+renderResearch
+renderCraftQueue
+function _legacy_renderSeedSelect(){
   const seedBtn = document.getElementById('seedSelectBtn');
   if(seedBtn){
     const seedId = getSelectedManualSeed();
@@ -4321,7 +3637,7 @@ function renderSeedSelect(){
   }
 }
 
-function renderQuickAssign(){
+function _legacy_renderQuickAssign(){
   const root = document.getElementById('quickAssignArea');
   if(!root) return;
   root.innerHTML = '';
@@ -4363,7 +3679,7 @@ function renderQuickAssign(){
   root.appendChild(grid);
 }
 
-function renderWorkers(){
+function _legacy_renderWorkers(){
   const root = document.getElementById('workers');
   root.innerHTML = '';
   if(state.workers.length === 0){
@@ -4581,7 +3897,7 @@ function useFertilizerOnBestPlot(type){
   if(ok) render();
   return ok;
 }
-function renderPlots(){
+function _legacy_renderPlots(){
   const root = document.getElementById('plots');
   root.innerHTML = '';
   const summary = document.createElement('div');
@@ -4703,7 +4019,7 @@ function renderPlots(){
   });
   root.appendChild(grid);
 }
-function renderPasture(){
+function _legacy_renderPasture(){
   const root = document.getElementById('pastureArea');
   if(!root) return;
   const ranchLv = state.buildings.ranch || 0;
@@ -4821,7 +4137,7 @@ function renderPasture(){
   root.appendChild(bottom);
 }
 
-function renderBuildingButtons(){
+function _legacy_renderBuildingButtons(){
   const root = document.getElementById('buildingButtons');
   root.innerHTML = '';
 
@@ -4863,14 +4179,14 @@ function renderBuildingButtons(){
 }
 
 
-function getResearchCategoryLabel(def){
+function _legacy_getResearchCategoryLabel(def){
   if(def.category === 'tool') return '工具研究';
   if(def.category === 'building') return '建築藍圖研究';
   if(def.category === 'quality') return '功能研究';
   return '研究';
 }
 
-function bindCardOpen(card, handler){
+function _legacy_bindCardOpen(card, handler){
   const canIgnoreTarget = (target) => !!(target && target.closest('button,input,select,textarea,label,a'));
   card.style.cursor = 'pointer';
   card.tabIndex = 0;
@@ -4892,7 +4208,7 @@ function bindCardOpen(card, handler){
   };
 }
 
-function renderResearch(){
+function _legacy_renderResearch(){
   const root = document.getElementById('researchArea');
   root.innerHTML = '';
   const info = document.createElement('div');
@@ -5042,7 +4358,7 @@ function renderResearch(){
   root.appendChild(list);
 }
 
-function renderCraftQueue(){
+function _legacy_renderCraftQueue(){
   const label = document.getElementById('autoCraftLabel');
   if(label) label.textContent = state.autoCraft && crafts[state.autoCraft] ? `${crafts[state.autoCraft].name}${state.autoCraftInfinite ? '（∞）' : ''}` : '無';
   const root = document.getElementById('craftQueueTop');
@@ -5091,6 +4407,7 @@ function renderCraftQueue(){
 }
 
 
+*/
 function getSellableResources(){
   return ['wood','stone','dirt','sand','copperOre','coal','ironOre','silverOre','goldOre','magnetite','crystal','gem','coalPowder','copperPowder','ironPowder','silverPowder','goldPowder','magnetitePowder','crystalPowder','gemPowder','herb','rareHerb','mushroom','branch','leaf','fiber','ginseng','apple','wheat','cotton','carrot','egg','clamMeat','fish','shrimp','crab','rawMeat','rawChicken','hide','bone','feather','milk','cowHorn','leather','softLeather','cottonThread','cottonCloth','grassThread','grassCloth','clothes','herbTonic','staminaPotion','paper','ink','note','manual','bread','planks','stoneBrick','brick','glass','glassBottle','chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear','woodAxeTool','woodPickTool','woodShovelTool','woodCarvingKnifeTool','woodHammerTool','woodPotTool','woodHoeTool','woodPitchforkTool','woodFishingRodTool','stoneAxeTool','stonePickTool','shovelTool','stoneCarvingKnifeTool','stoneHammerTool','stonePotTool','stoneHoeTool','stonePitchforkTool','woodBowTool','stoneBowTool','fishingRodTool','fishNetTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHammerTool','copperPotTool','copperHoeTool','copperPitchforkTool','copperBowTool','copperFishingRodTool','ironAxeTool','ironShovelTool','ironPickTool','ironCarvingKnifeTool','ironHammerTool','ironPotTool','ironHoeTool','ironPitchforkTool','ironBowTool','ironFishingRodTool'];
 }
@@ -5227,7 +4544,9 @@ function merchantSell(silent=false){
   if(!silent) addLog('現在改成手動輸入賣出數量。請直接在商品卡片內輸入數量後按「賣出」。');
 }
 
-function renderMerchant(){
+/* moved to scripts/render.js:
+renderMerchant
+function _legacy_renderMerchant(){
   const root = document.getElementById('merchantArea');
   if(!root) return;
   markMerchantUiInteraction(250);
@@ -5462,141 +4781,17 @@ ${safetyBand.desc}`;
   });
   root.appendChild(grid);
 }
-function renderWorkerCraftSelect(){ const box = document.getElementById('workerCraftSelect'); if(box) box.closest('label')?.parentElement?.remove(); }
+*/
+// moved to scripts/render.js
 
-function renderLog(){
-  const root = document.getElementById('log');
-  const tab = state.ui.logTab || 'important';
-  const rows = (state.logs || [])
-    .map(item => typeof item === 'string'
-      ? {time:'', text:item, type:inferLogType(item)}
-      : {time:item.time || '', text:item.text || '', type:item.type || inferLogType(item.text || '')})
-    .filter(item => {
-      if(tab === 'all') return true;
-      return (item.type || 'important') === tab;
-    });
-  root.innerHTML = rows.length
-    ? rows.map(item => `<div class="log-item"><span class="small muted">${item.time}</span> ${item.text}</div>`).join('')
-    : '<div class="log-item muted">目前沒有符合此分類的紀錄。</div>';
-  document.getElementById('logImportantBtn')?.classList.toggle('active', tab === 'important');
-  document.getElementById('logWorkerBtn')?.classList.toggle('active', tab === 'worker');
-  document.getElementById('logLootBtn')?.classList.toggle('active', tab === 'loot');
-  document.getElementById('logAllBtn')?.classList.toggle('active', tab === 'all');
-}
+// moved to scripts/render.js
 
 
-document.querySelectorAll('[data-process]').forEach(btn => btn.addEventListener('click', () => openProcessModal(btn.dataset.process)));
-document.getElementById('restBtn').addEventListener('click', () => {
-  if(!state.isResting){
-    const resumeWork = state.autoWork || (state.productionAction && state.productionAction.type === 'work' ? state.productionAction.id : null);
-    state.isResting = true;
-    state.autoResting = false;
-    state.autoRestResume = resumeWork;
-    state.productionAction = null;
-    state.autoWork = null;
-    addLog('開始休息。');
-  }else{
-    state.isResting = false;
-    const resumeWork = state.autoRestResume;
-    state.autoResting = false;
-    state.autoRestResume = null;
-    addLog('停止休息。');
-    if(resumeWork){
-      state.autoWork = resumeWork;
-      beginWorkCycle(resumeWork, {silent:true});
-      addLog(`恢復${workDefs[resumeWork].name}。`);
-    }
-  }
-  render();
-});
-document.getElementById('recruitBtn').addEventListener('click', recruitWorker);
-document.getElementById('payDebtBtn').addEventListener('click', () => payDebt());
-document.getElementById('claimTaxBtn').addEventListener('click', () => claimTax());
-document.getElementById('logImportantBtn')?.addEventListener('click', () => { state.ui.logTab = 'important'; renderLog(); });
-document.getElementById('logWorkerBtn')?.addEventListener('click', () => { state.ui.logTab = 'worker'; renderLog(); });
-document.getElementById('logLootBtn')?.addEventListener('click', () => { state.ui.logTab = 'loot'; renderLog(); });
-document.getElementById('logAllBtn')?.addEventListener('click', () => { state.ui.logTab = 'all'; renderLog(); });
-bindHouseButtons();
-document.getElementById('saveBtn').addEventListener('click', saveGame);
-document.getElementById('toggleResourcesBtn').addEventListener('click', () => {
-  allResourcesOpen = !allResourcesOpen;
-  document.getElementById('toggleResourcesBtn').textContent = allResourcesOpen ? '收合全部' : '展開全部';
-  Object.keys(resourceOpenState).forEach(key => { resourceOpenState[key] = allResourcesOpen; });
-  renderResources();
-});
-document.querySelectorAll('[data-main-nav]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    setMainPage(btn.dataset.mainNav);
-  });
-});
-
-const actionModal = document.getElementById('actionModal');
-document.getElementById('actionCancelBtn').addEventListener('click', closeActionModal);
-actionModal.addEventListener('click', (e) => { if(e.target === actionModal) closeActionModal(); });
-document.getElementById('actionQtyInput').addEventListener('input', () => { actionModalInfinite = false; renderActionQuickStates(); });
-document.getElementById('actionStartBtn').addEventListener('click', () => applyActionModal('start'));
-document.getElementById('actionQueueBtn').addEventListener('click', () => applyActionModal('queue'));
-const queueModal = document.getElementById('queueModal');
-document.getElementById('queueModalCloseBtn').addEventListener('click', closeQueueModal);
-queueModal.addEventListener('click', (e) => { if(e.target === queueModal) closeQueueModal(); });
-
-const resetModal = document.getElementById('resetModal');
-const resetAck = document.getElementById('resetAcknowledge');
-const resetConfirmBtn = document.getElementById('resetConfirmBtn');
-const resetCancelBtn = document.getElementById('resetCancelBtn');
-function openResetModal(){
-  resetModal.classList.add('show');
-  resetModal.setAttribute('aria-hidden','false');
-}
-function closeResetModal(){
-  resetModal.classList.remove('show');
-  resetModal.setAttribute('aria-hidden','true');
-  resetAck.checked = false;
-  resetConfirmBtn.disabled = true;
-}
-document.getElementById('resetBtn').addEventListener('click', openResetModal);
-resetCancelBtn.addEventListener('click', closeResetModal);
-resetModal.addEventListener('click', (e) => { if(e.target === resetModal) closeResetModal(); });
-document.getElementById('choiceModalCloseBtn')?.addEventListener('click', closeChoiceModal);
-document.getElementById('choiceModal')?.addEventListener('click', (e) => { if(e.target === document.getElementById('choiceModal')) closeChoiceModal(); });
-resetAck.addEventListener('change', () => { resetConfirmBtn.disabled = !resetAck.checked; });
-resetConfirmBtn.addEventListener('click', () => {
-  if(!resetAck.checked) return;
-  getLoadCandidates().forEach(key => localStorage.removeItem(key));
-  Object.keys(state).forEach(key => delete state[key]);
-  Object.assign(state, createInitialState());
-  normalizeState(state);
-  closeResetModal();
-  addLog('已重置遊戲。');
-  render();
-});
-
-let lastRenderTick = 0;
-const LOOP_RENDER_INTERVAL = 80;
-function loop(now){
-  const delta = Math.min(0.25, (now - lastTick) / 1000);
-  lastTick = now;
-  try{
-    update(delta);
-  }catch(err){
-    console.error('[loop:update]', err);
-    addLog('主循環保護：更新時發生錯誤，已跳過本幀避免整體停止。', false, 'important');
-  }
-  try{
-    if(now - lastRenderTick >= LOOP_RENDER_INTERVAL){
-      render();
-      lastRenderTick = now;
-    }
-  }catch(err){
-    console.error('[loop:render]', err);
-  }
-  requestAnimationFrame(loop);
-}
-window.addEventListener('error', (e) => {
-  console.error('[window.error]', e.error || e.message);
-});
-render();
-requestAnimationFrame(loop);
+// events and bootstrapping moved to scripts/events.js and scripts/main.js
 </script>
+<script src="./scripts/state.js"></script>
+<script src="./scripts/render.js"></script>
+<script src="./scripts/events.js"></script>
+<script src="./scripts/main.js"></script>
 </body>
 </html>
