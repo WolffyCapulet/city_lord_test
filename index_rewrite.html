@@ -55,11 +55,28 @@
 
     <div class="grid-2">
       <div>
-        <section class="panel">
-          <h2>手動工作</h2>
-          <div class="button-grid" id="workButtons"></div>
-          <div class="small muted" style="margin-top:10px;">目前是即時結算版本，先把資料結構做穩，之後再加工作進度條與列隊。</div>
-        </section>
+<section class="panel">
+  <h2>手動工作</h2>
+
+  <div class="action-lane">
+    <div id="actionStatus" class="action-status">目前沒有進行中的工作</div>
+    <div class="bar action-bar">
+      <div id="actionProgressBar" class="fill action"></div>
+    </div>
+    <div id="actionQueue" class="queue-row">
+      <span class="small muted">行動列為空</span>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button id="cancelActionBtn">取消目前工作</button>
+      <button id="clearActionQueueBtn">清空行動列</button>
+    </div>
+  </div>
+
+  <div class="button-grid" id="workButtons"></div>
+  <div class="small muted" style="margin-top:10px;">
+    現在點工作按鈕時，若已有工作進行中，會自動加入行動列。行動列最多 3 個。
+  </div>
+</section>
 
         <section class="panel">
           <h2>製作與加工</h2>
