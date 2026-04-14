@@ -5,77 +5,184 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>城主村莊測試版 Rewrite</title>
   <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#172235;
+      --line:#334155;
+      --text:#eef2ff;
+      --muted:#cbd5e1;
+      --accent:#f59e0b;
+      --good:#34d399;
+      --bad:#f87171;
+    }
+
+    *{ box-sizing:border-box; }
+
     body{
       margin:0;
       font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:#0f172a;
-      color:#eef2ff;
+      background:linear-gradient(180deg,#0b1324,#0f172a 35%,#101826);
+      color:var(--text);
     }
+
     .wrap{
       max-width:1200px;
       margin:0 auto;
       padding:16px;
     }
+
     .panel{
-      background:#172235;
-      border:1px solid #334155;
-      border-radius:14px;
-      padding:12px;
+      background:linear-gradient(180deg,var(--panel),#1b2940);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
       margin-bottom:12px;
+      box-shadow:0 12px 24px rgba(0,0,0,.18);
     }
-    button{
-      background:#0f172a;
-      color:#eef2ff;
-      border:1px solid #475569;
-      border-radius:10px;
-      padding:8px 12px;
-      cursor:pointer;
+
+    h1,h2{
+      margin:0 0 12px 0;
     }
+
     .row{
       display:flex;
       gap:8px;
       flex-wrap:wrap;
       align-items:center;
     }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+
+    @media (max-width:700px){
+      .stats{
+        grid-template-columns:1fr;
+      }
+    }
+
+    .stat-card{
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
+    }
+
+    .stat-label{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:6px;
+    }
+
+    .stat-value{
+      font-size:26px;
+      font-weight:700;
+    }
+
+    button{
+      background:#0f172a;
+      color:var(--text);
+      border:1px solid #475569;
+      border-radius:10px;
+      padding:8px 12px;
+      cursor:pointer;
+    }
+
+    button:hover{
+      border-color:var(--accent);
+    }
+
+    .hint{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:8px;
+      line-height:1.5;
+    }
+
     .resource-list{
       display:grid;
-      grid-template-columns:repeat(3, minmax(120px, 1fr));
+      grid-template-columns:repeat(3,minmax(120px,1fr));
       gap:8px;
       margin-top:8px;
     }
+
+    @media (max-width:700px){
+      .resource-list{
+        grid-template-columns:1fr;
+      }
+    }
+
     .resource-item{
       background:#0f172a;
-      border:1px solid #334155;
-      border-radius:10px;
-      padding:10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
     }
+
+    .resource-name{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:6px;
+    }
+
+    .resource-value{
+      font-size:22px;
+      font-weight:700;
+    }
+
+    .log{
+      max-height:320px;
+      overflow:auto;
+    }
+
     .log-item{
-      padding:6px 0;
+      padding:8px 0;
       border-bottom:1px solid rgba(255,255,255,0.08);
+      line-height:1.5;
+      font-size:14px;
     }
+
+    .good{ color:var(--good); }
+    .bad{ color:var(--bad); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="panel">
       <h1>城主村莊測試版 Rewrite</h1>
-      <div class="row">
-        <div>金幣：<strong id="gold">0</strong></div>
-        <div>等級：<strong id="level">1</strong></div>
-        <div>體力：<strong id="stamina">100</strong></div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">金幣</div>
+          <div class="stat-value" id="gold">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">等級</div>
+          <div class="stat-value" id="level">1</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">體力</div>
+          <div class="stat-value"><span id="stamina">100</span> / <span id="maxStamina">100</span></div>
+        </div>
       </div>
     </section>
 
     <section class="panel">
-      <h2>測試操作</h2>
+      <h2>手動操作</h2>
       <div class="row">
-       <button id="laborBtn">打工 +1 金</button>
-       <button id="restBtn">休息 +5 體力</button>
-       <button id="lumberBtn">伐木（-3 體力）</button>
-       <button id="miningBtn">採石（-4 體力）</button>
-       <button id="foodBtn">拿食物 +1</button>
-       <button id="saveBtn">存檔</button>
-       <button id="loadBtn">讀檔</button>
+        <button id="laborBtn">打工 +1 金</button>
+        <button id="restBtn">休息 +5 體力</button>
+        <button id="lumberBtn">伐木（-3 體力）</button>
+        <button id="miningBtn">採石（-4 體力）</button>
+        <button id="foodBtn">拿食物 +1</button>
+        <button id="eatBtn">吃食物（-1 食物，+10 體力）</button>
+        <button id="saveBtn">存檔</button>
+        <button id="loadBtn">讀檔</button>
+      </div>
+      <div class="hint">
+        目前是重寫版基礎架構。先把狀態、資源、工作、食物、事件紀錄和存檔做穩，再慢慢加研究、建築、工人。
       </div>
     </section>
 
@@ -86,150 +193,192 @@
 
     <section class="panel">
       <h2>事件紀錄</h2>
-      <div id="log"></div>
+      <div id="log" class="log"></div>
     </section>
   </div>
 
-<script>
-  const STORAGE_KEY = "city_lord_rewrite_save";
+  <script>
+    const STORAGE_KEY = "city_lord_rewrite_save_v1";
+    const MAX_STAMINA = 100;
+    const FOOD_RECOVER_VALUE = 10;
 
-  const state = {
-    gold: 0,
-    level: 1,
-    stamina: 100,
-    resources: {
-      wood: 0,
-      stone: 0,
-      food: 0
-    },
-    logs: []
-  };
+    const state = {
+      gold: 0,
+      level: 1,
+      stamina: 100,
+      resources: {
+        wood: 0,
+        stone: 0,
+        food: 0
+      },
+      logs: []
+    };
 
-  const resourceLabels = {
-    wood: "木頭",
-    stone: "石頭",
-    food: "食物"
-  };
+    const resourceLabels = {
+      wood: "木頭",
+      stone: "石頭",
+      food: "食物"
+    };
 
-  const workDefs = {
-    lumber: {
-      name: "伐木",
-      staminaCost: 3,
-      reward: { wood: 2 }
-    },
-    mining: {
-      name: "採石",
-      staminaCost: 4,
-      reward: { stone: 2 }
+    const workDefs = {
+      lumber: {
+        name: "伐木",
+        staminaCost: 3,
+        reward: { wood: 2 }
+      },
+      mining: {
+        name: "採石",
+        staminaCost: 4,
+        reward: { stone: 2 }
+      }
+    };
+
+    function addLog(text){
+      state.logs.unshift(text);
+      state.logs = state.logs.slice(0, 30);
+      render();
     }
-  };
 
-  function addLog(text){
-    state.logs.unshift(text);
-    state.logs = state.logs.slice(0, 20);
+    function renderTopStats(){
+      document.getElementById("gold").textContent = state.gold;
+      document.getElementById("level").textContent = state.level;
+      document.getElementById("stamina").textContent = state.stamina;
+      document.getElementById("maxStamina").textContent = MAX_STAMINA;
+    }
+
+    function renderResources(){
+      const root = document.getElementById("resources");
+
+      root.innerHTML = Object.entries(state.resources)
+        .map(([id, value]) => {
+          return `
+            <div class="resource-item">
+              <div class="resource-name">${resourceLabels[id]}</div>
+              <div class="resource-value">${value}</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function renderLog(){
+      const log = document.getElementById("log");
+
+      if(state.logs.length === 0){
+        log.innerHTML = `<div class="log-item">目前還沒有事件紀錄</div>`;
+        return;
+      }
+
+      log.innerHTML = state.logs
+        .map(text => `<div class="log-item">${text}</div>`)
+        .join("");
+    }
+
+    function render(){
+      renderTopStats();
+      renderResources();
+      renderLog();
+    }
+
+    function saveGame(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      addLog("已存檔");
+    }
+
+    function loadGame(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+
+      if(!raw){
+        addLog("沒有存檔");
+        return;
+      }
+
+      const data = JSON.parse(raw);
+
+      state.gold = data.gold ?? 0;
+      state.level = data.level ?? 1;
+      state.stamina = data.stamina ?? 100;
+      state.resources = data.resources ?? { wood: 0, stone: 0, food: 0 };
+      state.logs = Array.isArray(data.logs) ? data.logs : [];
+
+      addLog("已讀檔");
+    }
+
+    function performWork(workId){
+      const def = workDefs[workId];
+      if(!def) return;
+
+      if(state.stamina < def.staminaCost){
+        addLog(`${def.name}失敗，體力不足`);
+        return;
+      }
+
+      state.stamina -= def.staminaCost;
+
+      for(const [resourceId, amount] of Object.entries(def.reward)){
+        state.resources[resourceId] += amount;
+      }
+
+      const rewardText = Object.entries(def.reward)
+        .map(([resourceId, amount]) => `${resourceLabels[resourceId]} +${amount}`)
+        .join("、");
+
+      addLog(`${def.name}完成，消耗 ${def.staminaCost} 體力，獲得 ${rewardText}`);
+    }
+
+    function rest(){
+      const before = state.stamina;
+      state.stamina = Math.min(MAX_STAMINA, state.stamina + 5);
+      const actual = state.stamina - before;
+
+      if(actual <= 0){
+        addLog("體力已滿，不需要休息");
+        return;
+      }
+
+      addLog(`你休息恢復 ${actual} 體力`);
+    }
+
+    function takeFood(){
+      state.resources.food += 1;
+      addLog("你獲得了 1 食物");
+    }
+
+    function eatFood(){
+      if(state.resources.food <= 0){
+        addLog("沒有食物可以吃");
+        return;
+      }
+
+      if(state.stamina >= MAX_STAMINA){
+        addLog("體力已滿，不需要吃食物");
+        return;
+      }
+
+      state.resources.food -= 1;
+
+      const before = state.stamina;
+      state.stamina = Math.min(MAX_STAMINA, state.stamina + FOOD_RECOVER_VALUE);
+      const actual = state.stamina - before;
+
+      addLog(`你吃了 1 食物，恢復 ${actual} 體力`);
+    }
+
+    function labor(){
+      state.gold += 1;
+      addLog("你打工獲得 1 金");
+    }
+
+    document.getElementById("laborBtn").addEventListener("click", labor);
+    document.getElementById("restBtn").addEventListener("click", rest);
+    document.getElementById("lumberBtn").addEventListener("click", () => performWork("lumber"));
+    document.getElementById("miningBtn").addEventListener("click", () => performWork("mining"));
+    document.getElementById("foodBtn").addEventListener("click", takeFood);
+    document.getElementById("eatBtn").addEventListener("click", eatFood);
+    document.getElementById("saveBtn").addEventListener("click", saveGame);
+    document.getElementById("loadBtn").addEventListener("click", loadGame);
+
     render();
-  }
-
-  function renderResources(){
-    const root = document.getElementById("resources");
-    root.innerHTML = Object.entries(state.resources)
-      .map(([id, value]) => {
-        return `
-          <div class="resource-item">
-            <div>${resourceLabels[id]}</div>
-            <strong>${value}</strong>
-          </div>
-        `;
-      })
-      .join("");
-  }
-
-  function renderLog(){
-    const log = document.getElementById("log");
-    log.innerHTML = state.logs
-      .map(t => `<div class="log-item">${t}</div>`)
-      .join("");
-  }
-
-  function render(){
-    document.getElementById("gold").textContent = state.gold;
-    document.getElementById("level").textContent = state.level;
-    document.getElementById("stamina").textContent = state.stamina;
-
-    renderResources();
-    renderLog();
-  }
-
-  function saveGame(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    addLog("已存檔");
-  }
-
-  function loadGame(){
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw){
-      addLog("沒有存檔");
-      return;
-    }
-
-    const data = JSON.parse(raw);
-    state.gold = data.gold ?? 0;
-    state.level = data.level ?? 1;
-    state.stamina = data.stamina ?? 100;
-    state.resources = data.resources ?? { wood: 0, stone: 0, food: 0 };
-    state.logs = Array.isArray(data.logs) ? data.logs : [];
-    addLog("已讀檔");
-  }
-
-  function performWork(workId){
-    const def = workDefs[workId];
-    if(!def) return;
-
-    if(state.stamina < def.staminaCost){
-      addLog(`${def.name}失敗，體力不足`);
-      return;
-    }
-
-    state.stamina -= def.staminaCost;
-
-    for(const [resourceId, amount] of Object.entries(def.reward)){
-      state.resources[resourceId] += amount;
-    }
-
-    const rewardText = Object.entries(def.reward)
-      .map(([resourceId, amount]) => `${resourceLabels[resourceId]} +${amount}`)
-      .join("、");
-
-    addLog(`${def.name}完成，消耗 ${def.staminaCost} 體力，獲得 ${rewardText}`);
-  }
-
-  document.getElementById("laborBtn").addEventListener("click", () => {
-    state.gold += 1;
-    addLog("你打工獲得 1 金");
-  });
-
-  document.getElementById("restBtn").addEventListener("click", () => {
-    state.stamina = Math.min(100, state.stamina + 5);
-    addLog("你休息恢復 5 體力");
-  });
-
-  document.getElementById("lumberBtn").addEventListener("click", () => {
-    performWork("lumber");
-  });
-
-  document.getElementById("miningBtn").addEventListener("click", () => {
-    performWork("mining");
-  });
-
-  document.getElementById("foodBtn").addEventListener("click", () => {
-    state.resources.food += 1;
-    addLog("你獲得了 1 食物");
-  });
-
-  document.getElementById("saveBtn").addEventListener("click", saveGame);
-  document.getElementById("loadBtn").addEventListener("click", loadGame);
-
-  render();
-</script>
+  </script>
 </body>
 </html>
