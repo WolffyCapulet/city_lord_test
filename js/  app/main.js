@@ -1,6 +1,8 @@
 const STORAGE_KEY = "city_lord_rewrite_save_v4";
 const WORK_QUEUE_LIMIT = 3;
 
+import { workDefs, workerJobs, workLootInfo } from "../data/works.js";
+
 const resourceLabels = {
   wood: "木頭",
   stone: "石頭",
@@ -606,4 +608,3 @@ renderWorkButtons();
 renderCraftList();
 render();
 requestAnimationFrame(loop);
-
