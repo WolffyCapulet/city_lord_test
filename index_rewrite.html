@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>城主村莊測試版 Rewrite</title>
+  <style>
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:#0f172a;
+      color:#eef2ff;
+    }
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:16px;
+    }
+    .panel{
+      background:#172235;
+      border:1px solid #334155;
+      border-radius:14px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    button{
+      background:#0f172a;
+      color:#eef2ff;
+      border:1px solid #475569;
+      border-radius:10px;
+      padding:8px 12px;
+      cursor:pointer;
+    }
+    .row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <h1>城主村莊測試版 Rewrite</h1>
+      <div class="row">
+        <div>金幣：<strong id="gold">0</strong></div>
+        <div>等級：<strong id="level">1</strong></div>
+        <div>體力：<strong id="stamina">100</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>測試操作</h2>
+      <div class="row">
+        <button id="workBtn">打工 +1 金</button>
+        <button id="restBtn">休息 +5 體力</button>
+        <button id="saveBtn">存檔</button>
+        <button id="loadBtn">讀檔</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>事件紀錄</h2>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "city_lord_rewrite_save";
+
+    const state = {
+      gold: 0,
+      level: 1,
+      stamina: 100,
+      logs: []
+    };
+
+    function addLog(text){
+      state.logs.unshift(text);
+      state.logs = state.logs.slice(0, 20);
+      render();
+    }
+
+    function render(){
+      document.getElementById("gold").textContent = state.gold;
+      document.getElementById("level").textContent = state.level;
+      document.getElementById("stamina").textContent = state.stamina;
+
+      const log = document.getElementById("log");
+      log.innerHTML = state.logs.map(t => `<div>${t}</div>`).join("");
+    }
+
+    function saveGame(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      addLog("已存檔");
+    }
+
+    function loadGame(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        addLog("沒有存檔");
+        return;
+      }
+      const data = JSON.parse(raw);
+      state.gold = data.gold ?? 0;
+      state.level = data.level ?? 1;
+      state.stamina = data.stamina ?? 100;
+      state.logs = Array.isArray(data.logs) ? data.logs : [];
+      addLog("已讀檔");
+    }
+
+    document.getElementById("workBtn").addEventListener("click", () => {
+      state.gold += 1;
+      addLog("你打工獲得 1 金");
+    });
+
+    document.getElementById("restBtn").addEventListener("click", () => {
+      state.stamina = Math.min(100, state.stamina + 5);
+      addLog("你休息恢復 5 體力");
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", saveGame);
+    document.getElementById("loadBtn").addEventListener("click", loadGame);
+
+    render();
+  </script>
+</body>
+</html>
