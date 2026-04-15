@@ -1,7 +1,8 @@
 const STORAGE_KEY = "city_lord_rewrite_save_v4";
 const WORK_QUEUE_LIMIT = 3;
 
-import { workDefs, workerJobs, workLootInfo } from "../data/works.js";
+import { workDefs, workerJobs, workLootInfo } from "woffly/js/data/works.js";
+import { crafts } from "wolffy/js/data/crafts.js";
 
 const resourceLabels = {
   wood: "木頭",
