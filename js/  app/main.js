@@ -216,7 +216,7 @@ function updateAction(deltaSeconds) {
 }
 
 function craftItem(craftId) {
-  const def = craftDefs[craftId];
+  const def = crafts[craftId];
   if (!def) return;
 
   if (state.stamina < def.staminaCost) {
@@ -400,7 +400,7 @@ function renderWorkButtons() {
 
 function renderCraftList() {
   const root = document.getElementById("craftList");
-  root.innerHTML = Object.entries(craftDefs)
+  root.innerHTML = Object.entries(crafts)
     .map(([id, def]) => {
       const costText = Object.entries(def.costs)
         .map(([resId, amount]) => `${resourceLabels[resId]} ${amount}`)
