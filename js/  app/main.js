@@ -126,12 +126,12 @@ function startWorkAction(workId, { silent = false } = {}) {
   if (!def) return false;
   if (state.currentAction) return false;
 
-  if (state.stamina < def.staminaCost) {
+  if (state.stamina < def.stamina ?? 1) {
     if (!silent) addLog(`${def.name}無法開始，體力不足`);
     return false;
   }
 
-  state.stamina -= def.staminaCost;
+  state.stamina -= (def.stamina ?? 1);
   state.currentAction = {
     type: "work",
     id: workId,
@@ -179,7 +179,7 @@ function completeCurrentAction() {
   for (const [resourceId, amount] of Object.entries(result.resources || {})) {
     gainResource(resourceId, amount);
   }
-  addMainExp(def.expGain || 0);
+  addMainExp(1);
   addLog(result.log);
   tryStartNextQueuedAction();
 }
@@ -219,7 +219,7 @@ function craftItem(craftId) {
   const def = crafts[craftId];
   if (!def) return;
 
-  if (state.stamina < def.staminaCost) {
+  if (state.stamina < (def.stamina ?? 1)) {
     addLog(`${def.name}製作失敗，體力不足`);
     return;
   }
@@ -230,13 +230,13 @@ function craftItem(craftId) {
   }
 
   spendCosts(def.costs);
-  state.stamina -= def.staminaCost;
+  state.stamina -= (def.stamina ?? 1);
 
   for (const [resourceId, amount] of Object.entries(def.yields)) {
     gainResource(resourceId, amount);
   }
 
-  addMainExp(def.expGain || 0);
+  addMainExp(1);
 
   const gainText = Object.entries(def.yields)
     .map(([id, amount]) => `${resourceLabels[id]} +${amount}`)
@@ -414,9 +414,9 @@ function renderCraftList() {
             <strong>${def.name}</strong>
             <button data-craft="${id}">製作</button>
           </div>
-          <div class="small muted">${def.desc}</div>
+          <div class="small muted">${def.skill || "craft"}</div>
           <div class="row" style="margin-top:8px;">
-            <span class="pill">消耗體力：${def.staminaCost}</span>
+            <span class="pill">消耗體力：${def.stamina ?? 1}</span>
             <span class="pill">材料：${costText}</span>
             <span class="pill">產出：${yieldText}</span>
           </div>
