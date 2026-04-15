@@ -1,100 +1,17 @@
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
-import { resources as resourceData } from "../data/resources.js";
+import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
 
-const STORAGE_KEY = "city_lord_rewrite_save_v6";
+const STORAGE_KEY = "city_lord_rewrite_save_v7";
 const WORK_QUEUE_LIMIT = 3;
 const LOG_LIMIT = 80;
 
-const fallbackResourceLabels = {
-  wood: "木頭",
-  stone: "石頭",
-  dirt: "泥土",
-  sand: "沙子",
-  berry: "莓果",
-  herb: "草藥",
-  mushroom: "蘑菇",
-  branch: "樹枝",
-  leaf: "樹葉",
-  fiber: "纖維",
-  fish: "魚",
-  shrimp: "蝦",
-  crab: "螃蟹",
-  shellfish: "貝類",
-  coral: "珊瑚",
-  copperOre: "銅礦",
-  ironOre: "鐵礦",
-  silverOre: "銀礦",
-  goldOre: "金礦",
-  coal: "煤炭",
-  magnetite: "磁石",
-  crystal: "水晶",
-  gem: "寶石",
-  rawMeat: "生肉",
-  offal: "內臟",
-  hide: "獸皮",
-  bone: "骨頭",
-  bearPaw: "熊掌",
-  wheat: "小麥",
-  wheatSeed: "小麥種子",
-  wheatFlour: "小麥粉",
-  apple: "蘋果",
-  cotton: "棉花",
-  paper: "紙張",
-  ink: "墨水",
-  note: "破舊筆記",
-  manual: "入門教程",
-  planks: "木板",
-  firewood: "柴火",
-  stoneBrick: "石磚",
-  brick: "磚塊",
-  glass: "玻璃",
-  glassBottle: "玻璃瓶",
-  grilledMeat: "烤肉",
-  grilledFish: "烤魚",
-  bread: "麵包",
-  grilledSausage: "烤香腸",
-  bearStew: "燉熊掌",
-  applePie: "蘋果派",
-  clamSoup: "海鮮湯",
-  sashimi: "生魚片",
-  ironIngot: "鐵錠",
-  copperIngot: "銅錠",
-  leather: "皮革",
-  softLeather: "柔軟皮革",
-  cottonThread: "棉線",
-  cottonCloth: "棉布",
-  grassThread: "草線",
-  grassCloth: "草布",
-  clothes: "衣服",
-  fishNetTool: "魚網",
-  herbTonic: "鞣劑",
-  staminaPotion: "體力藥劑",
-  boneMeal: "骨粉",
-  compost: "肥料堆",
-  coalPowder: "碳粉",
-  copperPowder: "銅粉",
-  ironPowder: "鐵粉",
-  silverPowder: "銀粉",
-  goldPowder: "金粉",
-  magnetitePowder: "磁石粉",
-  crystalPowder: "水晶粉",
-  gemPowder: "寶石粉"
-};
-
-const edibleDefs = {
-  berry: { name: "莓果", stamina: 3 },
-  grilledFish: { name: "烤魚", stamina: 12 },
-  grilledMeat: { name: "烤肉", stamina: 12 },
-  bread: { name: "麵包", stamina: 20 },
-  grilledSausage: { name: "烤香腸", stamina: 30 },
-  bearStew: { name: "燉熊掌", stamina: 50 },
-  applePie: { name: "蘋果派", stamina: 30 },
-  clamSoup: { name: "海鮮湯", stamina: 40 }
-};
-
 function $(id) {
   return document.getElementById(id);
+}
+
+function qsa(selector) {
+  return Array.from(document.querySelectorAll(selector));
 }
 
 function firstEl(...ids) {
@@ -103,10 +20,6 @@ function firstEl(...ids) {
     if (el) return el;
   }
   return null;
-}
-
-function qsa(selector) {
-  return Array.from(document.querySelectorAll(selector));
 }
 
 function clamp(value, min, max) {
@@ -134,57 +47,18 @@ function formatSeconds(seconds) {
 }
 
 function getResourceLabel(id) {
-  const imported = resourceData?.[id];
-
-  if (typeof imported === "string") return imported;
-  if (imported && typeof imported === "object") {
-    return imported.name || imported.label || fallbackResourceLabels[id] || id;
-  }
-
-  return fallbackResourceLabels[id] || id;
+  return resourceLabels[id] || id;
 }
 
 function createDefaultResources() {
   const ids = new Set();
 
+  Object.keys(resourceLabels).forEach((id) => ids.add(id));
+
   Object.values(crafts).forEach((craft) => {
     Object.keys(craft.costs || {}).forEach((id) => ids.add(id));
     Object.keys(craft.yields || {}).forEach((id) => ids.add(id));
   });
-
-  [
-    "wood",
-    "stone",
-    "dirt",
-    "sand",
-    "berry",
-    "herb",
-    "mushroom",
-    "branch",
-    "leaf",
-    "fiber",
-    "fish",
-    "shrimp",
-    "crab",
-    "shellfish",
-    "coral",
-    "copperOre",
-    "ironOre",
-    "silverOre",
-    "goldOre",
-    "coal",
-    "magnetite",
-    "crystal",
-    "gem",
-    "rawMeat",
-    "offal",
-    "hide",
-    "bone",
-    "bearPaw",
-    "wheat",
-    "apple",
-    "cotton"
-  ].forEach((id) => ids.add(id));
 
   return Object.fromEntries([...ids].sort().map((id) => [id, 0]));
 }
@@ -237,6 +111,7 @@ function spendCosts(costs = {}) {
   for (const [id, amount] of Object.entries(costs)) {
     state.resources[id] -= amount;
   }
+
   return true;
 }
 
@@ -247,6 +122,7 @@ function addMainExp(amount) {
     state.exp -= expToNext(state.level);
     state.level += 1;
     state.stamina = maxStamina();
+
     state.logs.unshift({
       time: nowTime(),
       text: `主等級提升到 Lv.${state.level}，體力已回滿`,
@@ -466,32 +342,37 @@ function rest() {
 }
 
 function getBestFoodId() {
-  const choices = Object.entries(edibleDefs)
-    .filter(([id]) => (state.resources[id] || 0) > 0)
-    .sort((a, b) => b[1].stamina - a[1].stamina);
-
-  return choices[0]?.[0] || "";
+  for (const id of foodOrder) {
+    if ((state.resources[id] || 0) > 0 && typeof edibleValues[id] === "number") {
+      return id;
+    }
+  }
+  return "";
 }
 
 function eatResource(resourceId) {
-  const def = edibleDefs[resourceId];
-  if (!def) return;
+  const value = edibleValues[resourceId];
+  const label = getResourceLabel(resourceId);
+
+  if (typeof value !== "number") return;
 
   if ((state.resources[resourceId] || 0) <= 0) {
-    addLog(`沒有${def.name}可以吃`, "important");
+    addLog(`沒有${label}可以使用`, "important");
     return;
   }
 
-  if (state.stamina >= maxStamina()) {
+  if (state.stamina >= maxStamina() && value >= 0) {
     addLog("體力已滿，不需要吃食物", "important");
     return;
   }
 
   spendResource(resourceId, 1);
+
   const before = state.stamina;
-  state.stamina = Math.min(maxStamina(), state.stamina + def.stamina);
+  state.stamina = clamp(state.stamina + value, 0, maxStamina());
   const actual = state.stamina - before;
-  addLog(`你吃了 1 個${def.name}，恢復 ${actual} 體力`, "important");
+
+  addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
 }
 
 function eatBestFood() {
@@ -545,8 +426,7 @@ function loadGame({ silent = false } = {}) {
             remaining: Math.max(0, Number(data.currentAction.remaining) || 0),
             total: Math.max(
               0.1,
-              Number(data.currentAction.total) ||
-                getWorkDuration(workDefs[data.currentAction.id])
+              Number(data.currentAction.total) || getWorkDuration(workDefs[data.currentAction.id])
             )
           }
         : null;
@@ -601,7 +481,7 @@ function renderTopStats() {
   const eatHint = $("eatHint");
   if (eatHint) {
     eatHint.textContent = bestFood
-      ? `目前最佳食物：${edibleDefs[bestFood].name}（恢復 ${edibleDefs[bestFood].stamina} 體力）`
+      ? `目前最佳食物：${getResourceLabel(bestFood)}（體力 ${edibleValues[bestFood] >= 0 ? "+" : ""}${edibleValues[bestFood]}）`
       : "目前沒有可吃的食物";
   }
 }
@@ -613,8 +493,8 @@ function renderResources() {
   root.innerHTML = Object.entries(state.resources)
     .sort((a, b) => getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant"))
     .map(([id, value]) => {
-      const edible = edibleDefs[id]
-        ? `<div class="small muted">可食用：+${edibleDefs[id].stamina} 體力</div>`
+      const edible = typeof edibleValues[id] === "number"
+        ? `<div class="small muted">可食用：${edibleValues[id] >= 0 ? "+" : ""}${edibleValues[id]} 體力</div>`
         : "";
 
       return `
@@ -644,6 +524,24 @@ function bindDynamicCraftButtons(root = document) {
   });
 }
 
+function refreshStaticCraftButtons() {
+  qsa("[data-craft]").forEach((btn) => {
+    const craftId = btn.dataset.craft;
+    const def = crafts[craftId];
+    if (!def) return;
+
+    const hidden = isCraftHidden(def);
+    const unlocked = isCraftUnlocked(def);
+
+    btn.disabled = hidden || !unlocked;
+    if (!unlocked && def.unlock) {
+      btn.title = `需研究：${def.unlock}`;
+    } else {
+      btn.title = "";
+    }
+  });
+}
+
 function renderWorkButtons() {
   const root = $("workButtons");
   if (!root) {
@@ -664,8 +562,10 @@ function renderWorkButtons() {
 
 function renderCraftList() {
   const root = $("craftList");
+
   if (!root) {
     bindDynamicCraftButtons(document);
+    refreshStaticCraftButtons();
     return;
   }
 
@@ -825,14 +725,17 @@ function bindStaticButtons() {
     state.logFilter = "all";
     renderLog();
   });
+
   $("logImportantBtn")?.addEventListener("click", () => {
     state.logFilter = "important";
     renderLog();
   });
+
   $("logLootBtn")?.addEventListener("click", () => {
     state.logFilter = "loot";
     renderLog();
   });
+
   $("logWorkerBtn")?.addEventListener("click", () => {
     state.logFilter = "worker";
     renderLog();
@@ -845,15 +748,19 @@ function bindStaticButtons() {
   });
 
   $("resetCancelBtn")?.addEventListener("click", closeResetModal);
+
   $("resetAcknowledge")?.addEventListener("change", (e) => {
     const confirmBtn = $("resetConfirmBtn");
     if (confirmBtn) confirmBtn.disabled = !e.target.checked;
   });
+
   $("resetConfirmBtn")?.addEventListener("click", () => {
     closeResetModal();
     resetGame();
+
     const checkbox = $("resetAcknowledge");
     if (checkbox) checkbox.checked = false;
+
     const confirmBtn = $("resetConfirmBtn");
     if (confirmBtn) confirmBtn.disabled = true;
   });
