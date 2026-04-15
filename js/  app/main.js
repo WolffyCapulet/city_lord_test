@@ -1,61 +1,97 @@
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
-import { resources as importedResources } from "../data/resources.js";
+import { resources as resourceData } from "../data/resources.js";
 
-const STORAGE_KEY = "city_lord_rewrite_save_v5";
+const STORAGE_KEY = "city_lord_rewrite_save_v6";
 const WORK_QUEUE_LIMIT = 3;
 const LOG_LIMIT = 80;
 
 const fallbackResourceLabels = {
   wood: "木頭",
   stone: "石頭",
+  dirt: "泥土",
+  sand: "沙子",
   berry: "莓果",
   herb: "草藥",
+  mushroom: "蘑菇",
+  branch: "樹枝",
+  leaf: "樹葉",
+  fiber: "纖維",
   fish: "魚",
+  shrimp: "蝦",
+  crab: "螃蟹",
+  shellfish: "貝類",
+  coral: "珊瑚",
   copperOre: "銅礦",
-  plank: "木板",
+  ironOre: "鐵礦",
+  silverOre: "銀礦",
+  goldOre: "金礦",
+  coal: "煤炭",
+  magnetite: "磁石",
+  crystal: "水晶",
+  gem: "寶石",
+  rawMeat: "生肉",
+  offal: "內臟",
+  hide: "獸皮",
+  bone: "骨頭",
+  bearPaw: "熊掌",
+  wheat: "小麥",
+  wheatSeed: "小麥種子",
+  wheatFlour: "小麥粉",
+  apple: "蘋果",
+  cotton: "棉花",
+  paper: "紙張",
+  ink: "墨水",
+  note: "破舊筆記",
+  manual: "入門教程",
+  planks: "木板",
   firewood: "柴火",
-  cookedFish: "烤魚"
+  stoneBrick: "石磚",
+  brick: "磚塊",
+  glass: "玻璃",
+  glassBottle: "玻璃瓶",
+  grilledMeat: "烤肉",
+  grilledFish: "烤魚",
+  bread: "麵包",
+  grilledSausage: "烤香腸",
+  bearStew: "燉熊掌",
+  applePie: "蘋果派",
+  clamSoup: "海鮮湯",
+  sashimi: "生魚片",
+  ironIngot: "鐵錠",
+  copperIngot: "銅錠",
+  leather: "皮革",
+  softLeather: "柔軟皮革",
+  cottonThread: "棉線",
+  cottonCloth: "棉布",
+  grassThread: "草線",
+  grassCloth: "草布",
+  clothes: "衣服",
+  fishNetTool: "魚網",
+  herbTonic: "鞣劑",
+  staminaPotion: "體力藥劑",
+  boneMeal: "骨粉",
+  compost: "肥料堆",
+  coalPowder: "碳粉",
+  copperPowder: "銅粉",
+  ironPowder: "鐵粉",
+  silverPowder: "銀粉",
+  goldPowder: "金粉",
+  magnetitePowder: "磁石粉",
+  crystalPowder: "水晶粉",
+  gemPowder: "寶石粉"
 };
 
 const edibleDefs = {
   berry: { name: "莓果", stamina: 3 },
-  cookedFish: { name: "烤魚", stamina: 12 }
+  grilledFish: { name: "烤魚", stamina: 12 },
+  grilledMeat: { name: "烤肉", stamina: 12 },
+  bread: { name: "麵包", stamina: 20 },
+  grilledSausage: { name: "烤香腸", stamina: 30 },
+  bearStew: { name: "燉熊掌", stamina: 50 },
+  applePie: { name: "蘋果派", stamina: 30 },
+  clamSoup: { name: "海鮮湯", stamina: 40 }
 };
-
-function getResourceLabel(id) {
-  const fromImport = importedResources?.[id];
-  if (typeof fromImport === "string") return fromImport;
-  if (fromImport && typeof fromImport === "object") {
-    return fromImport.name || fromImport.label || fallbackResourceLabels[id] || id;
-  }
-  return fallbackResourceLabels[id] || id;
-}
-
-function createDefaultResources() {
-  const allIds = new Set([
-    ...Object.keys(fallbackResourceLabels),
-    ...Object.keys(importedResources || {})
-  ]);
-
-  const obj = {};
-  for (const id of allIds) obj[id] = 0;
-  return obj;
-}
-
-const state = {
-  gold: 0,
-  level: 1,
-  exp: 0,
-  stamina: 100,
-  resources: createDefaultResources(),
-  logs: [],
-  currentAction: null,
-  actionQueue: [],
-  logFilter: "all"
-};
-
-let lastFrameTime = performance.now();
 
 function $(id) {
   return document.getElementById(id);
@@ -97,13 +133,76 @@ function formatSeconds(seconds) {
   return `${Math.max(0, seconds).toFixed(1)} 秒`;
 }
 
-function getWorkCost(def) {
-  return Math.max(1, Number(def?.staminaCost ?? def?.stamina ?? 1) || 1);
+function getResourceLabel(id) {
+  const imported = resourceData?.[id];
+
+  if (typeof imported === "string") return imported;
+  if (imported && typeof imported === "object") {
+    return imported.name || imported.label || fallbackResourceLabels[id] || id;
+  }
+
+  return fallbackResourceLabels[id] || id;
 }
 
-function getWorkDuration(def) {
-  return Math.max(0.1, Number(def?.duration ?? 10) || 10);
+function createDefaultResources() {
+  const ids = new Set();
+
+  Object.values(crafts).forEach((craft) => {
+    Object.keys(craft.costs || {}).forEach((id) => ids.add(id));
+    Object.keys(craft.yields || {}).forEach((id) => ids.add(id));
+  });
+
+  [
+    "wood",
+    "stone",
+    "dirt",
+    "sand",
+    "berry",
+    "herb",
+    "mushroom",
+    "branch",
+    "leaf",
+    "fiber",
+    "fish",
+    "shrimp",
+    "crab",
+    "shellfish",
+    "coral",
+    "copperOre",
+    "ironOre",
+    "silverOre",
+    "goldOre",
+    "coal",
+    "magnetite",
+    "crystal",
+    "gem",
+    "rawMeat",
+    "offal",
+    "hide",
+    "bone",
+    "bearPaw",
+    "wheat",
+    "apple",
+    "cotton"
+  ].forEach((id) => ids.add(id));
+
+  return Object.fromEntries([...ids].sort().map((id) => [id, 0]));
 }
+
+const state = {
+  gold: 0,
+  level: 1,
+  exp: 0,
+  stamina: 100,
+  resources: createDefaultResources(),
+  logs: [],
+  currentAction: null,
+  actionQueue: [],
+  logFilter: "all",
+  research: {}
+};
+
+let lastFrameTime = performance.now();
 
 function addLog(text, type = "important") {
   state.logs.unshift({
@@ -134,6 +233,7 @@ function canAfford(costs = {}) {
 
 function spendCosts(costs = {}) {
   if (!canAfford(costs)) return false;
+
   for (const [id, amount] of Object.entries(costs)) {
     state.resources[id] -= amount;
   }
@@ -154,6 +254,14 @@ function addMainExp(amount) {
     });
     state.logs = state.logs.slice(0, LOG_LIMIT);
   }
+}
+
+function getWorkCost(def) {
+  return Math.max(1, Number(def?.staminaCost ?? def?.stamina ?? 1) || 1);
+}
+
+function getWorkDuration(def) {
+  return Math.max(0.1, Number(def?.duration ?? 10) || 10);
 }
 
 function enqueueWork(workId) {
@@ -193,6 +301,7 @@ function startWorkAction(workId, { silent = false } = {}) {
   if (!silent) {
     addLog(`開始${def.name}，預計 ${formatSeconds(duration)}`, "important");
   }
+
   return true;
 }
 
@@ -209,6 +318,7 @@ function tryStartNextQueuedAction() {
 
   const nextId = state.actionQueue[0];
   const nextDef = workDefs[nextId];
+
   if (!nextDef) {
     state.actionQueue.shift();
     return false;
@@ -291,9 +401,28 @@ function updateAction(deltaSeconds) {
   }
 }
 
+function isCraftHidden(def) {
+  return !!def.hidden;
+}
+
+function isCraftUnlocked(def) {
+  if (!def.unlock) return true;
+  return !!state.research?.[def.unlock];
+}
+
 function craftItem(craftId) {
   const def = crafts[craftId];
   if (!def) return;
+
+  if (isCraftHidden(def)) {
+    addLog(`${def.name}目前不可見`, "important");
+    return;
+  }
+
+  if (!isCraftUnlocked(def)) {
+    addLog(`${def.name}尚未解鎖，需要研究：${def.unlock}`, "important");
+    return;
+  }
 
   const staminaCost = Math.max(1, Number(def.stamina ?? 1) || 1);
 
@@ -400,6 +529,8 @@ function loadGame({ silent = false } = {}) {
     state.stamina = clamp(Number(data.stamina ?? 100) || 100, 0, maxStamina());
 
     state.logs = Array.isArray(data.logs) ? data.logs.slice(0, LOG_LIMIT) : [];
+    state.logFilter = typeof data.logFilter === "string" ? data.logFilter : "all";
+    state.research = data.research && typeof data.research === "object" ? data.research : {};
 
     state.resources = {
       ...createDefaultResources(),
@@ -424,8 +555,6 @@ function loadGame({ silent = false } = {}) {
       ? data.actionQueue.filter((id) => !!workDefs[id]).slice(0, WORK_QUEUE_LIMIT)
       : [];
 
-    state.logFilter = typeof data.logFilter === "string" ? data.logFilter : "all";
-
     if (!silent) addLog("已讀檔", "important");
     return true;
   } catch (error) {
@@ -445,6 +574,7 @@ function hardResetState() {
   state.currentAction = null;
   state.actionQueue = [];
   state.logFilter = "all";
+  state.research = {};
 }
 
 function resetGame() {
@@ -539,8 +669,12 @@ function renderCraftList() {
     return;
   }
 
-  root.innerHTML = Object.entries(crafts)
+  const entries = Object.entries(crafts).filter(([, def]) => !isCraftHidden(def));
+
+  root.innerHTML = entries
     .map(([id, def]) => {
+      const unlocked = isCraftUnlocked(def);
+
       const costText = Object.entries(def.costs || {})
         .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
         .join("、");
@@ -549,17 +683,22 @@ function renderCraftList() {
         .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
         .join("、");
 
+      const unlockText = def.unlock
+        ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${def.unlock}`}</span>`
+        : "";
+
       return `
         <div class="recipe-card">
           <div class="top">
             <strong>${def.name}</strong>
-            <button data-craft="${id}" type="button">製作</button>
+            <button data-craft="${id}" type="button" ${unlocked ? "" : "disabled"}>製作</button>
           </div>
           <div class="small muted">${def.skill || "craft"}</div>
           <div class="row" style="margin-top:8px;">
             <span class="pill">消耗體力：${def.stamina ?? 1}</span>
             <span class="pill">材料：${costText || "無"}</span>
             <span class="pill">產出：${yieldText || "無"}</span>
+            ${unlockText}
           </div>
         </div>
       `;
@@ -642,6 +781,7 @@ function render() {
   renderTopStats();
   renderResources();
   renderActionLane();
+  renderCraftList();
   renderLog();
 }
 
