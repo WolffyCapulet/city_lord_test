@@ -1,5 +1,6 @@
 import { workDefs, workerJobs, workLootInfo } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
+import { resources } from "../data/resources.js";
 
 const STORAGE_KEY = "city_lord_rewrite_save_v4";
 const WORK_QUEUE_LIMIT = 3;
