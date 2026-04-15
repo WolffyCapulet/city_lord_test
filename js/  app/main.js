@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="./styles.css">
 import { workDefs, workerJobs, workLootInfo } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { resources } from "../data/resources.js";
