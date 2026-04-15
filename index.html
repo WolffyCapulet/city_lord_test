@@ -3,101 +3,225 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>城主村莊測試版 </title>
+  <title>城主村莊測試版</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="wrap">
-    <section class="panel">
-      <div class="title-row">
+    <!-- 頂部資訊 -->
+    <section class="panel header">
+      <div class="header-top">
         <div>
-          <h1>城主村莊測試版 </h1>
-          <div class="muted small"></div>
+          <h1 id="gameTitle">城主村莊測試版</h1>
+          <div id="gameVersionNote" class="muted small">模組化開發版</div>
         </div>
-        <div class="row">
-          <button id="saveBtn">存檔</button>
-          <button id="loadBtn">讀檔</button>
-          <button id="resetBtn">重置</button>
+
+        <div class="header-actions">
+          <button id="saveBtn" class="tiny-btn" type="button">存檔</button>
+          <button id="resetBtn" class="tiny-btn" type="button">重置</button>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="stat-card">
-          <div class="stat-label">金幣</div>
-          <div class="stat-value" id="gold">0</div>
-          <div class="small muted">打工可獲得</div>
+      <!-- 給 renderTopStats.js 用 -->
+      <div class="top-grid" id="topStats">
+        <div class="stat">
+          <div>金幣</div>
+          <strong id="gold">0</strong>
+          <div class="small muted">打工收入隨主等級提升</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-label">主等級</div>
-          <div class="stat-value">Lv.<span id="level">1</span></div>
+        <div class="stat">
+          <div>主等級 <strong id="level">1</strong></div>
           <div class="bar"><div id="expBar" class="fill exp"></div></div>
-          <div class="small muted">EXP：<span id="exp">0</span> / <span id="expNext">5</span></div>
+          <div class="small muted"><span id="exp">0</span> / <span id="expNext">5</span> EXP</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-label">體力</div>
-          <div class="stat-value"><span id="stamina">100</span> / <span id="maxStamina">100</span></div>
-          <div class="bar"><div id="staminaBar" class="fill stamina"></div></div>
-          <div class="small muted">工作與製作都會消耗</div>
+        <div class="stat">
+          <div>體力 <strong id="stamina">100</strong> / <span id="maxStamina">100</span></div>
+          <div class="bar"><div id="staminaBar" class="fill"></div></div>
+          <div class="small muted">休息與食物可恢復體力</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-label">快速操作</div>
-          <div class="row">
-            <button id="restBtn">休息 +5 體力</button>
-            <button id="eatBestBtn">吃最佳食物</button>
-          </div>
-          <div class="small muted" id="eatHint">目前沒有可吃的食物</div>
+        <div class="stat">
+          <div>智力 <strong id="intelligence">0</strong></div>
+          <div class="small muted">閱讀與研究可提升</div>
+          <div class="small">手動週期：<span id="cycleTime">10.00</span> 秒</div>
         </div>
+
+        <div class="stat">
+          <div>體力等級 <strong id="staminaLevel">1</strong></div>
+          <div class="bar"><div id="staminaExpBar" class="fill exp"></div></div>
+          <div class="small muted"><span id="staminaExp">0</span> / <span id="staminaExpNext">5</span></div>
+        </div>
+
+        <div class="stat">
+          <div>管理等級 <strong id="managementLevel">1</strong></div>
+          <div class="bar"><div id="managementBar" class="fill exp"></div></div>
+          <div class="small muted"><span id="managementExp">0</span> / <span id="managementExpNext">5</span></div>
+        </div>
+      </div>
+
+      <div class="pill-wrap" id="skillPills"></div>
+
+      <div class="row" style="margin-top:8px">
+        <span class="pill">住房：<span id="housingUsed">0</span> / <span id="housingCap">0</span></span>
+        <span class="pill">欠薪：<span id="salaryDebt">0</span></span>
+        <span class="pill">篝火：<span id="campfireSec">0</span></span>
+        <span class="pill">城池Lv.<span id="castleLevel">1</span></span>
+        <span class="pill">安全值：<span id="safetyValue">0</span></span>
       </div>
     </section>
 
-    <div class="grid-2">
-      <div>
-<section class="panel">
-  <h2>手動工作</h2>
+    <div class="layout">
+      <!-- 左側導航 -->
+      <nav class="panel nav-rail" id="mainNav">
+        <button class="nav-btn active" data-main-nav="production" type="button">生產與製作</button>
+        <button class="nav-btn" data-main-nav="log" type="button">事件紀錄</button>
+      </nav>
 
-  <div class="action-lane">
-    <div id="actionStatus" class="action-status">目前沒有進行中的工作</div>
-    <div class="bar action-bar">
-      <div id="actionProgressBar" class="fill action"></div>
-    </div>
-    <div id="actionQueue" class="queue-row">
-      <span class="small muted">行動列為空</span>
-    </div>
-    <div class="row" style="margin-top:8px;">
-      <button id="cancelActionBtn">取消目前工作</button>
-      <button id="clearActionQueueBtn">清空行動列</button>
-    </div>
-  </div>
+      <!-- 主內容 -->
+      <div class="main-stack">
+        <!-- 生產與製作頁 -->
+        <section class="panel main-page-panel" data-main-page="production">
+          <div class="section-title">
+            <h2 style="margin:0">動手工作與製作加工</h2>
+            <div class="row">
+              <button id="restBtn" class="tiny-btn" type="button">開始休息</button>
+            </div>
+          </div>
 
-  <div class="button-grid" id="workButtons"></div>
-  <div class="small muted" style="margin-top:10px;">
-    現在點工作按鈕時，若已有工作進行中，會自動加入行動列。行動列最多 3 個。
-  </div>
-</section>
+          <!-- 行動列 -->
+          <div id="actionLanes" class="lane-grid">
+            <div class="lane-card">
+              <div class="lane-label" id="productionText">生產線：目前沒有進行中的動作。</div>
+              <div class="bar"><div id="productionBar" class="fill action"></div></div>
+              <div id="productionQueue" class="craft-queue"></div>
+            </div>
 
-        <section class="panel">
-          <h2>製作與加工</h2>
-          <div class="recipe-list" id="craftList"></div>
+            <div class="lane-card">
+              <div class="lane-label" id="craftText">製作線：目前沒有進行中的動作。</div>
+              <div class="bar"><div id="craftBar" class="fill action"></div></div>
+              <div id="craftQueueTop" class="craft-queue"></div>
+            </div>
+
+            <div class="lane-card">
+              <div class="lane-label" id="researchText">研究線：目前沒有進行中的動作。</div>
+              <div class="bar"><div id="researchBar" class="fill exp"></div></div>
+              <div id="researchQueue" class="craft-queue"></div>
+            </div>
+          </div>
+
+          <h3 style="margin:16px 0 8px">手動工作</h3>
+          <div class="small muted">這一區由 <code>renderWorkButtons.js</code> 產生按鈕。</div>
+          <div id="workButtons" class="compact-actions"></div>
+
+          <h3 style="margin:16px 0 8px">製作與加工</h3>
+          <div class="small muted">這一區由 <code>renderCraftList.js</code> 產生配方列表。</div>
+          <div id="craftList"></div>
         </section>
 
-        <section class="panel">
-          <h2>資源倉庫</h2>
-          <div id="resources" class="resource-list"></div>
+        <!-- 紀錄頁 -->
+        <section class="panel log-panel main-page-panel page-hidden" data-main-page="log">
+          <div class="section-title">
+            <h2 style="margin:0">事件紀錄</h2>
+            <div class="row">
+              <button id="logAllBtn" class="tiny-btn" type="button">全部</button>
+              <button id="logImportantBtn" class="tiny-btn" type="button">重要訊息</button>
+              <button id="logLootBtn" class="tiny-btn" type="button">獲取訊息</button>
+              <button id="logWorkerBtn" class="tiny-btn" type="button">工人訊息</button>
+            </div>
+          </div>
+          <div id="log" class="log"></div>
         </section>
       </div>
 
-      <section class="panel">
-        <h2>事件紀錄</h2>
-        <div id="log" class="log"></div>
-      </section>
+      <!-- 右側資源欄 -->
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="resource-head">
+            <h2 style="margin:0">資源倉庫</h2>
+            <button id="toggleResourcesBtn" class="tiny-btn" type="button">收合全部</button>
+          </div>
+          <div class="small muted" style="margin-top:8px">
+            這一區由 <code>renderResources.js</code> 負責渲染。
+          </div>
+          <div class="bar"><div id="campfireBar" class="fill fire"></div></div>
+          <div id="resources"></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- action modal -->
+  <div id="actionModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="actionModalTitle">
+      <h3 id="actionModalTitle">操作</h3>
+      <div id="actionModalDesc" class="small muted modal-desc"></div>
+
+      <div class="action-modal-grid">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <label class="small muted">
+            次數 / 份數
+            <input id="actionQtyInput" type="number" min="1" max="9999" value="1" style="width:100px;margin-left:6px" />
+          </label>
+          <span id="actionQtyHint" class="small muted"></span>
+        </div>
+        <div id="actionQuickBtns" class="action-quick"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="actionCancelBtn" class="tiny-btn" type="button">取消</button>
+        <button id="actionQueueBtn" class="tiny-btn" type="button">加入列隊</button>
+        <button id="actionStartBtn" class="tiny-btn" type="button">立即開始</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- queue modal -->
+  <div id="queueModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="queueModalTitle">
+      <h3 id="queueModalTitle">列隊</h3>
+      <div id="queueModalDesc" class="small muted modal-desc"></div>
+      <div id="queueModalBody" class="queue-list" style="margin-top:8px"></div>
+
+      <div class="modal-actions">
+        <button id="queueModalCloseBtn" class="tiny-btn" type="button">關閉</button>
+        <button id="queueModalClearBtn" class="tiny-btn" type="button">清空列隊</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- reset modal -->
+  <div id="resetModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+      <h3 id="resetTitle">確認重置存檔</h3>
+      <div class="small muted">這會清除目前遊戲進度，無法復原。</div>
+
+      <label class="check-row small">
+        <input id="resetAcknowledge" type="checkbox" />
+        <span>我已確認要永久刪除目前遊戲進度。</span>
+      </label>
+
+      <div class="modal-actions">
+        <button id="resetCancelBtn" class="tiny-btn" type="button">取消</button>
+        <button id="resetConfirmBtn" class="tiny-btn" type="button" disabled>確認重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- choice modal -->
+  <div id="choiceModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="choiceModalTitle">
+      <h3 id="choiceModalTitle">選擇項目</h3>
+      <div id="choiceModalDesc" class="small muted modal-desc"></div>
+      <div id="choiceModalOptions" class="action-quick" style="margin-top:12px"></div>
+
+      <div class="modal-actions">
+        <button id="choiceModalCloseBtn" class="tiny-btn" type="button">關閉</button>
+      </div>
     </div>
   </div>
 
   <script type="module" src="./js/app/main.js"></script>
-
-init();
 </body>
 </html>
