@@ -76,10 +76,18 @@ function initializeEvents() {
   document.getElementById("actionQueueBtn").addEventListener("click", () => applyActionModal("queue"));
 
   const queueModal = document.getElementById("queueModal");
-  document.getElementById("queueModalCloseBtn").addEventListener("click", closeQueueModal);
-  queueModal.addEventListener("click", (e) => {
-    if (e.target === queueModal) closeQueueModal();
-  });
+  if (queueModal) {
+    const closeBtn = document.getElementById("queueModalCloseBtn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", closeQueueModal);
+    }
+    queueModal.addEventListener("click", (e) => {
+      // Modal background click closes only if clicking backdrop, not inner modal
+      if (e.target === queueModal) closeQueueModal();
+    });
+  } else {
+    console.warn("queueModal element not found in the DOM.");
+  }
 
   const resetModal = document.getElementById("resetModal");
   const resetAck = document.getElementById("resetAcknowledge");
