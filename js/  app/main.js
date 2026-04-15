@@ -2,7 +2,7 @@ import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
 
-const STORAGE_KEY = "city_lord_rewrite_save_v7";
+const STORAGE_KEY = "city_lord_rewrite_save_v8";
 const WORK_QUEUE_LIMIT = 3;
 const LOG_LIMIT = 80;
 
@@ -24,6 +24,14 @@ function firstEl(...ids) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function roll(chance) {
+  return Math.random() < chance;
 }
 
 function nowTime() {
@@ -137,7 +145,132 @@ function getWorkCost(def) {
 }
 
 function getWorkDuration(def) {
-  return Math.max(0.1, Number(def?.duration ?? 10) || 10);
+  return Math.max(0.1, Number(def?.base ?? 10) || 10);
+}
+
+function getWorkSummaryLoot(workId) {
+  const loot = {};
+  let gold = 0;
+  let log = "";
+  let type = "loot";
+
+  function add(id, amount) {
+    loot[id] = (loot[id] || 0) + amount;
+  }
+
+  switch (workId) {
+    case "labor":
+      gold += randInt(8, 12);
+      log = `村莊打工完成，獲得金幣 ${gold}`;
+      break;
+
+    case "lumber":
+      add("wood", randInt(2, 5));
+      add("branch", randInt(1, 3));
+      add("leaf", randInt(1, 4));
+      if (roll(0.15)) add("apple", randInt(1, 2));
+      if (roll(0.05)) add("appleSeed", 1);
+      log = "伐木完成";
+      break;
+
+    case "mining":
+      add("stone", randInt(2, 6));
+      add("copperOre", randInt(1, 3));
+      if (roll(0.8)) add("coal", randInt(1, 3));
+      if (roll(0.55)) add("ironOre", randInt(1, 2));
+      if (roll(0.12)) add("silverOre", randInt(1, 2));
+      if (roll(0.08)) add("magnetite", 1);
+      if (roll(0.03)) add("crystal", 1);
+      if (roll(0.01)) add("goldOre", 1);
+      if (roll(0.005)) add("gem", 1);
+      log = "挖礦完成";
+      break;
+
+    case "fishing":
+      if (roll(0.55)) add("fish", randInt(2, 4));
+      if (roll(0.30)) add("shrimp", randInt(2, 4));
+      if (roll(0.12)) add("crab", randInt(1, 2));
+      if (roll(0.05)) add("snail", 1);
+      if (roll(0.01)) add("copperOre", randInt(1, 2));
+      if (roll(0.005)) add("coal", randInt(1, 2));
+      if (roll(0.003)) add("ironOre", 1);
+      if (roll(0.002)) add("silverOre", 1);
+      if (roll(0.001)) add("magnetite", 1);
+      if (roll(0.001)) add("crystal", 1);
+      log = "釣魚完成";
+      break;
+
+    case "hunting": {
+      const r = Math.random();
+      if (r < 0.12) add("chicken", 1);
+      else if (r < 0.24) add("rabbit", 1);
+      else if (r < 0.32) add("dairyCow", 1);
+      else if (r < 0.38) add("bull", 1);
+      else if (r < 0.52) add("boar", 1);
+      else if (r < 0.70) add("deer", 1);
+      else if (r < 0.85) add("wolf", 1);
+      else if (r < 0.96) add("brownBear", 1);
+      else add("blackBear", 1);
+      log = "狩獵完成";
+      break;
+    }
+
+    case "forest":
+      add("branch", randInt(1, 3));
+      add("leaf", randInt(1, 4));
+      add("fiber", randInt(1, 3));
+      if (roll(0.65)) add("herb", randInt(1, 3));
+      if (roll(0.55)) add("mushroom", randInt(1, 3));
+      if (roll(0.10)) add("wheatSeed", 1);
+      if (roll(0.08)) add("rareHerb", 1);
+      if (roll(0.08)) add("mushroomSpore", 1);
+      if (roll(0.05)) add("ginseng", 1);
+      if (roll(0.05)) add("cottonSeed", 1);
+      if (roll(0.05)) add("carrotSeed", 1);
+      log = "森林採集完成";
+      break;
+
+    case "shore":
+      add("sand", randInt(1, 5));
+      if (roll(0.50)) add("shellfish", 1);
+      if (roll(0.35)) add("crab", 1);
+      if (roll(0.25)) add("branch", randInt(1, 2));
+      if (roll(0.15)) add("coral", 1);
+      log = "海邊採集完成";
+      break;
+
+    case "digging":
+      add("dirt", randInt(2, 6));
+      add("stone", randInt(1, 4));
+      if (roll(0.50)) add("sand", randInt(0, 3));
+      if (roll(0.05)) add("coal", 1);
+      if (roll(0.025)) add("copperOre", 1);
+      if (roll(0.015)) add("ironOre", 1);
+      if (roll(0.01)) add("silverOre", 1);
+      if (roll(0.008)) add("magnetite", 1);
+      if (roll(0.005)) add("crystal", 1);
+      if (roll(0.001)) add("goldOre", 1);
+      if (roll(0.0001)) add("gem", 1);
+      log = "挖掘完成";
+      break;
+
+    default:
+      log = "工作完成";
+      type = "important";
+      break;
+  }
+
+  const gainText = Object.entries(loot)
+    .map(([id, amount]) => `${getResourceLabel(id)} +${amount}`)
+    .join("、");
+
+  if (gainText && gold > 0) {
+    log += `，獲得 ${gainText}、金幣 ${gold}`;
+  } else if (gainText) {
+    log += `，獲得 ${gainText}`;
+  }
+
+  return { gold, resources: loot, log, type };
 }
 
 function enqueueWork(workId) {
@@ -216,22 +349,7 @@ function completeCurrentAction() {
   const def = workDefs[action.id];
   if (!def) return;
 
-  let result = {
-    gold: 0,
-    resources: {},
-    log: `${def.name}完成`,
-    type: "loot"
-  };
-
-  if (typeof def.run === "function") {
-    const raw = def.run(state) || {};
-    result = {
-      gold: Number(raw.gold || 0),
-      resources: raw.resources || {},
-      log: raw.log || `${def.name}完成`,
-      type: raw.type || "loot"
-    };
-  }
+  const result = getWorkSummaryLoot(action.id);
 
   state.gold += result.gold || 0;
 
