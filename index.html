@@ -931,20 +931,12 @@ function scheduleResearchAction(kind, id, qty=1, mode='start'){ qty = kind === '
 function scheduleCraftAction(craftId, qty=1, mode='start'){
   const def = crafts[craftId];
   if(def.unlock && !state.research[def.unlock]) return addLog(`尚未研究${researchDefs[def.unlock].name}。`);
-
   if(mode === 'queue'){
-    if(qty < 0){
-      const cleared = clearInfiniteCraftState({silent:true});
-      if(cleared.length) addLog(`已清除舊的無限製作排程：${cleared.join('、')}。`);
-    }
     enqueueCraft(craftId, qty < 0 ? 9999 : Math.max(1, qty));
     render();
     return;
   }
-
   if(qty < 0){
-    const cleared = clearInfiniteCraftState({silent:true});
-    if(cleared.length) addLog(`已清除舊的無限製作排程：${cleared.join('、')}。`);
     state.autoCraft = craftId;
     state.autoCraftInfinite = true;
     state.craftRepeat = true;
@@ -952,7 +944,6 @@ function scheduleCraftAction(craftId, qty=1, mode='start'){
       if(!beginCraftCycle(craftId, false)){
         state.autoCraft = null;
         state.autoCraftInfinite = false;
-        state.craftRepeat = false;
         return;
       }
       addLog(`開始無限重複製作：${def.name}。材料或體力不足時會自動停止。`);
@@ -962,9 +953,7 @@ function scheduleCraftAction(craftId, qty=1, mode='start'){
     render();
     return;
   }
-
-  const cleared = clearInfiniteCraftState({silent:true});
-  if(cleared.length) addLog(`已停止舊的無限製作排程：${cleared.join('、')}。`);
+  state.autoCraftInfinite = false;
   if(state.craftAction){
     const previousName = crafts[state.craftAction.id]?.name || '目前製作';
     cancelCurrentCraft({refundMaterials:true, startNext:false, silent:true});
@@ -988,8 +977,8 @@ function processShellfishMany(qty){ qty = Math.max(1, Math.min(qty, Math.floor(t
 function applyFertilizerMany(type, qty){ let used = 0; for(let i=0;i<qty;i++){ const idx = findBestGrowingPlotIndex(); if(idx < 0) break; if(!applyFertilizer(idx, type, 'resource')) break; used++; } if(used > 0) render(); else addLog('目前沒有可施肥的作物。'); }
 function openWorkModal(id){ const def = workDefs[id]; const cycle = getProductionDuration(id); const outputPreview = getProductionOutputPreviewText(id); const lines = [`單次體力：${def.staminaCost}`, `生產節奏：${formatSecondsLabel(cycle)}`, outputPreview || null, `單次普通經驗：1`, `單次${skillLabels[def.skill]}經驗：1`, '', ...(workLootInfo[id] || [])].filter(Boolean); openActionModal({ title:def.name, desc:lines.join('\n'), quick:[1,10,50,100,'∞'], startLabel:'立即開始', queueLabel:'加入列隊', onStart:(qty)=>scheduleWorkAction(id, qty, 'start'), onQueue:(qty)=>scheduleWorkAction(id, qty, 'queue') }); }
 function openCraftModal(id){ const def = crafts[id]; const cycle = getCraftDuration(id); const outputPreview = getCraftOutputPreviewText(id); const desc = [`單次體力：${def.stamina || 1}`, `製作節奏：${formatSecondsLabel(cycle)}`, outputPreview || null, `配方：${bundleText(def.costs)} → ${bundleText(def.yields)}`, `單次${skillLabels[def.skill]}經驗：1`].filter(Boolean).join('\n'); openActionModal({ title:def.name, desc, quick:[1,10,50,100,'∞'], startLabel:'立即製作', queueLabel:'加入列隊', onStart:(qty)=>scheduleCraftAction(id, qty, 'start'), onQueue:(qty)=>scheduleCraftAction(id, qty, 'queue') }); }
-function openResearchModal(key){ const def = researchDefs[key]; const reqParts = []; if(def.levelReq) reqParts.push(`主等級：${def.levelReq}`); if(def.intReq) reqParts.push(`智力：${def.intReq}`); if(def.reqPlots) reqParts.push(`已建農田：${def.reqPlots}`); if(def.reqHouses) reqParts.push(...Object.entries(def.reqHouses).map(([k,v]) => `${houseBuilds[k]?.name || k}：${v}`)); if(def.reqBuildings) reqParts.push(...Object.entries(def.reqBuildings).map(([k,v]) => `${buildingDefs[k]?.name || k}：${v}`)); const status = getResearchStatus(key); const busy = !!state.researchAction; const descLines = [def.desc, '', `研究耗時：${formatSecondsLabel(getReadingDuration(def.duration))}`, reqParts.length ? `需求：${reqParts.join('、')}` : '需求：無', status === 'completed' ? '狀態：已完成' : (status === 'locked' ? `狀態：未達條件（${getMissingReqText(def)}）` : (busy ? '狀態：研究線忙碌中，按下「開始」後會加入研究列隊。' : '狀態：可立即開始研究。'))]; const config = { title:def.name, desc:descLines.join('\n'), hideQty:true, cancelLabel:'關閉' }; if(status === 'available'){ config.startLabel = busy ? '加入研究列隊' : '開始研究'; config.onStart = ()=>scheduleResearchAction('research', key, 1, busy ? 'queue' : 'start'); if(!busy){ config.queueLabel = '加入研究列隊'; config.onQueue = ()=>scheduleResearchAction('research', key, 1, 'queue'); } } openActionModal(config); }
-function openBookModal(bookId){ const book = books[bookId]; const owned = Math.floor(toFiniteNumber(state.resources[bookId], 0)); const busy = !!state.researchAction; const queueMode = busy ? 'queue' : 'start'; const statusText = busy ? '研究線忙碌中，按下「開始閱讀」後會加入右上角研究列隊。' : '按下「開始閱讀」後會立刻開始，剩餘本數會自動排入研究列隊。'; const config = { title:book.name, desc:[`目前持有：${owned} 本`, `閱讀時間：${formatSecondsLabel(getReadingDuration(book.duration))}`, `完成後：智力 +${book.intGain}、主經驗 +${book.expGain}`, '開始閱讀時會先從庫存扣除 1 本書籍。', statusText].join('\n'), quick:[1,5,10,'全部'], max:Math.max(1, owned), startLabel:busy ? '加入研究列隊' : '開始閱讀', cancelLabel:'關閉', onStart:(qty)=>scheduleResearchAction('read', bookId, qty, queueMode) }; if(!busy){ config.queueLabel = '加入研究列隊'; config.onQueue = (qty)=>scheduleResearchAction('read', bookId, qty, 'queue'); } openActionModal(config); }
+function openResearchModal(key){ const def = researchDefs[key]; const reqParts = []; if(def.levelReq) reqParts.push(`主等級：${def.levelReq}`); if(def.intReq) reqParts.push(`智力：${def.intReq}`); if(def.reqPlots) reqParts.push(`已建農田：${def.reqPlots}`); if(def.reqHouses) reqParts.push(...Object.entries(def.reqHouses).map(([k,v]) => `${houseBuilds[k]?.name || k}：${v}`)); if(def.reqBuildings) reqParts.push(...Object.entries(def.reqBuildings).map(([k,v]) => `${buildingDefs[k]?.name || k}：${v}`)); const status = getResearchStatus(key); const descLines = [def.desc, '', `研究耗時：${formatSecondsLabel(getReadingDuration(def.duration))}`, reqParts.length ? `需求：${reqParts.join('、')}` : '需求：無']; const config = { title:def.name, desc:descLines.join('\n'), hideQty:true, cancelLabel:'關閉' }; if(status === 'available' && !state.researchAction){ config.startLabel = '開始研究'; config.onStart = ()=>scheduleResearchAction('research', key, 1, 'start'); } openActionModal(config); }
+function openBookModal(bookId){ const book = books[bookId]; const owned = Math.floor(toFiniteNumber(state.resources[bookId], 0)); const busy = !!state.researchAction; const queueMode = busy ? 'queue' : 'start'; const statusText = busy ? '研究線忙碌中，按下「閱讀」後會加入右上角研究列隊。' : '按下「閱讀」後會立即佔用右上角研究線。'; openActionModal({ title:book.name, desc:[`目前持有：${owned} 本`, `閱讀時間：${formatSecondsLabel(getReadingDuration(book.duration))}`, `完成後：智力 +${book.intGain}、主經驗 +${book.expGain}`, '開始閱讀時會先從庫存扣除 1 本書籍。', statusText].join('\n'), quick:[1,5,10,'全部'], max:Math.max(1, owned), startLabel:'閱讀', cancelLabel:'關閉', onStart:(qty)=>scheduleResearchAction('read', bookId, qty, queueMode) }); }
 function openResourceModal(id, action){ const max = Math.max(1, Math.floor(toFiniteNumber(state.resources[id], 0))); const baseDesc = `${resourceLabels[id]}
 目前持有：${format(state.resources[id] || 0)}`; if(action === 'eat'){ const value = edibleValues[id] || 0; openActionModal({title:`食用${resourceLabels[id]}`, desc:`${baseDesc}
 單次體力變化：${value >= 0 ? '+' : ''}${value}`, quick:[1,5,10,50,'全部'], max, startLabel:'立即食用', onStart:(qty)=>eatMany(id, qty)}); } else if(action === 'potion'){ openActionModal({title:`使用${resourceLabels[id]}`, desc:`${baseDesc}
@@ -1068,8 +1057,38 @@ function renderWorkQueue(){
     summary.appendChild(clear);
   }
   root.appendChild(summary);
+  return;
+  const list = document.createElement('div');
+  list.className = 'queue-list';
+  state.workQueue.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'queue-row';
+    const itemInfinite = !!item.infinite;
+    const itemTime = itemInfinite ? 0 : getProductionDuration(item.id) * Math.max(1, item.count || 1);
+    row.innerHTML = `<div><strong>${idx+1}. ${workDefs[item.id].name}</strong><div class="small muted">數量：${itemInfinite ? '∞' : item.count}｜預估：${formatQueueTimeShort(itemTime, itemInfinite)}</div></div>`;
+    const ops = document.createElement('div');
+    ops.className = 'ops';
+    [['↑',-1],['↓',1]].forEach(([txt,delta]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tiny-btn';
+      b.textContent = txt;
+      b.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); moveWorkQueueItem(idx, delta); };
+      b.onclick = (e)=>e.preventDefault();
+      ops.appendChild(b);
+    });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'tiny-btn';
+    del.textContent = '取消';
+    del.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); removeWorkQueueItem(idx); };
+    del.onclick = (e)=>e.preventDefault();
+    ops.appendChild(del);
+    row.appendChild(ops);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
 }
-
 
 function renderResearchQueue(){
   const root = document.getElementById('researchQueue');
@@ -1099,8 +1118,41 @@ function renderResearchQueue(){
     summary.appendChild(clear);
   }
   root.appendChild(summary);
+  return;
+  const list = document.createElement('div');
+  list.className = 'queue-list';
+  state.researchQueue.forEach((item, idx) => {
+    const title = item.kind === 'read' ? books[item.id].name : researchDefs[item.id].name;
+    const per = item.kind === 'read'
+      ? getReadingDuration(books[item.id]?.duration || 0)
+      : getReadingDuration(researchDefs[item.id]?.duration || 0);
+    const itemTime = per * Math.max(1, item.count || 1);
+    const row = document.createElement('div');
+    row.className = 'queue-row';
+    row.innerHTML = `<div><strong>${idx+1}. ${title}</strong><div class="small muted">類型：${item.kind === 'read' ? '書籍閱讀' : '研究'}｜數量：${item.count}｜預估：${formatQueueTimeShort(itemTime)}</div></div>`;
+    const ops = document.createElement('div');
+    ops.className = 'ops';
+    [['↑',-1],['↓',1]].forEach(([txt,delta]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tiny-btn';
+      b.textContent = txt;
+      b.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); moveResearchQueueItem(idx, delta); };
+      b.onclick = (e)=>e.preventDefault();
+      ops.appendChild(b);
+    });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'tiny-btn';
+    del.textContent = '取消';
+    del.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); removeResearchQueueItem(idx); };
+    del.onclick = (e)=>e.preventDefault();
+    ops.appendChild(del);
+    row.appendChild(ops);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
 }
-
 
 function moveCraftQueueItem(index, delta){ const ni = index + delta; if(index < 0 || ni < 0 || ni >= state.craftQueue.length) return; const arr = state.craftQueue; [arr[index], arr[ni]] = [arr[ni], arr[index]]; renderCraftQueue(); }
 function removeCraftQueueItem(index){ if(index < 0 || index >= state.craftQueue.length) return; const removed = state.craftQueue.splice(index, 1)[0]; addLog(`已取消排程：${crafts[removed.id].name} × ${removed.count}。`); render(); }
@@ -1292,7 +1344,7 @@ function migrateLoadedState(data, meta={}){
   const migrated = JSON.parse(JSON.stringify(data));
   if(typeof migrated.saveSchemaVersion !== 'number') migrated.saveSchemaVersion = meta.schemaVersion || 1;
   if(!migrated.meta || typeof migrated.meta !== 'object') migrated.meta = {};
-  if(meta.sourceKey) migrated.meta.lastLoadedFrom = meta.sourceKey;
+  if(!migrated.meta.lastLoadedFrom && meta.sourceKey) migrated.meta.lastLoadedFrom = meta.sourceKey;
   if(!Array.isArray(migrated.workers) && Array.isArray(migrated.workerList)) migrated.workers = migrated.workerList;
   if(!Array.isArray(migrated.plots)){
     if(Array.isArray(migrated.fields)) migrated.plots = migrated.fields;
@@ -1339,14 +1391,11 @@ function loadGame(){
 const state = loadGame() || createInitialState();
 normalizeState(state);
 applyV060Migration(state);
-if(state.meta && state.meta.lastLoadedFrom && state.meta.lastLoadedFrom !== 'new'){
+if(state.meta && state.meta.lastLoadedFrom){
   const sourceName = state.meta.lastLoadedFrom === STORAGE_KEY ? '共用存檔' : `舊版存檔（${state.meta.lastLoadedFrom}）`;
   if(!Array.isArray(state.logs)) state.logs = [];
-  state.logs.unshift({time:nowTime(), text:`已載入${sourceName}。`, type:'important'});
-  if(state.meta.housingRecovered){
-    state.logs.unshift({time:nowTime(), text:'已自動修復住房容量。', type:'important'});
-    state.meta.housingRecovered = false;
-  }
+  state.logs.unshift(`${nowTime()} 已載入${sourceName}。`);
+  if(state.meta.housingRecovered){ state.logs.unshift(`${nowTime()} 已自動修復住房容量。`); state.meta.housingRecovered = false; }
   state.logs = state.logs.slice(0, 220);
 }
 let lastTick = performance.now();
@@ -1459,8 +1508,7 @@ function normalizeState(s){
   s.workQueue = s.workQueue.map(item => typeof item === 'string' ? ({id:item,count:1,infinite:false}) : ({id:item.id,count:Math.max(1,Math.floor(toFiniteNumber(item.count,1))),infinite:!!item.infinite})).filter(item => item.id);
   if(typeof s.craftRepeat !== 'boolean') s.craftRepeat = false;
   if(!Array.isArray(s.craftQueue)) s.craftQueue = [];
-  s.craftQueue = s.craftQueue.map(item => typeof item === 'string' ? ({id:item,count:1}) : ({id:item.id,count:isInfiniteCraftCount(item.count) ? 9999 : Math.max(1,Math.floor(toFiniteNumber(item.count,1)))})).filter(item => item.id);
-  sanitizeCraftInfiniteState(s);
+  s.craftQueue = s.craftQueue.map(item => typeof item === 'string' ? ({id:item,count:1}) : ({id:item.id,count:Math.max(1,Math.floor(toFiniteNumber(item.count,1)))})).filter(item => item.id);
   if(!Array.isArray(s.researchQueue)) s.researchQueue = [];
   s.researchQueue = s.researchQueue.map(item => ({kind:item.kind || 'research', id:item.id, count:Math.max(1,Math.floor(toFiniteNumber(item.count,1)))})).filter(item => item.id);
   if(!s.merchant || typeof s.merchant !== 'object') s.merchant = {minuteCounter:0, present:false, presentSec:0, cash:0, maxCash:0, storeFunds:0, lastStoreInjection:0, keep:{}, orders:[], nextOrderId:1};
@@ -2070,7 +2118,6 @@ function autoCullExcessAnimals(logIt=false){
 }
 function applyV060Migration(s){
   if(!s.meta || s.meta.migration_v0_6_0_applied) return;
-  if(!s.meta.lastLoadedFrom || s.meta.lastLoadedFrom === 'new') return;
   const currentTotal = currentCastleTotalExp();
   const legacyWallOnly = s.houses.wall * 10;
   const targetTotal = currentTotal + Math.max(0, getBuildingCastleExpTotal() - legacyWallOnly);
@@ -2086,13 +2133,8 @@ function applyV060Migration(s){
     addLog(`因住房規則調整，已退聘 ${excess} 名超額工人並退回 ${refund} 金。`, false);
   }
   autoCullExcessAnimals(true);
-  s.tradeExp = toFiniteNumber(s.tradeExp, 0) + 100;
-  while(s.tradeExp >= expToNext(s.tradeLevel)){
-    s.tradeExp -= expToNext(s.tradeLevel);
-    s.tradeLevel++;
-    addLog(`貿易等級提升到 Lv.${s.tradeLevel}。`, false);
-  }
-  s.reputation = Math.max(0, toFiniteNumber(s.reputation, 0) + 10);
+  s.tradeExp += 100;
+  s.reputation += 10;
   addLog('v0.6.0 更新補發已套用：補發城池經驗、整理工人與牧場容量，並發放基礎貿易與聲望補助。', false);
   s.meta.migration_v0_6_0_applied = true;
 }
@@ -2882,74 +2924,13 @@ const crafts = {
   ironFishingRodTool:{name:'鐵釣竿', skill:'smelting', costs:{ironIngot:1, fiber:2}, yields:{ironFishingRodTool:1}, unlock:'ironFishingRod', stamina:1}
 };
 
-function isInfiniteCraftCount(count){
-  const n = Math.floor(toFiniteNumber(count, 0));
-  return n === 9999 || n < 0;
-}
-function isInfiniteCraftQueueItem(item){
-  return !!item && isInfiniteCraftCount(item.count);
-}
-function sanitizeCraftInfiniteState(targetState=state){
-  if(!targetState) return [];
-  if(!Array.isArray(targetState.craftQueue)) targetState.craftQueue = [];
-  const removed = [];
-  let keptQueueInfinite = false;
-  const hasAuto = !!targetState.autoCraft;
-  targetState.craftQueue = targetState.craftQueue.filter(item => {
-    if(!isInfiniteCraftQueueItem(item)) return true;
-    if(hasAuto){
-      removed.push(item);
-      return false;
-    }
-    if(keptQueueInfinite){
-      removed.push(item);
-      return false;
-    }
-    item.count = 9999;
-    keptQueueInfinite = true;
-    return true;
-  });
-  if(hasAuto){
-    targetState.autoCraftInfinite = true;
-    targetState.craftRepeat = true;
-  }
-  return removed;
-}
-function clearInfiniteCraftState(options={}){
-  const { silent=false } = options;
-  const removedNames = [];
-  if(state.autoCraft){
-    removedNames.push(crafts[state.autoCraft]?.name || state.autoCraft);
-    state.autoCraft = null;
-    state.autoCraftInfinite = false;
-    state.craftRepeat = false;
-  }
-  if(Array.isArray(state.craftQueue) && state.craftQueue.length){
-    const removed = [];
-    state.craftQueue = state.craftQueue.filter(item => {
-      if(!isInfiniteCraftQueueItem(item)) return true;
-      removed.push(item);
-      return false;
-    });
-    removed.forEach(item => removedNames.push(crafts[item.id]?.name || item.id));
-  }
-  const uniqueNames = [...new Set(removedNames.filter(Boolean))];
-  if(uniqueNames.length && !silent) addLog(`已清除舊的無限製作排程：${uniqueNames.join('、')}。`);
-  return uniqueNames;
-}
-
 function enqueueCraft(craftId, count){
   const def = crafts[craftId];
   if(!def) return;
   if(def.unlock && !state.research[def.unlock]) return addLog(`尚未研究${researchDefs[def.unlock].name}。`);
-  const normalizedCount = isInfiniteCraftCount(count) ? 9999 : Math.max(1, Math.floor(toFiniteNumber(count, 1)));
-  if(normalizedCount === 9999){
-    const cleared = clearInfiniteCraftState({silent:true});
-    if(cleared.length) addLog(`已清除舊的無限製作排程：${cleared.join('、')}。`);
-  }
   if(state.craftQueue.length >= 3) return addLog('製作排程已滿，最多只能等待 3 格。');
-  state.craftQueue.push({id:craftId, count:normalizedCount});
-  addLog(`已排入製作：${def.name}${normalizedCount === 9999 ? '（∞）' : ` × ${normalizedCount}`}。`);
+  state.craftQueue.push({id:craftId, count});
+  addLog(`已排入製作：${def.name} × ${count}。`);
 }
 let lastCraftBeginError = '';
 function beginCraftCycle(craftId, silent=false, fromWorker=false){
@@ -3089,7 +3070,7 @@ const houseBuilds = {
 function getHouseEffectText(key){
   if(key === 'cabin') return '效果：住房容量 +2';
   if(key === 'stoneHouse') return '效果：住房容量 +5，工人效率 +3%';
-  if(key === 'wall') return '效果：城池經驗 +15';
+  if(key === 'wall') return '效果：城池經驗 +10';
   return '';
 }
 function getHouseBuiltCountText(key){
@@ -4918,47 +4899,18 @@ function renderResearch(){
   const bookTitle = document.createElement('div');
   bookTitle.className = 'section-title';
   bookTitle.style.marginTop = '8px';
-  bookTitle.innerHTML = '<strong>研究書籍</strong><span class="small muted">點按下方按鈕可選擇閱讀幾本；可立即開始或加入右上角研究列隊</span>';
+  bookTitle.innerHTML = '<strong>研究書籍</strong><span class="small muted">點書籍可選擇閱讀幾本；閱讀會直接使用右上角研究線</span>';
   root.appendChild(bookTitle);
-
   const bookGrid = document.createElement('div');
   bookGrid.className = 'book-grid';
   Object.entries(books).forEach(([id, book]) => {
     const card = document.createElement('div');
     card.className = 'book-card';
     const owned = Math.floor(toFiniteNumber(state.resources[id], 0));
-
-    const title = document.createElement('strong');
-    title.textContent = book.name;
-    card.appendChild(title);
-
-    const lines = [
-      `目前持有：${owned} 本`,
-      '開始閱讀時會先從庫存扣除 1 本',
-      `閱讀時間：${formatSecondsLabel(getReadingDuration(book.duration))}`,
-      `完成後：智力 +${book.intGain}、主經驗 +${book.expGain}`
-    ];
-    lines.forEach(textLine => {
-      const div = document.createElement('div');
-      div.className = 'small muted';
-      div.textContent = textLine;
-      card.appendChild(div);
-    });
-
-    const openBtn = document.createElement('button');
-    openBtn.type = 'button';
-    openBtn.className = 'tiny-btn research-mini-btn';
-    openBtn.textContent = '閱讀設定';
-    openBtn.onpointerdown = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openBookModal(id);
-    };
-    openBtn.onclick = (e)=>e.preventDefault();
-    card.appendChild(openBtn);
-
+    card.innerHTML = `<strong>${book.name}</strong><div class="small muted">目前持有：${owned} 本</div><div class="small muted">開始閱讀時會先從庫存扣除 1 本</div><div class="small muted">閱讀時間：${formatSecondsLabel(getReadingDuration(book.duration))}</div><div class="small muted">完成後：智力 +${book.intGain}、主經驗 +${book.expGain}</div>`;
     bindCardOpen(card, () => openBookModal(id));
-    card.title = `${book.name}\n目前持有：${owned} 本`;
+    card.title = `${book.name}
+目前持有：${owned} 本`;
     bookGrid.appendChild(card);
   });
   root.appendChild(bookGrid);
@@ -4995,21 +4947,26 @@ function renderResearch(){
       const card = document.createElement('div');
       card.className = 'research-card';
       const status = getResearchStatus(key);
-      bindCardOpen(card, () => openResearchModal(key));
+      bindCardOpen(card, () => {
+        if(status === 'available'){
+          if(!state.researchAction) scheduleResearchAction('research', key, 1, 'start');
+          else {
+            enqueueResearchTask('research', key, 1);
+            render();
+          }
+        } else openResearchModal(key);
+      });
 
       const title = document.createElement('strong');
       title.textContent = def.name;
       card.appendChild(title);
 
-      const typeLine = document.createElement('div');
-      typeLine.className = 'small muted';
-      typeLine.textContent = getResearchCategoryLabel(def);
-      card.appendChild(typeLine);
-
-      const statusLine = document.createElement('div');
-      statusLine.className = 'research-status' + (status === 'completed' ? ' done' : '');
-      statusLine.textContent = status === 'completed' ? '已完成' : (status === 'available' ? '可研究' : '未達條件');
-      card.appendChild(statusLine);
+      if(status !== 'available'){
+        const statusLine = document.createElement('div');
+        statusLine.className = 'research-status' + (status === 'completed' ? ' done' : '');
+        statusLine.textContent = status === 'completed' ? '已完成' : '未達條件';
+        card.appendChild(statusLine);
+      }
 
       if(status === 'locked'){
         const hint = document.createElement('div');
@@ -5017,24 +4974,7 @@ function renderResearch(){
         hint.style.marginTop = '4px';
         hint.textContent = getMissingReqText(def);
         card.appendChild(hint);
-      } else {
-        const desc = document.createElement('div');
-        desc.className = 'small muted';
-        desc.textContent = def.desc;
-        card.appendChild(desc);
       }
-
-      const openBtn = document.createElement('button');
-      openBtn.type = 'button';
-      openBtn.className = 'tiny-btn research-mini-btn';
-      openBtn.textContent = status === 'completed' ? '查看說明' : (status === 'locked' ? '查看條件' : '開始/排隊');
-      openBtn.onpointerdown = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openResearchModal(key);
-      };
-      openBtn.onclick = (e)=>e.preventDefault();
-      card.appendChild(openBtn);
 
       list.appendChild(card);
     });
@@ -5088,8 +5028,54 @@ function renderCraftQueue(){
     summary.appendChild(clear);
   }
   root.appendChild(summary);
+  return;
+  const list = document.createElement('div');
+  list.className='queue-list';
+  if(state.autoCraftInfinite && state.autoCraft && crafts[state.autoCraft]){
+    const autoRow = document.createElement('div');
+    autoRow.className = 'queue-row';
+    autoRow.innerHTML = `<div><strong>∞. ${crafts[state.autoCraft].name}</strong><div class="small muted">狀態：無限重複製作｜預估：∞</div></div>`;
+    const ops = document.createElement('div');
+    ops.className = 'ops';
+    const stop = document.createElement('button');
+    stop.type='button';
+    stop.className='tiny-btn';
+    stop.textContent='停止';
+    stop.onpointerdown=(e)=>{ e.preventDefault(); e.stopPropagation(); stopAutoCraft(); };
+    stop.onclick=(e)=>e.preventDefault();
+    ops.appendChild(stop);
+    autoRow.appendChild(ops);
+    list.appendChild(autoRow);
+  }
+  state.craftQueue.forEach((item, idx) => {
+    const itemInfinite = item.count === 9999 || item.count < 0;
+    const itemTime = itemInfinite ? 0 : getCraftDuration(item.id) * Math.max(1, item.count || 1);
+    const row = document.createElement('div');
+    row.className='queue-row';
+    row.innerHTML = `<div><strong>${idx+1}. ${crafts[item.id].name}</strong><div class="small muted">數量：${itemInfinite ? '∞' : item.count}｜預估：${formatQueueTimeShort(itemTime, itemInfinite)}</div></div>`;
+    const ops = document.createElement('div');
+    ops.className='ops';
+    [['↑',-1],['↓',1]].forEach(([txt,delta])=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='tiny-btn';
+      b.textContent=txt;
+      b.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); moveCraftQueueItem(idx, delta);};
+      b.onclick=(e)=>e.preventDefault();
+      ops.appendChild(b);
+    });
+    const del=document.createElement('button');
+    del.type='button';
+    del.className='tiny-btn';
+    del.textContent='取消';
+    del.onpointerdown=(e)=>{e.preventDefault();e.stopPropagation(); removeCraftQueueItem(idx);};
+    del.onclick=(e)=>e.preventDefault();
+    ops.appendChild(del);
+    row.appendChild(ops);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
 }
-
 
 function getSellableResources(){
   return ['wood','stone','dirt','sand','copperOre','coal','ironOre','silverOre','goldOre','magnetite','crystal','gem','coalPowder','copperPowder','ironPowder','silverPowder','goldPowder','magnetitePowder','crystalPowder','gemPowder','herb','rareHerb','mushroom','branch','leaf','fiber','ginseng','apple','wheat','cotton','carrot','egg','clamMeat','fish','shrimp','crab','rawMeat','rawChicken','hide','bone','feather','milk','cowHorn','leather','softLeather','cottonThread','cottonCloth','grassThread','grassCloth','clothes','herbTonic','staminaPotion','paper','ink','note','manual','bread','planks','stoneBrick','brick','glass','glassBottle','chicken','rabbit','dairyCow','bull','boar','deer','wolf','brownBear','blackBear','woodAxeTool','woodPickTool','woodShovelTool','woodCarvingKnifeTool','woodHammerTool','woodPotTool','woodHoeTool','woodPitchforkTool','woodFishingRodTool','stoneAxeTool','stonePickTool','shovelTool','stoneCarvingKnifeTool','stoneHammerTool','stonePotTool','stoneHoeTool','stonePitchforkTool','woodBowTool','stoneBowTool','fishingRodTool','fishNetTool','copperAxeTool','copperShovelTool','copperPickTool','copperCarvingKnifeTool','copperHammerTool','copperPotTool','copperHoeTool','copperPitchforkTool','copperBowTool','copperFishingRodTool','ironAxeTool','ironShovelTool','ironPickTool','ironCarvingKnifeTool','ironHammerTool','ironPotTool','ironHoeTool','ironPitchforkTool','ironBowTool','ironFishingRodTool'];
@@ -5467,14 +5453,10 @@ function renderWorkerCraftSelect(){ const box = document.getElementById('workerC
 function renderLog(){
   const root = document.getElementById('log');
   const tab = state.ui.logTab || 'important';
-  const rows = (state.logs || [])
-    .map(item => typeof item === 'string'
-      ? {time:'', text:item, type:inferLogType(item)}
-      : {time:item.time || '', text:item.text || '', type:item.type || inferLogType(item.text || '')})
-    .filter(item => {
-      if(tab === 'all') return true;
-      return (item.type || 'important') === tab;
-    });
+  const rows = (state.logs || []).filter(item => {
+    if(tab === 'all') return true;
+    return (item.type || 'important') === tab;
+  });
   root.innerHTML = rows.length
     ? rows.map(item => `<div class="log-item"><span class="small muted">${item.time}</span> ${item.text}</div>`).join('')
     : '<div class="log-item muted">目前沒有符合此分類的紀錄。</div>';
@@ -5566,6 +5548,7 @@ resetConfirmBtn.addEventListener('click', () => {
   Object.keys(state).forEach(key => delete state[key]);
   Object.assign(state, createInitialState());
   normalizeState(state);
+applyV060Migration(state);
   closeResetModal();
   addLog('已重置遊戲。');
   render();
