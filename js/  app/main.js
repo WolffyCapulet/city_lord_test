@@ -239,7 +239,7 @@ function craftItem(craftId) {
   addMainExp(1);
 
   const gainText = Object.entries(def.yields)
-    .map(([id, amount]) => `${resourceLabels[id]} +${amount}`)
+    .map(([id, amount]) => `${resources[id]} +${amount}`)
     .join("、");
 
   addLog(`你製作了 ${def.name}，獲得 ${gainText}，addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`);`);
@@ -376,7 +376,7 @@ function renderResources() {
       const edible = edibleDefs[id] ? `<div class="small muted">可食用：+${edibleDefs[id].stamina} 體力</div>` : "";
       return `
         <div class="resource-item">
-          <div class="resource-name">${resourceLabels[id]}</div>
+          <div class="resource-name">${resources[id]}</div>
           <div class="resource-value">${value}</div>
           ${edible}
         </div>
