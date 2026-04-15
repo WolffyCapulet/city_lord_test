@@ -2,7 +2,7 @@ import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
 
-const STORAGE_KEY = "city_lord_rewrite_save_v8";
+const STORAGE_KEY = "city_lord_rewrite_save_v9";
 const WORK_QUEUE_LIMIT = 3;
 const LOG_LIMIT = 80;
 
@@ -69,6 +69,23 @@ function createDefaultResources() {
   });
 
   return Object.fromEntries([...ids].sort().map((id) => [id, 0]));
+}
+
+function normalizeLoadedLogs(logs) {
+  if (!Array.isArray(logs)) return [];
+  return logs
+    .map((item) => {
+      if (typeof item === "string") {
+        return { time: "", text: item, type: "important" };
+      }
+      return {
+        time: item?.time || "",
+        text: item?.text || "",
+        type: item?.type || "important"
+      };
+    })
+    .filter((item) => item.text)
+    .slice(0, LOG_LIMIT);
 }
 
 const state = {
@@ -527,7 +544,7 @@ function loadGame({ silent = false } = {}) {
     state.exp = Math.max(0, Number(data.exp ?? 0) || 0);
     state.stamina = clamp(Number(data.stamina ?? 100) || 100, 0, maxStamina());
 
-    state.logs = Array.isArray(data.logs) ? data.logs.slice(0, LOG_LIMIT) : [];
+    state.logs = normalizeLoadedLogs(data.logs);
     state.logFilter = typeof data.logFilter === "string" ? data.logFilter : "all";
     state.research = data.research && typeof data.research === "object" ? data.research : {};
 
@@ -652,11 +669,7 @@ function refreshStaticCraftButtons() {
     const unlocked = isCraftUnlocked(def);
 
     btn.disabled = hidden || !unlocked;
-    if (!unlocked && def.unlock) {
-      btn.title = `需研究：${def.unlock}`;
-    } else {
-      btn.title = "";
-    }
+    btn.title = !unlocked && def.unlock ? `需研究：${def.unlock}` : "";
   });
 }
 
