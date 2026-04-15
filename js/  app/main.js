@@ -242,7 +242,7 @@ function craftItem(craftId) {
     .map(([id, amount]) => `${resourceLabels[id]} +${amount}`)
     .join("、");
 
-  addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +${def.expGain || 0}`);
+  addLog(`你製作了 ${def.name}，獲得 ${gainText}，addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`);`);
 }
 
 function rest() {
