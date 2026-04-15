@@ -1,8 +1,8 @@
+import { workDefs, workerJobs, workLootInfo } from "../data/works.js";
+import { crafts } from "../data/crafts.js";
+
 const STORAGE_KEY = "city_lord_rewrite_save_v4";
 const WORK_QUEUE_LIMIT = 3;
-
-import { workDefs, workerJobs, workLootInfo } from "woffly/js/data/works.js";
-import { crafts } from "wolffy/js/data/crafts.js";
 
 const resourceLabels = {
   wood: "木頭",
@@ -21,115 +21,6 @@ const edibleDefs = {
   cookedFish: { name: "烤魚", stamina: 12 }
 };
 
-const workDefs = {
-  labor: {
-    name: "村莊打工",
-    staminaCost: 2,
-    expGain: 1,
-    duration: 3,
-    run() {
-      const gold = randInt(1, 3);
-      return {
-        gold,
-        resources: {},
-        log: `你打工獲得 ${gold} 金，經驗 +1`
-      };
-    }
-  },
-  lumber: {
-    name: "伐木",
-    staminaCost: 3,
-    expGain: 1,
-    duration: 4,
-    run() {
-      const wood = randInt(2, 5);
-      return {
-        gold: 0,
-        resources: { wood },
-        log: `你伐木獲得 木頭 +${wood}，經驗 +1`
-      };
-    }
-  },
-  mining: {
-    name: "採石",
-    staminaCost: 4,
-    expGain: 1,
-    duration: 5,
-    run() {
-      const stone = randInt(2, 5);
-      const copperOre = roll(0.35) ? 1 : 0;
-      const resources = { stone };
-      if (copperOre > 0) resources.copperOre = copperOre;
-      const parts = [`石頭 +${stone}`];
-      if (copperOre > 0) parts.push(`銅礦 +${copperOre}`);
-      return {
-        gold: 0,
-        resources,
-        log: `你採石獲得 ${parts.join("、")}，經驗 +1`
-      };
-    }
-  },
-  fishing: {
-    name: "釣魚",
-    staminaCost: 2,
-    expGain: 1,
-    duration: 4,
-    run() {
-      const fish = randInt(1, 3);
-      return {
-        gold: 0,
-        resources: { fish },
-        log: `你釣魚獲得 魚 +${fish}，經驗 +1`
-      };
-    }
-  },
-  forage: {
-    name: "野外採集",
-    staminaCost: 2,
-    expGain: 1,
-    duration: 3,
-    run() {
-      const berry = randInt(1, 4);
-      const herb = roll(0.35) ? 1 : 0;
-      const resources = { berry };
-      if (herb > 0) resources.herb = herb;
-      const parts = [`莓果 +${berry}`];
-      if (herb > 0) parts.push(`草藥 +${herb}`);
-      return {
-        gold: 0,
-        resources,
-        log: `你野外採集獲得 ${parts.join("、")}，經驗 +1`
-      };
-    }
-  }
-};
-
-const craftDefs = {
-  plank: {
-    name: "木板",
-    staminaCost: 1,
-    expGain: 1,
-    costs: { wood: 2 },
-    yields: { plank: 1 },
-    desc: "2 木頭 → 1 木板"
-  },
-  firewood: {
-    name: "柴火",
-    staminaCost: 1,
-    expGain: 1,
-    costs: { wood: 1 },
-    yields: { firewood: 2 },
-    desc: "1 木頭 → 2 柴火"
-  },
-  cookedFish: {
-    name: "烤魚",
-    staminaCost: 1,
-    expGain: 1,
-    costs: { fish: 1, firewood: 1 },
-    yields: { cookedFish: 1 },
-    desc: "1 魚 + 1 柴火 → 1 烤魚"
-  }
-};
 
 function createDefaultResources() {
   return {
