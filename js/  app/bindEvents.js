@@ -35,8 +35,14 @@ export function bindEvents({
   const resetAcknowledge = document.getElementById("resetAcknowledge");
 
   resetBtn?.addEventListener("click", () => {
-    resetModal?.classList.add("show");
-    resetModal?.setAttribute("aria-hidden", "false");
+    if (!resetModal) {
+      onResetConfirm?.();
+      return;
+    }
+
+    resetModal.classList.add("show");
+    resetModal.setAttribute("aria-hidden", "false");
+
     if (resetAcknowledge) resetAcknowledge.checked = false;
     if (resetConfirmBtn) resetConfirmBtn.disabled = true;
   });
@@ -47,7 +53,9 @@ export function bindEvents({
   });
 
   resetAcknowledge?.addEventListener("change", () => {
-    if (resetConfirmBtn) resetConfirmBtn.disabled = !resetAcknowledge.checked;
+    if (resetConfirmBtn) {
+      resetConfirmBtn.disabled = !resetAcknowledge.checked;
+    }
   });
 
   resetConfirmBtn?.addEventListener("click", () => {
