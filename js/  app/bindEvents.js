@@ -1,35 +1,3 @@
-function $(id) {
-  return document.getElementById(id);
-}
-
-function qsa(selector) {
-  return Array.from(document.querySelectorAll(selector));
-}
-
-function showModal(id) {
-  const el = $(id);
-  if (!el) return;
-  el.classList.add("show");
-  el.setAttribute("aria-hidden", "false");
-}
-
-function hideModal(id) {
-  const el = $(id);
-  if (!el) return;
-  el.classList.remove("show");
-  el.setAttribute("aria-hidden", "true");
-}
-
-function setMainPage(page) {
-  qsa("[data-main-nav]").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.mainNav === page);
-  });
-
-  qsa(".main-page-panel").forEach((panel) => {
-    panel.classList.toggle("page-hidden", panel.dataset.mainPage !== page);
-  });
-}
-
 export function bindEvents({
   onRest,
   onEatBest,
@@ -38,77 +6,53 @@ export function bindEvents({
   onResetConfirm,
   onCancelAction,
   onClearActionQueue,
-  onSetLogFilter
+  onSetLogFilter,
+  onSetMainPage
 }) {
-  $("restBtn")?.addEventListener("click", () => {
-    onRest?.();
-  });
+  document.getElementById("restBtn")?.addEventListener("click", () => onRest?.());
+  document.getElementById("eatBestBtn")?.addEventListener("click", () => onEatBest?.());
+  document.getElementById("saveBtn")?.addEventListener("click", () => onSave?.());
+  document.getElementById("loadBtn")?.addEventListener("click", () => onLoad?.());
 
-  $("eatBestBtn")?.addEventListener("click", () => {
-    onEatBest?.();
-  });
+  document.getElementById("cancelActionBtn")?.addEventListener("click", () => onCancelAction?.());
+  document.getElementById("clearActionQueueBtn")?.addEventListener("click", () => onClearActionQueue?.());
 
-  $("saveBtn")?.addEventListener("click", () => {
-    onSave?.();
-  });
+  document.getElementById("logAllBtn")?.addEventListener("click", () => onSetLogFilter?.("all"));
+  document.getElementById("logImportantBtn")?.addEventListener("click", () => onSetLogFilter?.("important"));
+  document.getElementById("logLootBtn")?.addEventListener("click", () => onSetLogFilter?.("loot"));
+  document.getElementById("logWorkerBtn")?.addEventListener("click", () => onSetLogFilter?.("worker"));
 
-  $("loadBtn")?.addEventListener("click", () => {
-    onLoad?.();
-  });
-
-  $("resetBtn")?.addEventListener("click", () => {
-    showModal("resetModal");
-  });
-
-  $("cancelActionBtn")?.addEventListener("click", () => {
-    onCancelAction?.();
-  });
-
-  $("clearActionQueueBtn")?.addEventListener("click", () => {
-    onClearActionQueue?.();
-  });
-
-  $("logAllBtn")?.addEventListener("click", () => {
-    onSetLogFilter?.("all");
-  });
-
-  $("logImportantBtn")?.addEventListener("click", () => {
-    onSetLogFilter?.("important");
-  });
-
-  $("logLootBtn")?.addEventListener("click", () => {
-    onSetLogFilter?.("loot");
-  });
-
-  $("logWorkerBtn")?.addEventListener("click", () => {
-    onSetLogFilter?.("worker");
-  });
-
-  qsa("[data-main-nav]").forEach((btn) => {
+  document.querySelectorAll("[data-main-nav]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      setMainPage(btn.dataset.mainNav);
+      onSetMainPage?.(btn.dataset.mainNav);
     });
   });
 
-  $("resetCancelBtn")?.addEventListener("click", () => {
-    hideModal("resetModal");
+  const resetModal = document.getElementById("resetModal");
+  const resetBtn = document.getElementById("resetBtn");
+  const resetCancelBtn = document.getElementById("resetCancelBtn");
+  const resetConfirmBtn = document.getElementById("resetConfirmBtn");
+  const resetAcknowledge = document.getElementById("resetAcknowledge");
+
+  resetBtn?.addEventListener("click", () => {
+    resetModal?.classList.add("show");
+    resetModal?.setAttribute("aria-hidden", "false");
+    if (resetAcknowledge) resetAcknowledge.checked = false;
+    if (resetConfirmBtn) resetConfirmBtn.disabled = true;
   });
 
-  $("resetAcknowledge")?.addEventListener("change", (e) => {
-    const confirmBtn = $("resetConfirmBtn");
-    if (confirmBtn) {
-      confirmBtn.disabled = !e.target.checked;
-    }
+  resetCancelBtn?.addEventListener("click", () => {
+    resetModal?.classList.remove("show");
+    resetModal?.setAttribute("aria-hidden", "true");
   });
 
-  $("resetConfirmBtn")?.addEventListener("click", () => {
-    hideModal("resetModal");
+  resetAcknowledge?.addEventListener("change", () => {
+    if (resetConfirmBtn) resetConfirmBtn.disabled = !resetAcknowledge.checked;
+  });
+
+  resetConfirmBtn?.addEventListener("click", () => {
+    resetModal?.classList.remove("show");
+    resetModal?.setAttribute("aria-hidden", "true");
     onResetConfirm?.();
-
-    const checkbox = $("resetAcknowledge");
-    if (checkbox) checkbox.checked = false;
-
-    const confirmBtn = $("resetConfirmBtn");
-    if (confirmBtn) confirmBtn.disabled = true;
   });
 }
