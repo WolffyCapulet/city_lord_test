@@ -1,6 +1,7 @@
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
+import { bindEvents } from "./bindEvents.js";
 
 const STORAGE_KEY = "city_lord_rewrite_save_v9";
 const WORK_QUEUE_LIMIT = 3;
