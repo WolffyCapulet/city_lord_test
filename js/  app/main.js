@@ -817,85 +817,27 @@ function render() {
   renderLog();
 }
 
-function setMainPage(page) {
-  qsa("[data-main-nav]").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.mainNav === page);
+function init() {
+  loadGame({ silent: true });
+
+  bindEvents({
+    onRest: rest,
+    onEatBest: eatBestFood,
+    onSave: saveGame,
+    onLoad: () => loadGame(),
+    onResetConfirm: resetGame,
+    onCancelAction: cancelCurrentAction,
+    onClearActionQueue: clearActionQueue,
+    onSetLogFilter: (filter) => {
+      state.logFilter = filter;
+      renderLog();
+    }
   });
 
-  qsa(".main-page-panel").forEach((panel) => {
-    panel.classList.toggle("page-hidden", panel.dataset.mainPage !== page);
-  });
-}
-
-function openResetModal() {
-  const modal = $("resetModal");
-  if (!modal) {
-    if (confirm("確定要重置存檔嗎？")) resetGame();
-    return;
-  }
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden", "false");
-}
-
-function closeResetModal() {
-  const modal = $("resetModal");
-  if (!modal) return;
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden", "true");
-}
-
-function bindStaticButtons() {
-  $("restBtn")?.addEventListener("click", rest);
-  $("eatBestBtn")?.addEventListener("click", eatBestFood);
-  $("saveBtn")?.addEventListener("click", saveGame);
-  $("loadBtn")?.addEventListener("click", () => loadGame());
-  $("resetBtn")?.addEventListener("click", openResetModal);
-  $("cancelActionBtn")?.addEventListener("click", cancelCurrentAction);
-  $("clearActionQueueBtn")?.addEventListener("click", clearActionQueue);
-
-  $("logAllBtn")?.addEventListener("click", () => {
-    state.logFilter = "all";
-    renderLog();
-  });
-
-  $("logImportantBtn")?.addEventListener("click", () => {
-    state.logFilter = "important";
-    renderLog();
-  });
-
-  $("logLootBtn")?.addEventListener("click", () => {
-    state.logFilter = "loot";
-    renderLog();
-  });
-
-  $("logWorkerBtn")?.addEventListener("click", () => {
-    state.logFilter = "worker";
-    renderLog();
-  });
-
-  qsa("[data-main-nav]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      setMainPage(btn.dataset.mainNav);
-    });
-  });
-
-  $("resetCancelBtn")?.addEventListener("click", closeResetModal);
-
-  $("resetAcknowledge")?.addEventListener("change", (e) => {
-    const confirmBtn = $("resetConfirmBtn");
-    if (confirmBtn) confirmBtn.disabled = !e.target.checked;
-  });
-
-  $("resetConfirmBtn")?.addEventListener("click", () => {
-    closeResetModal();
-    resetGame();
-
-    const checkbox = $("resetAcknowledge");
-    if (checkbox) checkbox.checked = false;
-
-    const confirmBtn = $("resetConfirmBtn");
-    if (confirmBtn) confirmBtn.disabled = true;
-  });
+  renderWorkButtons();
+  renderCraftList();
+  render();
+  requestAnimationFrame(loop);
 }
 
 function loop(now) {
