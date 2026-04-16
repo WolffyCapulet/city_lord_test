@@ -8,6 +8,9 @@ import { bindEvents } from "./bindEvents.js";
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 
+import { components } from "../ui/components.js";
+import { modals } from "../ui/modals.js";
+
 import { renderTopStats } from "../ui/render/renderTopStats.js";
 import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
