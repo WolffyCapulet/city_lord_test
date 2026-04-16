@@ -19,7 +19,7 @@ import {
   renderLog
 } from "../ui/components.js";
 
-const STORAGE_KEY = "city_lord_modular_min_v1";
+const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
 const WORK_QUEUE_LIMIT = 3;
 
