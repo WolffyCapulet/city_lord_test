@@ -809,13 +809,9 @@ function renderLog() {
   $("logWorkerBtn")?.classList.toggle("active", state.logFilter === "worker");
 }
 
-function render() {
-  renderTopStats();
-  renderResources();
-  renderActionLane();
-  renderCraftList();
-  renderLog();
-}
+import { bindEvents } from "./bindEvents.js";
+
+// ...前面其他函式
 
 function init() {
   loadGame({ silent: true });
@@ -834,25 +830,6 @@ function init() {
     }
   });
 
-  renderWorkButtons();
-  renderCraftList();
-  render();
-  requestAnimationFrame(loop);
-}
-
-function loop(now) {
-  const deltaSeconds = Math.min(0.2, (now - lastFrameTime) / 1000);
-  lastFrameTime = now;
-
-  updateAction(deltaSeconds);
-  renderActionLane();
-
-  requestAnimationFrame(loop);
-}
-
-function init() {
-  loadGame({ silent: true });
-  bindStaticButtons();
   renderWorkButtons();
   renderCraftList();
   render();
