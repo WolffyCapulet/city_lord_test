@@ -1,6 +1,6 @@
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
-import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
+import { resourceLabels, edibleValues } from "../data/resources.js";
 import { bindEvents } from "./bindEvents.js";
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
 import { createStaminaSystem, getMaxStamina } from "../systems/stamina.js";
@@ -39,10 +39,6 @@ function nowTime() {
 
 function expToNext(level) {
   return 5 + (level - 1) * 3;
-}
-
-function maxStamina() {
-  return 100 + (state.level - 1) * 10;
 }
 
 function formatSeconds(seconds) {
@@ -141,7 +137,7 @@ function addMainExp(amount) {
   while (state.exp >= expToNext(state.level)) {
     state.exp -= expToNext(state.level);
     state.level += 1;
-    state.stamina = maxStamina();
+    state.stamina = getMaxStamina(state);
 
     state.logs.unshift({
       time: nowTime(),
@@ -157,6 +153,12 @@ const workSystem = createWorkSystem({
   addLog,
   addMainExp,
   gainResource
+});
+
+const staminaSystem = createStaminaSystem({
+  state,
+  addLog,
+  spendResource
 });
 
 function isCraftHidden(def) {
@@ -210,62 +212,6 @@ function craftItem(craftId) {
   addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`, "loot");
 }
 
-function rest() {
-  const before = state.stamina;
-  state.stamina = Math.min(maxStamina(), state.stamina + 5);
-  const actual = state.stamina - before;
-
-  if (actual <= 0) {
-    addLog("體力已滿，不需要休息", "important");
-    return;
-  }
-
-  addLog(`你休息恢復 ${actual} 體力`, "important");
-}
-
-function getBestFoodId() {
-  for (const id of foodOrder) {
-    if ((state.resources[id] || 0) > 0 && typeof edibleValues[id] === "number") {
-      return id;
-    }
-  }
-  return "";
-}
-
-function eatResource(resourceId) {
-  const value = edibleValues[resourceId];
-  const label = getResourceLabel(resourceId);
-
-  if (typeof value !== "number") return;
-
-  if ((state.resources[resourceId] || 0) <= 0) {
-    addLog(`沒有${label}可以使用`, "important");
-    return;
-  }
-
-  if (state.stamina >= maxStamina() && value >= 0) {
-    addLog("體力已滿，不需要吃食物", "important");
-    return;
-  }
-
-  spendResource(resourceId, 1);
-
-  const before = state.stamina;
-  state.stamina = clamp(state.stamina + value, 0, maxStamina());
-  const actual = state.stamina - before;
-
-  addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
-}
-
-function eatBestFood() {
-  const best = getBestFoodId();
-  if (!best) {
-    addLog("目前沒有可吃的食物", "important");
-    return;
-  }
-  eatResource(best);
-}
-
 function saveGame() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -289,7 +235,7 @@ function loadGame({ silent = false } = {}) {
     state.gold = Number(data.gold ?? 0);
     state.level = Math.max(1, Number(data.level ?? 1) || 1);
     state.exp = Math.max(0, Number(data.exp ?? 0) || 0);
-    state.stamina = clamp(Number(data.stamina ?? 100) || 100, 0, maxStamina());
+    state.stamina = clamp(Number(data.stamina ?? 100) || 100, 0, getMaxStamina(state));
 
     state.logs = normalizeLoadedLogs(data.logs);
     state.logFilter = typeof data.logFilter === "string" ? data.logFilter : "all";
@@ -346,20 +292,22 @@ function resetGame() {
 }
 
 function renderTopStats() {
+  const maxStaminaValue = getMaxStamina(state);
+
   if ($("gold")) $("gold").textContent = state.gold;
   if ($("level")) $("level").textContent = state.level;
   if ($("exp")) $("exp").textContent = state.exp;
   if ($("expNext")) $("expNext").textContent = expToNext(state.level);
   if ($("stamina")) $("stamina").textContent = Math.floor(state.stamina);
-  if ($("maxStamina")) $("maxStamina").textContent = maxStamina();
+  if ($("maxStamina")) $("maxStamina").textContent = maxStaminaValue;
 
   const expRate = clamp((state.exp / expToNext(state.level)) * 100, 0, 100);
-  const staminaRate = clamp((state.stamina / maxStamina()) * 100, 0, 100);
+  const staminaRate = clamp((state.stamina / maxStaminaValue) * 100, 0, 100);
 
   if ($("expBar")) $("expBar").style.width = `${expRate}%`;
   if ($("staminaBar")) $("staminaBar").style.width = `${staminaRate}%`;
 
-  const bestFood = getBestFoodId();
+  const bestFood = staminaSystem.getBestFoodId();
   const eatHint = $("eatHint");
   if (eatHint) {
     eatHint.textContent = bestFood
@@ -577,8 +525,8 @@ function init() {
   loadGame({ silent: true });
 
   bindEvents({
-    onRest: rest,
-    onEatBest: eatBestFood,
+    onRest: staminaSystem.rest,
+    onEatBest: staminaSystem.eatBestFood,
     onSave: saveGame,
     onLoad: () => loadGame(),
     onResetConfirm: resetGame,
