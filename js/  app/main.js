@@ -1,9 +1,14 @@
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { resourceLabels, edibleValues } from "../data/resources.js";
+
 import { bindEvents } from "./bindEvents.js";
+
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
 import { createStaminaSystem, getMaxStamina } from "../systems/stamina.js";
+import { createPlayerSystem, getExpToNext } from "../systems/player.js";
+import { createCraftSystem } from "../systems/craft.js";
+import { createResearchSystem } from "../systems/research.js";
 
 const STORAGE_KEY = "city_lord_save_v0.0.1";
 const WORK_QUEUE_LIMIT = 3;
@@ -37,10 +42,6 @@ function nowTime() {
   return `[${hh}:${mm}:${ss}]`;
 }
 
-function expToNext(level) {
-  return 5 + (level - 1) * 3;
-}
-
 function formatSeconds(seconds) {
   return `${Math.max(0, seconds).toFixed(1)} 秒`;
 }
@@ -69,6 +70,7 @@ function normalizeLoadedLogs(logs) {
       if (typeof item === "string") {
         return { time: "", text: item, type: "important" };
       }
+
       return {
         time: item?.time || "",
         text: item?.text || "",
@@ -84,12 +86,18 @@ const state = {
   level: 1,
   exp: 0,
   stamina: 100,
+
   resources: createDefaultResources(),
   logs: [],
+
   currentAction: null,
   actionQueue: [],
-  logFilter: "all",
-  research: {}
+
+  research: {},
+  currentResearch: null,
+  researchQueue: [],
+
+  logFilter: "all"
 };
 
 let lastFrameTime = performance.now();
@@ -131,28 +139,28 @@ function spendCosts(costs = {}) {
   return true;
 }
 
-function addMainExp(amount) {
-  state.exp += amount;
+function hardResetState() {
+  state.gold = 0;
+  state.level = 1;
+  state.exp = 0;
+  state.stamina = 100;
 
-  while (state.exp >= expToNext(state.level)) {
-    state.exp -= expToNext(state.level);
-    state.level += 1;
-    state.stamina = getMaxStamina(state);
+  state.resources = createDefaultResources();
+  state.logs = [];
 
-    state.logs.unshift({
-      time: nowTime(),
-      text: `主等級提升到 Lv.${state.level}，體力已回滿`,
-      type: "important"
-    });
-    state.logs = state.logs.slice(0, LOG_LIMIT);
-  }
+  state.currentAction = null;
+  state.actionQueue = [];
+
+  state.research = {};
+  state.currentResearch = null;
+  state.researchQueue = [];
+
+  state.logFilter = "all";
 }
 
-const workSystem = createWorkSystem({
+const playerSystem = createPlayerSystem({
   state,
-  addLog,
-  addMainExp,
-  gainResource
+  addLog
 });
 
 const staminaSystem = createStaminaSystem({
@@ -161,56 +169,26 @@ const staminaSystem = createStaminaSystem({
   spendResource
 });
 
-function isCraftHidden(def) {
-  return !!def.hidden;
-}
+const researchSystem = createResearchSystem({
+  state,
+  addLog
+});
 
-function isCraftUnlocked(def) {
-  if (!def.unlock) return true;
-  return !!state.research?.[def.unlock];
-}
+const workSystem = createWorkSystem({
+  state,
+  addLog,
+  addMainExp: playerSystem.addMainExp,
+  gainResource
+});
 
-function craftItem(craftId) {
-  const def = crafts[craftId];
-  if (!def) return;
-
-  if (isCraftHidden(def)) {
-    addLog(`${def.name}目前不可見`, "important");
-    return;
-  }
-
-  if (!isCraftUnlocked(def)) {
-    addLog(`${def.name}尚未解鎖，需要研究：${def.unlock}`, "important");
-    return;
-  }
-
-  const staminaCost = Math.max(1, Number(def.stamina ?? 1) || 1);
-
-  if (state.stamina < staminaCost) {
-    addLog(`${def.name}製作失敗，體力不足`, "important");
-    return;
-  }
-
-  if (!canAfford(def.costs || {})) {
-    addLog(`${def.name}製作失敗，材料不足`, "important");
-    return;
-  }
-
-  spendCosts(def.costs || {});
-  state.stamina -= staminaCost;
-
-  for (const [resourceId, amount] of Object.entries(def.yields || {})) {
-    gainResource(resourceId, amount);
-  }
-
-  addMainExp(1);
-
-  const gainText = Object.entries(def.yields || {})
-    .map(([id, amount]) => `${getResourceLabel(id)} +${amount}`)
-    .join("、");
-
-  addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`, "loot");
-}
+const craftSystem = createCraftSystem({
+  state,
+  addLog,
+  addMainExp: playerSystem.addMainExp,
+  gainResource,
+  canAfford,
+  spendCosts
+});
 
 function saveGame() {
   try {
@@ -239,7 +217,27 @@ function loadGame({ silent = false } = {}) {
 
     state.logs = normalizeLoadedLogs(data.logs);
     state.logFilter = typeof data.logFilter === "string" ? data.logFilter : "all";
+
     state.research = data.research && typeof data.research === "object" ? data.research : {};
+    state.currentResearch =
+      data.currentResearch && typeof data.currentResearch === "object"
+        ? {
+            id: data.currentResearch.id,
+            name: data.currentResearch.name || data.currentResearch.id,
+            remaining: Math.max(0, Number(data.currentResearch.remaining) || 0),
+            total: Math.max(0.1, Number(data.currentResearch.total) || 10)
+          }
+        : null;
+
+    state.researchQueue = Array.isArray(data.researchQueue)
+      ? data.researchQueue
+          .map((item) => ({
+            id: item.id,
+            name: item.name || item.id,
+            duration: Math.max(0.1, Number(item.duration) || 10)
+          }))
+          .filter((item) => item.id)
+      : [];
 
     state.resources = {
       ...createDefaultResources(),
@@ -272,19 +270,6 @@ function loadGame({ silent = false } = {}) {
   }
 }
 
-function hardResetState() {
-  state.gold = 0;
-  state.level = 1;
-  state.exp = 0;
-  state.stamina = 100;
-  state.resources = createDefaultResources();
-  state.logs = [];
-  state.currentAction = null;
-  state.actionQueue = [];
-  state.logFilter = "all";
-  state.research = {};
-}
-
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
   hardResetState();
@@ -297,11 +282,11 @@ function renderTopStats() {
   if ($("gold")) $("gold").textContent = state.gold;
   if ($("level")) $("level").textContent = state.level;
   if ($("exp")) $("exp").textContent = state.exp;
-  if ($("expNext")) $("expNext").textContent = expToNext(state.level);
+  if ($("expNext")) $("expNext").textContent = getExpToNext(state.level);
   if ($("stamina")) $("stamina").textContent = Math.floor(state.stamina);
   if ($("maxStamina")) $("maxStamina").textContent = maxStaminaValue;
 
-  const expRate = clamp((state.exp / expToNext(state.level)) * 100, 0, 100);
+  const expRate = clamp((state.exp / getExpToNext(state.level)) * 100, 0, 100);
   const staminaRate = clamp((state.stamina / maxStaminaValue) * 100, 0, 100);
 
   if ($("expBar")) $("expBar").style.width = `${expRate}%`;
@@ -323,9 +308,10 @@ function renderResources() {
   root.innerHTML = Object.entries(state.resources)
     .sort((a, b) => getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant"))
     .map(([id, value]) => {
-      const edible = typeof edibleValues[id] === "number"
-        ? `<div class="small muted">可食用：${edibleValues[id] >= 0 ? "+" : ""}${edibleValues[id]} 體力</div>`
-        : "";
+      const edible =
+        typeof edibleValues[id] === "number"
+          ? `<div class="small muted">可食用：${edibleValues[id] >= 0 ? "+" : ""}${edibleValues[id]} 體力</div>`
+          : "";
 
       return `
         <div class="resource-item">
@@ -350,7 +336,7 @@ function bindDynamicCraftButtons(root = document) {
   root.querySelectorAll("[data-craft]").forEach((btn) => {
     if (btn.dataset.bound === "1") return;
     btn.dataset.bound = "1";
-    btn.addEventListener("click", () => craftItem(btn.dataset.craft));
+    btn.addEventListener("click", () => craftSystem.craftItem(btn.dataset.craft));
   });
 }
 
@@ -360,8 +346,8 @@ function refreshStaticCraftButtons() {
     const def = crafts[craftId];
     if (!def) return;
 
-    const hidden = isCraftHidden(def);
-    const unlocked = isCraftUnlocked(def);
+    const hidden = craftSystem.isCraftHidden(def);
+    const unlocked = craftSystem.isCraftUnlocked(def);
 
     btn.disabled = hidden || !unlocked;
     btn.title = !unlocked && def.unlock ? `需研究：${def.unlock}` : "";
@@ -379,6 +365,7 @@ function renderWorkButtons() {
     .map(([id, def]) => {
       const cost = getWorkCost(def);
       const duration = getWorkDuration(def);
+
       return `<button data-work="${id}" type="button">${def.name}（-${cost} 體力 / ${formatSeconds(duration)}）</button>`;
     })
     .join("");
@@ -395,11 +382,11 @@ function renderCraftList() {
     return;
   }
 
-  const entries = Object.entries(crafts).filter(([, def]) => !isCraftHidden(def));
+  const entries = Object.entries(crafts).filter(([, def]) => !craftSystem.isCraftHidden(def));
 
   root.innerHTML = entries
     .map(([id, def]) => {
-      const unlocked = isCraftUnlocked(def);
+      const unlocked = craftSystem.isCraftUnlocked(def);
 
       const costText = Object.entries(def.costs || {})
         .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
@@ -476,6 +463,37 @@ function renderActionLane() {
   if (clearBtn) clearBtn.disabled = state.actionQueue.length === 0;
 }
 
+function renderResearchLane() {
+  const textEl = $("researchText");
+  const barEl = $("researchBar");
+  const queueEl = $("researchQueue");
+
+  if (!textEl || !barEl || !queueEl) return;
+
+  if (state.currentResearch) {
+    const progress = clamp(
+      ((state.currentResearch.total - state.currentResearch.remaining) / state.currentResearch.total) * 100,
+      0,
+      100
+    );
+
+    textEl.textContent = `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(state.currentResearch.remaining)}`;
+    barEl.style.width = `${progress}%`;
+  } else if (state.researchQueue.length > 0) {
+    textEl.textContent = `等待中：下一項 ${state.researchQueue[0].name}`;
+    barEl.style.width = "0%";
+  } else {
+    textEl.textContent = "目前沒有進行中的研究";
+    barEl.style.width = "0%";
+  }
+
+  queueEl.innerHTML = state.researchQueue.length
+    ? state.researchQueue
+        .map((item, index) => `<span class="queue-pill">${index + 1}. ${item.name}</span>`)
+        .join("")
+    : `<span class="small muted">研究列為空</span>`;
+}
+
 function renderLog() {
   const root = $("log");
   if (!root) return;
@@ -507,6 +525,7 @@ function render() {
   renderTopStats();
   renderResources();
   renderActionLane();
+  renderResearchLane();
   renderCraftList();
   renderLog();
 }
@@ -516,7 +535,10 @@ function loop(now) {
   lastFrameTime = now;
 
   workSystem.updateAction(deltaSeconds);
+  researchSystem.updateResearch(deltaSeconds);
+
   renderActionLane();
+  renderResearchLane();
 
   requestAnimationFrame(loop);
 }
