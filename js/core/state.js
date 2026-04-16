@@ -15,6 +15,9 @@ export function createInitialState(createDefaultResources) {
     currentResearch: null,
     researchQueue: [],
 
+    housing: {},
+    buildings: {},
+
     logFilter: "all"
   };
 }
@@ -34,6 +37,9 @@ export function resetState(state, createDefaultResources) {
   state.research = {};
   state.currentResearch = null;
   state.researchQueue = [];
+
+  state.housing = {};
+  state.buildings = {};
 
   state.logFilter = "all";
 }
