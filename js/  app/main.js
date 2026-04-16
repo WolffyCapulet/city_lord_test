@@ -28,14 +28,6 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function roll(chance) {
-  return Math.random() < chance;
-}
-
 function nowTime() {
   const d = new Date();
   const hh = String(d.getHours()).padStart(2, "0");
@@ -159,18 +151,12 @@ function addMainExp(amount) {
   }
 }
 
-bindEvents({
-  onRest: rest,
-  onEatBest: eatBestFood,
-  onSave: saveGame,
-  onLoad: () => loadGame(),
-  onResetConfirm: resetGame,
-  onCancelAction: workSystem.cancelCurrentAction,
-  onClearActionQueue: workSystem.clearActionQueue,
-  onSetLogFilter: (filter) => {
-    state.logFilter = filter;
-    renderLog();
-  }
+const workSystem = createWorkSystem({
+  state,
+  addLog,
+  addMainExp,
+  gainResource
+});
 
 function isCraftHidden(def) {
   return !!def.hidden;
@@ -408,6 +394,7 @@ function bindDynamicWorkButtons(root = document) {
     if (btn.dataset.bound === "1") return;
     btn.dataset.bound = "1";
     btn.addEventListener("click", () => workSystem.requestWork(btn.dataset.work));
+  });
 }
 
 function bindDynamicCraftButtons(root = document) {
@@ -567,9 +554,23 @@ function renderLog() {
   $("logWorkerBtn")?.classList.toggle("active", state.logFilter === "worker");
 }
 
-import { bindEvents } from "./bindEvents.js";
+function render() {
+  renderTopStats();
+  renderResources();
+  renderActionLane();
+  renderCraftList();
+  renderLog();
+}
 
-// ...前面其他函式
+function loop(now) {
+  const deltaSeconds = Math.min(0.2, (now - lastFrameTime) / 1000);
+  lastFrameTime = now;
+
+  workSystem.updateAction(deltaSeconds);
+  renderActionLane();
+
+  requestAnimationFrame(loop);
+}
 
 function init() {
   loadGame({ silent: true });
@@ -580,8 +581,8 @@ function init() {
     onSave: saveGame,
     onLoad: () => loadGame(),
     onResetConfirm: resetGame,
-    onCancelAction: cancelCurrentAction,
-    onClearActionQueue: clearActionQueue,
+    onCancelAction: workSystem.cancelCurrentAction,
+    onClearActionQueue: workSystem.clearActionQueue,
     onSetLogFilter: (filter) => {
       state.logFilter = filter;
       renderLog();
