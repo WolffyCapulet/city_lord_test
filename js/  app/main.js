@@ -2,20 +2,56 @@ import { resourceLabels, edibleValues } from "../data/resources.js";
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { books, researchDefs } from "../data/research.js";
-
-import { createInitialState, resetState } from "../core/state.js";
-import { $, qsa, firstEl, clamp, nowTime, formatSeconds } from "../core/utils.js";
-
-import { bindEvents } from "./bindEvents.js";
-
-import { createPlayerSystem, getExpToNext } from "../systems/player.js";
-import { createStaminaSystem, getMaxStamina } from "../systems/stamina.js";
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
-import { createCraftSystem } from "../systems/craft.js";
 import { createResearchSystem } from "../systems/research.js";
 
-const STORAGE_KEY = "city_lord_rescue_save_v1";
+const STORAGE_KEY = "city_lord_minimal_save_v1";
 const LOG_LIMIT = 120;
+const WORK_QUEUE_LIMIT = 3;
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+function qsa(selector) {
+  return Array.from(document.querySelectorAll(selector));
+}
+
+function firstEl(...ids) {
+  for (const id of ids) {
+    const el = $(id);
+    if (el) return el;
+  }
+  return null;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function nowTime() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `[${hh}:${mm}:${ss}]`;
+}
+
+function formatSeconds(seconds) {
+  return `${Math.max(0, seconds).toFixed(1)} 秒`;
+}
+
+function getResourceLabel(id) {
+  return resourceLabels[id] || id;
+}
+
+function expToNext(level) {
+  return Math.round(5 + 2.5 * level * (level - 1));
+}
+
+function maxStamina() {
+  return 100;
+}
 
 function createDefaultResources() {
   const ids = new Set();
@@ -32,7 +68,7 @@ function createDefaultResources() {
   return Object.fromEntries([...ids].sort().map((id) => [id, 0]));
 }
 
-function normalizeLoadedLogs(logs) {
+function normalizeLogs(logs) {
   if (!Array.isArray(logs)) return [];
   return logs
     .map((item) => {
@@ -49,53 +85,80 @@ function normalizeLoadedLogs(logs) {
     .slice(0, LOG_LIMIT);
 }
 
-function getResourceLabel(id) {
-  return resourceLabels[id] || id;
+function createState() {
+  return {
+    gold: 0,
+    level: 1,
+    exp: 0,
+    intelligence: 0,
+    stamina: 100,
+    managementLevel: 1,
+    managementExp: 0,
+    tradeLevel: 1,
+    reputation: 0,
+    pendingTax: 0,
+    castleLevel: 1,
+
+    resources: createDefaultResources(),
+    logs: [],
+
+    currentAction: null,
+    actionQueue: [],
+
+    research: {},
+    currentResearch: null,
+    researchQueue: [],
+
+    housing: {},
+    buildings: {},
+
+    ui: {
+      mainPage: "production"
+    },
+
+    logFilter: "all"
+  };
 }
 
-function ensureExtendedState(s) {
+function ensureStateShape(s) {
   s.gold = Number(s.gold || 0);
   s.level = Math.max(1, Number(s.level || 1));
   s.exp = Math.max(0, Number(s.exp || 0));
+  s.intelligence = Number(s.intelligence || 0);
   s.stamina = Number(s.stamina || 100);
+  s.managementLevel = Math.max(1, Number(s.managementLevel || 1));
+  s.managementExp = Number(s.managementExp || 0);
+  s.tradeLevel = Math.max(1, Number(s.tradeLevel || 1));
+  s.reputation = Number(s.reputation || 0);
+  s.pendingTax = Number(s.pendingTax || 0);
+  s.castleLevel = Math.max(1, Number(s.castleLevel || 1));
 
-  if (typeof s.intelligence !== "number") s.intelligence = 0;
-  if (typeof s.managementLevel !== "number") s.managementLevel = 1;
-  if (typeof s.managementExp !== "number") s.managementExp = 0;
-  if (typeof s.tradeLevel !== "number") s.tradeLevel = 1;
-  if (typeof s.reputation !== "number") s.reputation = 0;
-  if (typeof s.pendingTax !== "number") s.pendingTax = 0;
-  if (typeof s.castleLevel !== "number") s.castleLevel = 1;
-
-  if (!s.resources || typeof s.resources !== "object") s.resources = {};
   s.resources = {
     ...createDefaultResources(),
-    ...s.resources
+    ...(s.resources || {})
   };
 
-  s.logs = normalizeLoadedLogs(s.logs);
+  s.logs = normalizeLogs(s.logs);
+
+  if (!s.currentAction || typeof s.currentAction !== "object") s.currentAction = null;
+  if (!Array.isArray(s.actionQueue)) s.actionQueue = [];
 
   if (!s.research || typeof s.research !== "object") s.research = {};
   if (!s.currentResearch || typeof s.currentResearch !== "object") s.currentResearch = null;
   if (!Array.isArray(s.researchQueue)) s.researchQueue = [];
 
-  if (!s.currentAction || typeof s.currentAction !== "object") s.currentAction = null;
-  if (!Array.isArray(s.actionQueue)) s.actionQueue = [];
-
   if (!s.housing || typeof s.housing !== "object") s.housing = {};
   if (!s.buildings || typeof s.buildings !== "object") s.buildings = {};
 
-  if (!Array.isArray(s.workers)) s.workers = [];
   if (!s.ui || typeof s.ui !== "object") s.ui = {};
-  if (!s.ui.mainPage || typeof s.ui.mainPage !== "string") s.ui.mainPage = "production";
+  if (!s.ui.mainPage) s.ui.mainPage = "production";
 
   if (typeof s.logFilter !== "string") s.logFilter = "all";
 
   return s;
 }
 
-const state = ensureExtendedState(createInitialState(createDefaultResources));
-
+const state = ensureStateShape(createState());
 let lastFrameTime = performance.now();
 
 function addLog(text, type = "important") {
@@ -106,6 +169,15 @@ function addLog(text, type = "important") {
   });
   state.logs = state.logs.slice(0, LOG_LIMIT);
   renderLog();
+}
+
+function addMainExp(amount) {
+  state.exp += amount;
+  while (state.exp >= expToNext(state.level)) {
+    state.exp -= expToNext(state.level);
+    state.level += 1;
+    addLog(`主等級提升到 Lv.${state.level}`, "important");
+  }
 }
 
 function gainResource(id, amount) {
@@ -127,37 +199,67 @@ function canAfford(costs = {}) {
 
 function spendCosts(costs = {}) {
   if (!canAfford(costs)) return false;
-  for (const [id, amount] of Object.entries(costs)) {
+  Object.entries(costs).forEach(([id, amount]) => {
     state.resources[id] -= amount;
-  }
+  });
   return true;
 }
 
-const playerSystem = createPlayerSystem({
-  state,
-  addLog
-});
+function isCraftHidden(def) {
+  return !!def.hidden;
+}
 
-const staminaSystem = createStaminaSystem({
-  state,
-  addLog,
-  spendResource
-});
+function isCraftUnlocked(def) {
+  return !def.unlock || !!state.research[def.unlock];
+}
+
+function craftItem(craftId) {
+  const def = crafts[craftId];
+  if (!def) return false;
+
+  if (isCraftHidden(def)) {
+    addLog("這個配方目前不顯示", "important");
+    return false;
+  }
+
+  if (!isCraftUnlocked(def)) {
+    addLog(`尚未解鎖配方：${def.name}`, "important");
+    return false;
+  }
+
+  const staminaCost = Math.max(1, Number(def.stamina ?? 1));
+
+  if (state.stamina < staminaCost) {
+    addLog(`${def.name}無法製作，體力不足`, "important");
+    return false;
+  }
+
+  if (!spendCosts(def.costs || {})) {
+    addLog(`${def.name}材料不足`, "important");
+    return false;
+  }
+
+  state.stamina -= staminaCost;
+
+  Object.entries(def.yields || {}).forEach(([id, amount]) => {
+    gainResource(id, amount);
+  });
+
+  addMainExp(1);
+
+  const gainText = Object.entries(def.yields || {})
+    .map(([id, amount]) => `${getResourceLabel(id)} +${amount}`)
+    .join("、");
+
+  addLog(`製作完成：${def.name}${gainText ? `，獲得 ${gainText}` : ""}`, "loot");
+  return true;
+}
 
 const workSystem = createWorkSystem({
   state,
   addLog,
-  addMainExp: playerSystem.addMainExp,
+  addMainExp,
   gainResource
-});
-
-const craftSystem = createCraftSystem({
-  state,
-  addLog,
-  addMainExp: playerSystem.addMainExp,
-  gainResource,
-  canAfford,
-  spendCosts
 });
 
 const researchSystem = createResearchSystem({
@@ -185,13 +287,9 @@ function loadGame({ silent = false } = {}) {
       return false;
     }
 
-    const data = JSON.parse(raw);
-    const next = ensureExtendedState(data);
-
+    const data = ensureStateShape(JSON.parse(raw));
     Object.keys(state).forEach((key) => delete state[key]);
-    Object.assign(state, next);
-
-    state.stamina = clamp(state.stamina, 0, getMaxStamina(state));
+    Object.assign(state, data);
 
     if (!silent) addLog("已讀檔", "important");
     renderAll();
@@ -203,14 +301,11 @@ function loadGame({ silent = false } = {}) {
   }
 }
 
-function hardResetState() {
-  resetState(state, createDefaultResources);
-  ensureExtendedState(state);
-}
-
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
-  hardResetState();
+  const fresh = ensureStateShape(createState());
+  Object.keys(state).forEach((key) => delete state[key]);
+  Object.assign(state, fresh);
   renderAll();
   addLog("已重置存檔", "important");
 }
@@ -227,6 +322,77 @@ function setMainPage(pageName) {
   });
 }
 
+function getBestFoodId() {
+  const order = [
+    "bearStew",
+    "clamSoup",
+    "grilledSausage",
+    "applePie",
+    "bread",
+    "grilledMeat",
+    "grilledFish",
+    "rawChicken",
+    "rawMeat",
+    "fish"
+  ];
+
+  for (const id of order) {
+    if ((state.resources[id] || 0) > 0 && typeof edibleValues[id] === "number") {
+      return id;
+    }
+  }
+
+  return "";
+}
+
+function rest() {
+  const before = state.stamina;
+  state.stamina = Math.min(maxStamina(), state.stamina + 5);
+  const actual = state.stamina - before;
+
+  if (actual <= 0) {
+    addLog("體力已滿，不需要休息", "important");
+    return;
+  }
+
+  addLog(`你休息恢復 ${actual} 體力`, "important");
+  renderTopStats();
+}
+
+function eatResource(resourceId) {
+  const value = edibleValues[resourceId];
+  const label = getResourceLabel(resourceId);
+
+  if (typeof value !== "number") return;
+  if ((state.resources[resourceId] || 0) <= 0) {
+    addLog(`沒有${label}可以食用`, "important");
+    return;
+  }
+
+  if (state.stamina >= maxStamina() && value >= 0) {
+    addLog("體力已滿，不需要吃食物", "important");
+    return;
+  }
+
+  spendResource(resourceId, 1);
+
+  const before = state.stamina;
+  state.stamina = clamp(state.stamina + value, 0, maxStamina());
+  const actual = state.stamina - before;
+
+  addLog(`你食用了 ${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
+  renderTopStats();
+}
+
+function eatBestFood() {
+  const best = getBestFoodId();
+  if (!best) {
+    addLog("目前沒有可吃的食物", "important");
+    return;
+  }
+  eatResource(best);
+}
+
 function bindStaticDataButtons(root = document) {
   root.querySelectorAll("[data-work]").forEach((btn) => {
     if (btn.dataset.bound === "1") return;
@@ -238,7 +404,7 @@ function bindStaticDataButtons(root = document) {
     if (btn.dataset.bound === "1") return;
     btn.dataset.bound = "1";
     btn.addEventListener("click", () => {
-      craftSystem.craftItem(btn.dataset.craft);
+      craftItem(btn.dataset.craft);
       renderAll();
     });
   });
@@ -253,20 +419,18 @@ function safeRender(fn) {
 }
 
 function renderTopStats() {
-  const maxStaminaValue = getMaxStamina(state);
-
   $("gold") && ($("gold").textContent = Math.floor(state.gold));
   $("level") && ($("level").textContent = state.level);
   $("exp") && ($("exp").textContent = Math.floor(state.exp));
-  $("expNext") && ($("expNext").textContent = getExpToNext(state.level));
+  $("expNext") && ($("expNext").textContent = expToNext(state.level));
 
   $("intelligence") && ($("intelligence").textContent = state.intelligence);
   $("stamina") && ($("stamina").textContent = Math.floor(state.stamina));
-  $("maxStamina") && ($("maxStamina").textContent = maxStaminaValue);
+  $("maxStamina") && ($("maxStamina").textContent = maxStamina());
 
   $("managementLevel") && ($("managementLevel").textContent = state.managementLevel);
   $("managementExp") && ($("managementExp").textContent = Math.floor(state.managementExp));
-  $("managementExpNext") && ($("managementExpNext").textContent = getExpToNext(state.managementLevel));
+  $("managementExpNext") && ($("managementExpNext").textContent = expToNext(state.managementLevel));
 
   $("tradeLevel") && ($("tradeLevel").textContent = state.tradeLevel);
   $("reputationValue") && ($("reputationValue").textContent = state.reputation.toFixed(1));
@@ -278,13 +442,13 @@ function renderTopStats() {
   $("safetyValue") && ($("safetyValue").textContent = 0);
 
   $("expBar") &&
-    ($("expBar").style.width = `${clamp((state.exp / getExpToNext(state.level)) * 100, 0, 100)}%`);
+    ($("expBar").style.width = `${clamp((state.exp / expToNext(state.level)) * 100, 0, 100)}%`);
   $("staminaBar") &&
-    ($("staminaBar").style.width = `${clamp((state.stamina / maxStaminaValue) * 100, 0, 100)}%`);
+    ($("staminaBar").style.width = `${clamp((state.stamina / maxStamina()) * 100, 0, 100)}%`);
   $("managementBar") &&
-    ($("managementBar").style.width = `${clamp((state.managementExp / getExpToNext(state.managementLevel)) * 100, 0, 100)}%`);
+    ($("managementBar").style.width = `${clamp((state.managementExp / expToNext(state.managementLevel)) * 100, 0, 100)}%`);
 
-  const bestFood = staminaSystem.getBestFoodId();
+  const bestFood = getBestFoodId();
   const eatHint = $("eatHint");
   if (eatHint) {
     eatHint.textContent = bestFood
@@ -351,11 +515,11 @@ function renderCraftList() {
     return;
   }
 
-  const entries = Object.entries(crafts).filter(([, def]) => !craftSystem.isCraftHidden(def));
+  const entries = Object.entries(crafts).filter(([, def]) => !isCraftHidden(def));
 
   root.innerHTML = entries
     .map(([id, def]) => {
-      const unlocked = craftSystem.isCraftUnlocked(def);
+      const unlocked = isCraftUnlocked(def);
       const costText = Object.entries(def.costs || {})
         .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
         .join("、");
@@ -369,11 +533,10 @@ function renderCraftList() {
             <strong>${def.name}</strong>
             <button data-craft="${id}" type="button" ${unlocked ? "" : "disabled"}>製作</button>
           </div>
-          <div class="small muted">${def.skill || "craft"}</div>
+          <div class="small muted">材料：${costText || "無"}</div>
+          <div class="small muted">產出：${yieldText || "無"}</div>
           <div class="row" style="margin-top:8px;">
             <span class="pill">消耗體力：${def.stamina ?? 1}</span>
-            <span class="pill">材料：${costText || "無"}</span>
-            <span class="pill">產出：${yieldText || "無"}</span>
             ${def.unlock ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${def.unlock}`}</span>` : ""}
           </div>
         </div>
@@ -409,16 +572,20 @@ function renderResearchArea() {
       const cards = Object.entries(researchDefs)
         .filter(([, def]) => (def.category || "other") === category)
         .map(([id, def]) => {
-          const done = researchSystem.isResearchCompleted(id);
-          const available = researchSystem.meetsResearchRequirements(def);
+          const done = !!state.research[id];
+          const available =
+            (!def.levelReq || state.level >= def.levelReq) &&
+            (!def.intReq || state.intelligence >= def.intReq);
+
+          const missingText = !done && !available
+            ? `尚缺：${def.levelReq && state.level < def.levelReq ? `主等級 ${state.level}/${def.levelReq}` : ""}${def.intReq && state.intelligence < def.intReq ? `${def.levelReq && state.level < def.levelReq ? "、" : ""}智力 ${state.intelligence}/${def.intReq}` : ""}`
+            : done ? "已完成" : "可研究";
 
           return `
             <div class="research-card">
               <div class="research-summary">
                 <strong>${def.name}</strong>
-                <div class="research-status ${done ? "done" : ""}">
-                  ${done ? "已完成" : available ? "可研究" : researchSystem.getMissingRequirementText(def)}
-                </div>
+                <div class="research-status ${done ? "done" : ""}">${missingText}</div>
               </div>
               <button data-start-research="${id}" type="button" class="research-mini-btn" ${done ? "disabled" : ""}>
                 ${done ? "完成" : "研究"}
@@ -545,21 +712,11 @@ function renderCraftLaneFallback() {
 }
 
 function renderPlaceholders() {
-  if ($("buildingButtons")) {
-    $("buildingButtons").innerHTML = `<div class="small muted">建築系統尚未接入救活版 main.js。</div>`;
-  }
-  if ($("plots")) {
-    $("plots").innerHTML = `<div class="small muted">農田系統尚未接入救活版 main.js。</div>`;
-  }
-  if ($("pastureArea")) {
-    $("pastureArea").innerHTML = `<div class="small muted">牧場系統尚未接入救活版 main.js。</div>`;
-  }
-  if ($("merchantArea")) {
-    $("merchantArea").innerHTML = `<div class="small muted">商人 / 貿易系統尚未接入救活版 main.js。</div>`;
-  }
-  if ($("workers")) {
-    $("workers").innerHTML = `<div class="small muted">工人系統尚未接入救活版 main.js。</div>`;
-  }
+  $("buildingButtons") && ($("buildingButtons").innerHTML = `<div class="small muted">建築系統尚未接入最小可運行版。</div>`);
+  $("plots") && ($("plots").innerHTML = `<div class="small muted">農田系統尚未接入最小可運行版。</div>`);
+  $("pastureArea") && ($("pastureArea").innerHTML = `<div class="small muted">牧場系統尚未接入最小可運行版。</div>`);
+  $("merchantArea") && ($("merchantArea").innerHTML = `<div class="small muted">商人 / 貿易系統尚未接入最小可運行版。</div>`);
+  $("workers") && ($("workers").innerHTML = `<div class="small muted">工人系統尚未接入最小可運行版。</div>`);
 }
 
 function renderLog() {
@@ -602,6 +759,63 @@ function renderAll() {
   safeRender(renderLog);
 }
 
+function bindBasicEvents() {
+  $("restBtn")?.addEventListener("click", rest);
+  $("eatBestBtn")?.addEventListener("click", eatBestFood);
+  $("saveBtn")?.addEventListener("click", saveGame);
+  $("loadBtn")?.addEventListener("click", () => loadGame());
+  $("cancelActionBtn")?.addEventListener("click", () => workSystem.cancelCurrentAction());
+  $("clearActionQueueBtn")?.addEventListener("click", () => workSystem.clearActionQueue());
+
+  qsa("[data-main-nav]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setMainPage(btn.dataset.mainNav);
+    });
+  });
+
+  $("logAllBtn")?.addEventListener("click", () => {
+    state.logFilter = "all";
+    renderLog();
+  });
+  $("logImportantBtn")?.addEventListener("click", () => {
+    state.logFilter = "important";
+    renderLog();
+  });
+  $("logLootBtn")?.addEventListener("click", () => {
+    state.logFilter = "loot";
+    renderLog();
+  });
+  $("logWorkerBtn")?.addEventListener("click", () => {
+    state.logFilter = "worker";
+    renderLog();
+  });
+
+  $("resetBtn")?.addEventListener("click", () => {
+    const ok = confirm("確定要重置存檔嗎？");
+    if (ok) resetGame();
+  });
+
+  $("claimTaxBtn")?.addEventListener("click", () => {
+    addLog("稅收系統尚未接入最小可運行版。", "important");
+  });
+
+  $("seedSelectBtn")?.addEventListener("click", () => {
+    addLog("農田系統尚未接入最小可運行版。", "important");
+  });
+
+  $("plantBtn")?.addEventListener("click", () => {
+    addLog("農田系統尚未接入最小可運行版。", "important");
+  });
+
+  $("recruitBtn")?.addEventListener("click", () => {
+    addLog("工人系統尚未接入最小可運行版。", "important");
+  });
+
+  $("payDebtBtn")?.addEventListener("click", () => {
+    addLog("支付欠薪功能尚未接入最小可運行版。", "important");
+  });
+}
+
 function loop(now) {
   const deltaSeconds = Math.min(0.2, (now - lastFrameTime) / 1000);
   lastFrameTime = now;
@@ -615,50 +829,10 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-function initFallbackButtons() {
-  $("claimTaxBtn")?.addEventListener("click", () => {
-    addLog("稅收系統尚未接入救活版 main.js。", "important");
-  });
-
-  $("seedSelectBtn")?.addEventListener("click", () => {
-    addLog("農田系統尚未接入救活版 main.js。", "important");
-  });
-
-  $("plantBtn")?.addEventListener("click", () => {
-    addLog("農田系統尚未接入救活版 main.js。", "important");
-  });
-
-  $("recruitBtn")?.addEventListener("click", () => {
-    addLog("工人系統尚未接入救活版 main.js。", "important");
-  });
-
-  $("payDebtBtn")?.addEventListener("click", () => {
-    addLog("支付欠薪功能尚未接入救活版 main.js。", "important");
-  });
-}
-
 function init() {
   loadGame({ silent: true });
-
-  bindEvents({
-    onRest: staminaSystem.rest,
-    onEatBest: staminaSystem.eatBestFood,
-    onSave: saveGame,
-    onLoad: () => loadGame(),
-    onResetConfirm: resetGame,
-    onCancelAction: workSystem.cancelCurrentAction,
-    onClearActionQueue: workSystem.clearActionQueue,
-    onSetLogFilter: (filter) => {
-      state.logFilter = filter;
-      renderLog();
-    },
-    onSetMainPage: (pageName) => {
-      setMainPage(pageName);
-    }
-  });
-
+  bindBasicEvents();
   bindStaticDataButtons(document);
-  initFallbackButtons();
   setMainPage(state.ui.mainPage || "production");
   renderAll();
   requestAnimationFrame(loop);
