@@ -1,31 +1,53 @@
+import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
-import { resourceLabels, edibleValues } from "../data/resources.js";
-import { housingDefs, buildingDefs } from "../data/buildings.js";
 import { books, researchDefs } from "../data/research.js";
-import { farmingDefs } from "../data/farming.js";
-import { animalFeedDefs, createInitialRanchData } from "../data/animals.js";
-import { merchantDefaults } from "../data/trade.js";
-
-import { createInitialState, resetState } from "../core/state.js";
-import { $, qsa, firstEl, clamp, nowTime, formatSeconds } from "../core/utils.js";
 
 import { bindEvents } from "./bindEvents.js";
 
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
-import { createStaminaSystem, getMaxStamina } from "../systems/stamina.js";
-import { createPlayerSystem, getExpToNext } from "../systems/player.js";
-import { createCraftSystem } from "../systems/craft.js";
 import { createResearchSystem } from "../systems/research.js";
-import { createBuildSystem, getBuildingLevel, getHousingCount } from "../systems/build.js";
-import { createFarmSystem } from "../systems/farm.js";
-import { createRanchSystem } from "../systems/ranch.js";
-import { createMerchantSystem } from "../systems/merchant.js";
-import { createTradeSystem } from "../systems/trade.js";
 
-const STORAGE_KEY = "city_lord_modular_save_v1";
-const LOG_LIMIT = 120;
+import { renderTopStats } from "../ui/render/renderTopStats.js";
+import { renderResources } from "../ui/render/renderResources.js";
+import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
+import { renderCraftList } from "../ui/render/renderCraftList.js";
+import { renderResearchArea } from "../ui/render/renderResearchArea.js";
+import { renderActionLane } from "../ui/render/renderActionLane.js";
+import { renderResearchLane } from "../ui/render/renderResearchLane.js";
+import { renderLog } from "../ui/render/renderLog.js";
+
+const STORAGE_KEY = "city_lord_modular_min_v1";
+const LOG_LIMIT = 100;
 const WORK_QUEUE_LIMIT = 3;
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function nowTime() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `[${hh}:${mm}:${ss}]`;
+}
+
+function formatSeconds(seconds) {
+  return `${Math.max(0, seconds).toFixed(1)} 秒`;
+}
+
+function getExpToNext(level) {
+  return Math.round(5 + 2.5 * level * (level - 1));
+}
+
+function getMaxStamina(state) {
+  return 100;
+}
+
+function getResourceLabel(id) {
+  return resourceLabels[id] || id;
+}
 
 function createDefaultResources() {
   const ids = new Set();
@@ -37,20 +59,20 @@ function createDefaultResources() {
     Object.keys(craft.yields || {}).forEach((id) => ids.add(id));
   });
 
-  Object.keys(farmingDefs).forEach((id) => ids.add(id));
   Object.keys(books).forEach((id) => ids.add(id));
-  Object.keys(animalFeedDefs).forEach((id) => ids.add(id));
 
   return Object.fromEntries([...ids].sort().map((id) => [id, 0]));
 }
 
-function normalizeLoadedLogs(logs) {
+function normalizeLogs(logs) {
   if (!Array.isArray(logs)) return [];
+
   return logs
     .map((item) => {
       if (typeof item === "string") {
         return { time: "", text: item, type: "important" };
       }
+
       return {
         time: item?.time || "",
         text: item?.text || "",
@@ -61,65 +83,90 @@ function normalizeLoadedLogs(logs) {
     .slice(0, LOG_LIMIT);
 }
 
-function getResourceLabel(id) {
-  return resourceLabels[id] || id;
+function createState() {
+  return {
+    gold: 0,
+    level: 1,
+    exp: 0,
+    stamina: 100,
+
+    intelligence: 0,
+    managementLevel: 1,
+    managementExp: 0,
+    tradeLevel: 1,
+    reputation: 0,
+    pendingTax: 0,
+    castleLevel: 1,
+
+    housingCap: 0,
+    safetyValue: 0,
+    workers: [],
+
+    resources: createDefaultResources(),
+    logs: [],
+
+    currentAction: null,
+    actionQueue: [],
+
+    research: {},
+    currentResearch: null,
+    researchQueue: [],
+
+    housing: {},
+    buildings: {},
+
+    ui: {
+      mainPage: "production"
+    },
+
+    logFilter: "all"
+  };
 }
 
-function deepClone(obj) {
-  return JSON.parse(JSON.stringify(obj));
-}
-
-function ensureExtendedState(s) {
+function ensureStateShape(s) {
   s.gold = Number(s.gold || 0);
   s.level = Math.max(1, Number(s.level || 1));
   s.exp = Math.max(0, Number(s.exp || 0));
   s.stamina = Number(s.stamina || 100);
 
-  if (typeof s.intelligence !== "number") s.intelligence = 0;
-  if (typeof s.managementLevel !== "number") s.managementLevel = 1;
-  if (typeof s.managementExp !== "number") s.managementExp = 0;
-  if (typeof s.tradeLevel !== "number") s.tradeLevel = 1;
-  if (typeof s.tradeExp !== "number") s.tradeExp = 0;
-  if (typeof s.reputation !== "number") s.reputation = 0;
-  if (typeof s.pendingTax !== "number") s.pendingTax = 0;
-  if (typeof s.castleLevel !== "number") s.castleLevel = 1;
+  s.intelligence = Number(s.intelligence || 0);
+  s.managementLevel = Math.max(1, Number(s.managementLevel || 1));
+  s.managementExp = Number(s.managementExp || 0);
+  s.tradeLevel = Math.max(1, Number(s.tradeLevel || 1));
+  s.reputation = Number(s.reputation || 0);
+  s.pendingTax = Number(s.pendingTax || 0);
+  s.castleLevel = Math.max(1, Number(s.castleLevel || 1));
 
-  if (!s.resources || typeof s.resources !== "object") s.resources = {};
+  s.housingCap = Number(s.housingCap || 0);
+  s.safetyValue = Number(s.safetyValue || 0);
+  if (!Array.isArray(s.workers)) s.workers = [];
+
   s.resources = {
     ...createDefaultResources(),
-    ...s.resources
+    ...(s.resources || {})
   };
 
-  s.logs = normalizeLoadedLogs(s.logs);
+  s.logs = normalizeLogs(s.logs);
+
+  if (!s.currentAction || typeof s.currentAction !== "object") s.currentAction = null;
+  if (!Array.isArray(s.actionQueue)) s.actionQueue = [];
 
   if (!s.research || typeof s.research !== "object") s.research = {};
   if (!s.currentResearch || typeof s.currentResearch !== "object") s.currentResearch = null;
   if (!Array.isArray(s.researchQueue)) s.researchQueue = [];
 
-  if (!s.currentAction || typeof s.currentAction !== "object") s.currentAction = null;
-  if (!Array.isArray(s.actionQueue)) s.actionQueue = [];
-
   if (!s.housing || typeof s.housing !== "object") s.housing = {};
   if (!s.buildings || typeof s.buildings !== "object") s.buildings = {};
 
-  if (!Array.isArray(s.plots)) s.plots = [null, null, null];
-  if (!s.ranchData || typeof s.ranchData !== "object") s.ranchData = createInitialRanchData();
-
-  if (!Array.isArray(s.workers)) s.workers = [];
-  if (!s.merchant || typeof s.merchant !== "object") s.merchant = deepClone(merchantDefaults);
-
   if (!s.ui || typeof s.ui !== "object") s.ui = {};
-  if (!s.ui.manualSeedSelection || !farmingDefs[s.ui.manualSeedSelection]) {
-    s.ui.manualSeedSelection = "wheatSeed";
-  }
+  if (!s.ui.mainPage) s.ui.mainPage = "production";
 
   if (typeof s.logFilter !== "string") s.logFilter = "all";
 
   return s;
 }
 
-const state = ensureExtendedState(createInitialState(createDefaultResources));
-
+const state = ensureStateShape(createState());
 let lastFrameTime = performance.now();
 
 function addLog(text, type = "important") {
@@ -128,8 +175,8 @@ function addLog(text, type = "important") {
     text,
     type
   });
+
   state.logs = state.logs.slice(0, LOG_LIMIT);
-  render();
 }
 
 function gainResource(id, amount) {
@@ -151,123 +198,201 @@ function canAfford(costs = {}) {
 
 function spendCosts(costs = {}) {
   if (!canAfford(costs)) return false;
-  for (const [id, amount] of Object.entries(costs)) {
+
+  Object.entries(costs).forEach(([id, amount]) => {
     state.resources[id] -= amount;
-  }
+  });
+
   return true;
 }
 
-function addManagementExp(amount) {
-  state.managementExp += amount;
-  while (state.managementExp >= getExpToNext(state.managementLevel)) {
-    state.managementExp -= getExpToNext(state.managementLevel);
-    state.managementLevel += 1;
-    addLog(`管理等級提升到 Lv.${state.managementLevel}`, "important");
+function addMainExp(amount) {
+  state.exp += amount;
+
+  while (state.exp >= getExpToNext(state.level)) {
+    state.exp -= getExpToNext(state.level);
+    state.level += 1;
+    addLog(`主等級提升到 Lv.${state.level}`, "important");
   }
 }
 
-function getManagementMaterialDiscount() {
-  return Math.min(0.15, state.managementLevel * 0.005);
+function getBestFoodId() {
+  for (const id of foodOrder) {
+    if ((state.resources[id] || 0) > 0 && typeof edibleValues[id] === "number") {
+      return id;
+    }
+  }
+  return "";
 }
 
-function effectiveWorkerWage() {
-  return 8;
+function rest() {
+  const before = state.stamina;
+  state.stamina = Math.min(getMaxStamina(state), state.stamina + 5);
+  const actual = state.stamina - before;
+
+  if (actual <= 0) {
+    addLog("體力已滿，不需要休息", "important");
+    return;
+  }
+
+  addLog(`你休息恢復 ${actual} 體力`, "important");
 }
 
-function safetyValue() {
-  return buildSystem.getSafetyValue();
+function eatResource(resourceId) {
+  const value = edibleValues[resourceId];
+  const label = getResourceLabel(resourceId);
+
+  if (typeof value !== "number") return;
+
+  if ((state.resources[resourceId] || 0) <= 0) {
+    addLog(`沒有${label}可以使用`, "important");
+    return;
+  }
+
+  if (state.stamina >= getMaxStamina(state) && value >= 0) {
+    addLog("體力已滿，不需要吃食物", "important");
+    return;
+  }
+
+  spendResource(resourceId, 1);
+
+  const before = state.stamina;
+  state.stamina = clamp(state.stamina + value, 0, getMaxStamina(state));
+  const actual = state.stamina - before;
+
+  addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
 }
 
-const playerSystem = createPlayerSystem({
-  state,
-  addLog
-});
+function eatBestFood() {
+  const best = getBestFoodId();
+  if (!best) {
+    addLog("目前沒有可吃的食物", "important");
+    return;
+  }
 
-const staminaSystem = createStaminaSystem({
-  state,
-  addLog,
-  spendResource
-});
+  eatResource(best);
+}
 
-const tradeSystem = createTradeSystem({
-  state,
-  addLog,
-  addManagementExp
-});
+function isCraftHidden(def) {
+  return !!def.hidden;
+}
 
-const workSystem = createWorkSystem({
-  state,
-  addLog,
-  addMainExp: playerSystem.addMainExp,
-  gainResource
-});
+function isCraftUnlocked(def) {
+  if (!def.unlock) return true;
+  return !!state.research?.[def.unlock];
+}
 
-const craftSystem = createCraftSystem({
-  state,
-  addLog,
-  addMainExp: playerSystem.addMainExp,
-  gainResource,
-  canAfford,
-  spendCosts
-});
+function craftItem(craftId) {
+  const def = crafts[craftId];
+  if (!def) return false;
 
-const buildSystem = createBuildSystem({
-  state,
-  addLog,
-  spendCosts
-});
+  if (isCraftHidden(def)) {
+    addLog(`${def.name}目前不可見`, "important");
+    return false;
+  }
 
-const farmSystem = createFarmSystem({
-  state,
-  addLog,
-  gainResource,
-  spendResource,
-  spendCosts,
-  getManagementMaterialDiscount
-});
+  if (!isCraftUnlocked(def)) {
+    addLog(`${def.name}尚未解鎖，需要研究：${def.unlock}`, "important");
+    return false;
+  }
 
-const ranchSystem = createRanchSystem({
-  state,
-  addLog,
-  gainResource,
-  spendResource
-});
+  const staminaCost = Math.max(1, Number(def.stamina ?? 1));
 
-const researchSystem = createResearchSystem({
-  state,
-  addLog,
-  gainResource,
-  countBuiltPlots: () => farmSystem.countBuiltPlots()
-});
+  if (state.stamina < staminaCost) {
+    addLog(`${def.name}製作失敗，體力不足`, "important");
+    return false;
+  }
 
-const sellPrices = {
-  wood: 2,
-  stone: 2,
-  fish: 4,
-  shrimp: 5,
-  crab: 8,
-  herb: 4,
-  rareHerb: 12,
-  mushroom: 4,
-  leather: 10,
-  softLeather: 18,
-  cottonCloth: 9,
-  clothes: 24,
-  staminaPotion: 30,
-  stoneBrick: 6,
-  brick: 6,
-  glassBottle: 8,
-  boneMeal: 5,
-  compost: 5
-};
+  if (!canAfford(def.costs || {})) {
+    addLog(`${def.name}製作失敗，材料不足`, "important");
+    return false;
+  }
 
-const merchantSystem = createMerchantSystem({
-  state,
-  addLog,
-  addTradeExp: tradeSystem.addTradeExp,
-  addReputation: tradeSystem.addReputation,
-  sellPrices
-});
+  spendCosts(def.costs || {});
+  state.stamina -= staminaCost;
+
+  for (const [resourceId, amount] of Object.entries(def.yields || {})) {
+    gainResource(resourceId, amount);
+  }
+
+  addMainExp(1);
+
+  const gainText = Object.entries(def.yields || {})
+    .map(([id, amount]) => `${getResourceLabel(id)} +${amount}`)
+    .join("、");
+
+  addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`, "loot");
+  return true;
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    addLog("已存檔", "important");
+    renderAll();
+  } catch (error) {
+    console.error(error);
+    addLog("存檔失敗", "important");
+    renderAll();
+  }
+}
+
+function loadGame({ silent = false } = {}) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      if (!silent) {
+        addLog("沒有存檔", "important");
+        renderAll();
+      }
+      return false;
+    }
+
+    const data = ensureStateShape(JSON.parse(raw));
+
+    Object.keys(state).forEach((key) => delete state[key]);
+    Object.assign(state, data);
+
+    state.stamina = clamp(state.stamina, 0, getMaxStamina(state));
+
+    if (!silent) {
+      addLog("已讀檔", "important");
+    }
+
+    renderAll();
+    return true;
+  } catch (error) {
+    console.error(error);
+    if (!silent) {
+      addLog("讀檔失敗", "important");
+      renderAll();
+    }
+    return false;
+  }
+}
+
+function resetGame() {
+  localStorage.removeItem(STORAGE_KEY);
+
+  const fresh = ensureStateShape(createState());
+  Object.keys(state).forEach((key) => delete state[key]);
+  Object.assign(state, fresh);
+
+  addLog("已重置存檔", "important");
+  renderAll();
+}
+
+function setMainPage(pageName) {
+  state.ui.mainPage = pageName;
+
+  qsa("[data-main-page]").forEach((panel) => {
+    panel.classList.toggle("page-hidden", panel.dataset.mainPage !== pageName);
+  });
+
+  qsa("[data-main-nav]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mainNav === pageName);
+  });
+}
 
 function syncDerivedResearchUnlocks() {
   Object.entries(researchDefs).forEach(([researchId, def]) => {
@@ -277,534 +402,110 @@ function syncDerivedResearchUnlocks() {
     if (def.unlockBuild) state.research[def.unlockBuild] = true;
     if (def.unlockHouse) state.research[def.unlockHouse] = true;
   });
-
-  if (state.buildings.blacksmith && !state.buildings.smithy) {
-    state.buildings.smithy = state.buildings.blacksmith;
-  }
-  if (state.buildings.tailorHut && !state.buildings.tannery) {
-    state.buildings.tannery = state.buildings.tailorHut;
-  }
 }
 
-function saveGame() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    addLog("已存檔", "important");
-  } catch (error) {
-    console.error(error);
-    addLog("存檔失敗", "important");
-  }
-}
+const workSystem = createWorkSystem({
+  state,
+  addLog,
+  addMainExp,
+  gainResource
+});
 
-function loadGame({ silent = false } = {}) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      if (!silent) addLog("沒有存檔", "important");
-      return false;
+const researchSystem = createResearchSystem({
+  state,
+  addLog,
+  gainResource,
+  countBuiltPlots: () => 0
+});
+
+function renderPlaceholders() {
+  const setPlaceholder = (id, text) => {
+    const el = $(id);
+    if (el && !el.innerHTML.trim()) {
+      el.innerHTML = `<div class="small muted">${text}</div>`;
     }
+  };
 
-    const data = JSON.parse(raw);
-    const next = ensureExtendedState(data);
-
-    Object.keys(state).forEach((key) => delete state[key]);
-    Object.assign(state, next);
-
-    state.stamina = clamp(state.stamina, 0, getMaxStamina(state));
-    syncDerivedResearchUnlocks();
-
-    if (!silent) addLog("已讀檔", "important");
-    return true;
-  } catch (error) {
-    console.error(error);
-    if (!silent) addLog("讀檔失敗", "important");
-    return false;
-  }
+  setPlaceholder("buildingButtons", "建築系統尚未接回 main.js");
+  setPlaceholder("plots", "農田系統尚未接回 main.js");
+  setPlaceholder("pastureArea", "牧場系統尚未接回 main.js");
+  setPlaceholder("merchantArea", "商人 / 貿易系統尚未接回 main.js");
+  setPlaceholder("workers", "工人系統尚未接回 main.js");
 }
 
-function hardResetState() {
-  resetState(state, createDefaultResources);
-  ensureExtendedState(state);
-}
-
-function resetGame() {
-  localStorage.removeItem(STORAGE_KEY);
-  hardResetState();
-  addLog("已重置存檔", "important");
-}
-
-function cycleManualSeedSelection() {
-  const ids = Object.keys(farmingDefs);
-  const current = state.ui.manualSeedSelection || ids[0];
-  const idx = ids.indexOf(current);
-  const next = ids[(idx + 1) % ids.length];
-  state.ui.manualSeedSelection = next;
-  render();
-}
-
-function plantSelectedSeed() {
-  const seedId = state.ui.manualSeedSelection || "wheatSeed";
-  farmSystem.plantSeed(seedId);
-  render();
-}
-
-function bindStaticDataButtons(root = document) {
-  root.querySelectorAll("[data-work]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => workSystem.requestWork(btn.dataset.work));
-  });
-
-  root.querySelectorAll("[data-craft]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      craftSystem.craftItem(btn.dataset.craft);
-      render();
-    });
-  });
-
-  root.querySelectorAll("[data-build]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      buildSystem.buildHousing(btn.dataset.build);
-      render();
-    });
-  });
-}
-
-function renderTopStats() {
-  const maxStaminaValue = getMaxStamina(state);
-  const housingCap = buildSystem.getHousingCapacity();
-  const safety = buildSystem.getSafetyValue();
-
-  $("gold") && ($("gold").textContent = Math.floor(state.gold));
-  $("level") && ($("level").textContent = state.level);
-  $("exp") && ($("exp").textContent = Math.floor(state.exp));
-  $("expNext") && ($("expNext").textContent = getExpToNext(state.level));
-
-  $("intelligence") && ($("intelligence").textContent = state.intelligence);
-  $("stamina") && ($("stamina").textContent = Math.floor(state.stamina));
-  $("maxStamina") && ($("maxStamina").textContent = maxStaminaValue);
-
-  $("managementLevel") && ($("managementLevel").textContent = state.managementLevel);
-  $("managementExp") && ($("managementExp").textContent = Math.floor(state.managementExp));
-  $("managementExpNext") && ($("managementExpNext").textContent = getExpToNext(state.managementLevel));
-
-  $("tradeLevel") && ($("tradeLevel").textContent = state.tradeLevel);
-  $("reputationValue") && ($("reputationValue").textContent = state.reputation.toFixed(1));
-  $("taxIncome") && ($("taxIncome").textContent = Math.floor(state.pendingTax));
-
-  $("housingCap") && ($("housingCap").textContent = housingCap);
-  $("housingUsed") && ($("housingUsed").textContent = Array.isArray(state.workers) ? state.workers.length : 0);
-  $("safetyValue") && ($("safetyValue").textContent = safety);
-
-  $("expBar") &&
-    ($("expBar").style.width = `${clamp((state.exp / getExpToNext(state.level)) * 100, 0, 100)}%`);
-  $("staminaBar") &&
-    ($("staminaBar").style.width = `${clamp((state.stamina / maxStaminaValue) * 100, 0, 100)}%`);
-  $("managementBar") &&
-    ($("managementBar").style.width = `${clamp((state.managementExp / getExpToNext(state.managementLevel)) * 100, 0, 100)}%`);
-
-  const bestFood = staminaSystem.getBestFoodId();
-  const eatHint = $("eatHint");
-  if (eatHint) {
-    eatHint.textContent = bestFood
-      ? `目前最佳食物：${getResourceLabel(bestFood)}（${edibleValues[bestFood] >= 0 ? "+" : ""}${edibleValues[bestFood]}）`
-      : "目前沒有可吃的食物";
-  }
-}
-
-function renderResources() {
-  const root = $("resources");
-  if (!root) return;
-
-  root.innerHTML = Object.entries(state.resources)
-    .sort((a, b) => getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant"))
-    .map(([id, value]) => {
-      const edible =
-        typeof edibleValues[id] === "number"
-          ? `<div class="meta">可食用：${edibleValues[id] >= 0 ? "+" : ""}${edibleValues[id]} 體力</div>`
-          : "";
-
-      return `
-        <div class="resource-item">
-          <div>${getResourceLabel(id)}</div>
-          <div><strong>${Math.floor(value)}</strong></div>
-          ${edible}
-        </div>
-      `;
-    })
-    .join("");
-}
-
-function renderWorkButtons() {
-  const root = $("workButtons");
-  if (!root) {
-    bindStaticDataButtons(document);
-    return;
-  }
-
-  root.innerHTML = Object.entries(workDefs)
-    .map(([id, def]) => {
-      const cost = getWorkCost(def);
-      const duration = getWorkDuration(def);
-      return `<button data-work="${id}" type="button">${def.name}（-${cost} 體力 / ${formatSeconds(duration)}）</button>`;
-    })
-    .join("");
-
-  bindStaticDataButtons(root);
-}
-
-function renderCraftList() {
-  const root = $("craftList");
-  if (!root) {
-    bindStaticDataButtons(document);
-    return;
-  }
-
-  const entries = Object.entries(crafts).filter(([, def]) => !craftSystem.isCraftHidden(def));
-
-  root.innerHTML = entries
-    .map(([id, def]) => {
-      const unlocked = craftSystem.isCraftUnlocked(def);
-      const costText = Object.entries(def.costs || {})
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
-        .join("、");
-      const yieldText = Object.entries(def.yields || {})
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
-        .join("、");
-
-      return `
-        <div class="recipe-card">
-          <div class="top">
-            <strong>${def.name}</strong>
-            <button data-craft="${id}" type="button" ${unlocked ? "" : "disabled"}>製作</button>
-          </div>
-          <div class="small muted">${def.skill || "craft"}</div>
-          <div class="row" style="margin-top:8px;">
-            <span class="pill">消耗體力：${def.stamina ?? 1}</span>
-            <span class="pill">材料：${costText || "無"}</span>
-            <span class="pill">產出：${yieldText || "無"}</span>
-            ${def.unlock ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${def.unlock}`}</span>` : ""}
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  bindStaticDataButtons(root);
-}
-
-function renderBuildingButtons() {
-  const root = $("buildingButtons");
-  if (!root) return;
-
-  const ids = Object.keys(buildingDefs || {});
-
-  root.innerHTML = ids
-    .map((id) => {
-      const def = buildingDefs[id];
-      const level = getBuildingLevel(state, id);
-      const costs = buildSystem.getUpgradeCost(id);
-      const costText = Object.entries(costs)
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
-        .join("、");
-
-      return `
-        <div class="recipe-card">
-          <div class="top">
-            <strong>${def.name} Lv.${level}</strong>
-            <button data-upgrade-building="${id}" type="button">升級</button>
-          </div>
-          <div class="small muted">${def.effectText || def.description || ""}</div>
-          <div class="row" style="margin-top:8px;">
-            <span class="pill">上限：${def.maxLevel}</span>
-            <span class="pill">成本：${costText || "無"}</span>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  root.querySelectorAll("[data-upgrade-building]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      buildSystem.upgradeBuilding(btn.dataset.upgradeBuilding);
-      render();
-    });
-  });
-}
-
-function renderResearchArea() {
-  const root = $("researchArea");
-  if (!root) return;
-
-  const categories = [...new Set(Object.values(researchDefs).map((def) => def.category || "other"))];
-
-  const bookCards = Object.values(books)
-    .map((book) => {
-      const own = Math.floor(state.resources[book.id] || 0);
-      return `
-        <div class="book-card">
-          <strong>${book.name}</strong>
-          <div class="small muted">持有：${own}</div>
-          <div class="small muted">閱讀：${formatSeconds(book.duration)}</div>
-          <button data-read-book="${book.id}" type="button" ${own > 0 ? "" : "disabled"}>閱讀</button>
-        </div>
-      `;
-    })
-    .join("");
-
-  const researchCards = categories
-    .map((category) => {
-      const list = Object.entries(researchDefs)
-        .filter(([, def]) => (def.category || "other") === category)
-        .map(([id, def]) => {
-          const done = researchSystem.isResearchCompleted(id);
-          const available = researchSystem.meetsResearchRequirements(def);
-          return `
-            <div class="research-card">
-              <div class="research-summary">
-                <strong>${def.name}</strong>
-                <div class="research-status ${done ? "done" : ""}">
-                  ${done ? "已完成" : available ? "可研究" : researchSystem.getMissingRequirementText(def)}
-                </div>
-              </div>
-              <button data-start-research="${id}" type="button" class="research-mini-btn" ${done ? "disabled" : ""}>
-                ${done ? "完成" : "研究"}
-              </button>
-            </div>
-          `;
-        })
-        .join("");
-
-      return `
-        <details open>
-          <summary>${category}</summary>
-          <div class="research-grid">${list}</div>
-        </details>
-      `;
-    })
-    .join("");
-
-  root.innerHTML = `
-    <div class="section-title">
-      <strong>書籍閱讀</strong>
-    </div>
-    <div class="book-grid">${bookCards}</div>
-    <div style="margin-top:12px"></div>
-    ${researchCards}
-  `;
-
-  root.querySelectorAll("[data-start-research]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      researchSystem.startResearch(btn.dataset.startResearch);
-      render();
-    });
-  });
-
-  root.querySelectorAll("[data-read-book]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      researchSystem.startReading(btn.dataset.readBook);
-      render();
-    });
-  });
-}
-
-function renderPlots() {
-  const root = $("plots");
-  if (!root) return;
-
-  root.innerHTML = `
-    <div class="small muted">農田系統已接線，需搭配 farm.js 與相關資料。</div>
-  `;
-}
-
-function renderPastureArea() {
-  const root = $("pastureArea");
-  if (!root) return;
-
-  root.innerHTML = `
-    <div class="small muted">牧場系統已接線，需搭配 ranch.js 與相關資料。</div>
-  `;
-}
-
-function renderMerchantArea() {
-  const root = $("merchantArea");
-  if (!root) return;
-
-  const merchant = state.merchant || { present: false, presentSec: 0, cash: 0, orders: [] };
-  const orders = Array.isArray(merchant.orders) ? merchant.orders : [];
-
-  root.innerHTML = `
-    <div class="small muted">
-      商人狀態：${merchant.present ? `來訪中（剩餘 ${Math.ceil(merchant.presentSec)} 秒）` : "未來訪"}
-    </div>
-    <div class="small muted" style="margin-top:4px">
-      攜帶現金：${merchant.cash || 0}
-    </div>
-    <div class="merchant-board">
-      ${orders.map((order) => `
-        <div class="order-card">
-          <strong>${order.from}｜${order.tierLabel}</strong>
-          <div class="small muted">需求：${getResourceLabel(order.resource)} × ${order.qty}</div>
-          <div class="small muted">報酬：${order.rewardGold} 金 / 貿易 ${order.rewardTrade} / 聲望 ${order.rewardRep}</div>
-          <div class="order-actions">
-            <button data-fulfill-order="${order.id}" type="button">完成</button>
-            <button data-cancel-order="${order.id}" type="button">取消</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-
-  root.querySelectorAll("[data-fulfill-order]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      merchantSystem.fulfillMerchantOrder(btn.dataset.fulfillOrder);
-      render();
-    });
-  });
-
-  root.querySelectorAll("[data-cancel-order]").forEach((btn) => {
-    if (btn.dataset.bound === "1") return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => {
-      merchantSystem.cancelMerchantOrder(btn.dataset.cancelOrder);
-      render();
-    });
-  });
-}
-
-function renderActionLane() {
-  const textEl = firstEl("productionText", "actionStatus");
-  const barEl = firstEl("productionBar", "actionProgressBar");
-  const queueEl = firstEl("productionQueue", "actionQueue");
-  const cancelBtn = $("cancelActionBtn");
-  const clearBtn = $("clearActionQueueBtn");
-
-  if (!textEl || !barEl || !queueEl) return;
-
-  if (state.currentAction && workDefs[state.currentAction.id]) {
-    const def = workDefs[state.currentAction.id];
-    const progress = clamp(
-      ((state.currentAction.total - state.currentAction.remaining) / state.currentAction.total) * 100,
-      0,
-      100
-    );
-
-    textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(state.currentAction.remaining)}`;
-    barEl.style.width = `${progress}%`;
-  } else if (state.actionQueue.length > 0) {
-    const nextDef = workDefs[state.actionQueue[0]];
-    if (nextDef && state.stamina < getWorkCost(nextDef)) {
-      textEl.textContent = `等待中：${nextDef.name}｜體力不足，需要 ${getWorkCost(nextDef)} 體力`;
-    } else {
-      textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知工作"}`;
-    }
-    barEl.style.width = "0%";
-  } else {
-    textEl.textContent = "目前沒有進行中的工作";
-    barEl.style.width = "0%";
-  }
-
-  queueEl.innerHTML = state.actionQueue.length
-    ? state.actionQueue
-        .map((id, index) => `<span class="queue-pill">${index + 1}. ${workDefs[id]?.name || id}</span>`)
-        .join("")
-    : `<span class="small muted">行動列為空</span>`;
-
-  if (cancelBtn) cancelBtn.disabled = !state.currentAction;
-  if (clearBtn) clearBtn.disabled = state.actionQueue.length === 0;
-}
-
-function renderResearchLane() {
-  const textEl = $("researchText");
-  const barEl = $("researchBar");
-  const queueEl = $("researchQueue");
-
-  if (!textEl || !barEl || !queueEl) return;
-
-  if (state.currentResearch) {
-    const progress = clamp(
-      ((state.currentResearch.total - state.currentResearch.remaining) / state.currentResearch.total) * 100,
-      0,
-      100
-    );
-
-    textEl.textContent = `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(state.currentResearch.remaining)}`;
-    barEl.style.width = `${progress}%`;
-  } else if (state.researchQueue.length > 0) {
-    textEl.textContent = `等待中：下一項 ${state.researchQueue[0].name}`;
-    barEl.style.width = "0%";
-  } else {
-    textEl.textContent = "目前沒有進行中的研究";
-    barEl.style.width = "0%";
-  }
-
-  queueEl.innerHTML = state.researchQueue.length
-    ? state.researchQueue
-        .map((item, index) => `<span class="queue-pill">${index + 1}. ${item.name}</span>`)
-        .join("")
-    : `<span class="small muted">研究列為空</span>`;
-}
-
-function renderWorkersArea() {
-  const root = $("workers");
-  if (!root) return;
-  root.innerHTML = `<div class="small muted">工人系統尚未完全模組化，先保留資料欄位與顯示區。</div>`;
-}
-
-function renderLog() {
-  const root = $("log");
-  if (!root) return;
-
-  let rows = state.logs || [];
-  if (state.logFilter !== "all") {
-    rows = rows.filter((item) => (item.type || "important") === state.logFilter);
-  }
-
-  if (rows.length === 0) {
-    root.innerHTML = `<div class="log-item">目前還沒有事件紀錄</div>`;
-  } else {
-    root.innerHTML = rows
-      .map((item) => {
-        const text = typeof item === "string" ? item : item.text;
-        const time = typeof item === "string" ? "" : item.time || "";
-        return `<div class="log-item">${time ? `<span class="small muted">${time}</span> ` : ""}${text}</div>`;
-      })
-      .join("");
-  }
-
-  $("logAllBtn")?.classList.toggle("active", state.logFilter === "all");
-  $("logImportantBtn")?.classList.toggle("active", state.logFilter === "important");
-  $("logLootBtn")?.classList.toggle("active", state.logFilter === "loot");
-  $("logWorkerBtn")?.classList.toggle("active", state.logFilter === "worker");
-}
-
-function render() {
+function renderAll() {
   syncDerivedResearchUnlocks();
-  renderTopStats();
-  renderResources();
-  renderWorkButtons();
-  renderCraftList();
-  renderBuildingButtons();
-  renderResearchArea();
-  renderPlots();
-  renderPastureArea();
-  renderMerchantArea();
-  renderActionLane();
-  renderResearchLane();
-  renderWorkersArea();
-  renderLog();
+
+  renderTopStats({
+    state,
+    getExpToNext,
+    getMaxStamina,
+    getBestFoodId,
+    getResourceLabel,
+    edibleValues
+  });
+
+  renderResources({
+    state,
+    getResourceLabel,
+    edibleValues
+  });
+
+  renderWorkButtons({
+    workDefs,
+    getWorkCost,
+    getWorkDuration,
+    formatSeconds,
+    onWorkClick: (workId) => {
+      workSystem.requestWork(workId);
+      renderAll();
+    }
+  });
+
+  renderCraftList({
+    crafts,
+    getResourceLabel,
+    isCraftHidden,
+    isCraftUnlocked,
+    onCraftClick: (craftId) => {
+      craftItem(craftId);
+      renderAll();
+    }
+  });
+
+  renderResearchArea({
+    state,
+    books,
+    researchDefs,
+    formatSeconds,
+    getMissingRequirementText: researchSystem.getMissingRequirementText,
+    isResearchCompleted: researchSystem.isResearchCompleted,
+    meetsResearchRequirements: researchSystem.meetsResearchRequirements,
+    onStartResearch: (researchId) => {
+      researchSystem.startResearch(researchId);
+      renderAll();
+    },
+    onReadBook: (bookId) => {
+      researchSystem.startReading(bookId);
+      renderAll();
+    }
+  });
+
+  renderActionLane({
+    state,
+    workDefs,
+    getWorkCost,
+    formatSeconds
+  });
+
+  renderResearchLane({
+    state,
+    formatSeconds
+  });
+
+  renderLog({ state });
+
+  renderPlaceholders();
 }
 
 function loop(now) {
@@ -813,49 +514,56 @@ function loop(now) {
 
   workSystem.updateAction(deltaSeconds);
   researchSystem.updateResearch(deltaSeconds);
-  farmSystem.updatePlots(deltaSeconds);
-  ranchSystem.updateRanch(deltaSeconds);
-  merchantSystem.updateMerchant(deltaSeconds);
-  tradeSystem.updateTaxTimer({
-    deltaSeconds,
-    effectiveWorkerWage,
-    safetyValue
+
+  renderActionLane({
+    state,
+    workDefs,
+    getWorkCost,
+    formatSeconds
   });
 
-  syncDerivedResearchUnlocks();
-  renderActionLane();
-  renderResearchLane();
+  renderResearchLane({
+    state,
+    formatSeconds
+  });
 
   requestAnimationFrame(loop);
 }
 
 function init() {
   loadGame({ silent: true });
-  syncDerivedResearchUnlocks();
 
   bindEvents({
-    onRest: staminaSystem.rest,
-    onEatBest: staminaSystem.eatBestFood,
+    onRest: () => {
+      rest();
+      renderAll();
+    },
+    onEatBest: () => {
+      eatBestFood();
+      renderAll();
+    },
     onSave: saveGame,
     onLoad: () => loadGame(),
     onResetConfirm: resetGame,
-    onCancelAction: workSystem.cancelCurrentAction,
-    onClearActionQueue: workSystem.clearActionQueue,
+    onCancelAction: () => {
+      workSystem.cancelCurrentAction();
+      renderAll();
+    },
+    onClearActionQueue: () => {
+      workSystem.clearActionQueue();
+      renderAll();
+    },
     onSetLogFilter: (filter) => {
       state.logFilter = filter;
-      renderLog();
+      renderLog({ state });
+    },
+    onSetMainPage: (pageName) => {
+      setMainPage(pageName);
     }
   });
 
-  $("seedSelectBtn")?.addEventListener("click", cycleManualSeedSelection);
-  $("plantBtn")?.addEventListener("click", plantSelectedSeed);
-  $("claimTaxBtn")?.addEventListener("click", () => {
-    tradeSystem.claimTax();
-    render();
-  });
-
-  bindStaticDataButtons(document);
-  render();
+  setMainPage(state.ui.mainPage || "production");
+  renderAll();
   requestAnimationFrame(loop);
 }
 
