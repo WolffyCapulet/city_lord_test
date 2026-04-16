@@ -19,9 +19,40 @@ import {
   renderLog
 } from "../ui/components.js";
 
-const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
-const LOG_LIMIT = 100;
-const WORK_QUEUE_LIMIT = 3;
+const STORAGE_KEY = "city_lord_modular_v0.1.0.4";
+const LOG_LIMIT = 200;
+
+const skillLabels = {
+  labor: "打工",
+  lumber: "伐木",
+  mining: "挖礦",
+  fishing: "釣魚",
+  hunting: "狩獵",
+  gathering: "採集",
+  digging: "挖掘",
+  farming: "耕種",
+  woodworking: "木工",
+  masonry: "石工",
+  cooking: "烹飪",
+  smelting: "冶煉",
+  alchemy: "煉金",
+  tailoring: "裁縫"
+};
+
+const townStageDefs = [
+  { name: "荒地", minCastle: 1 },
+  { name: "小村落", minCastle: 2 },
+  { name: "聚居地", minCastle: 4 },
+  { name: "村莊", minCastle: 6 },
+  { name: "商業聚落", minCastle: 8 },
+  { name: "城鎮", minCastle: 10 },
+  { name: "商業中心", minCastle: 13 },
+  { name: "城池", minCastle: 16 }
+];
+
+function qsa(selector) {
+  return Array.from(document.querySelectorAll(selector));
+}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -36,7 +67,23 @@ function nowTime() {
 }
 
 function formatSeconds(seconds) {
-  return `${Math.max(0, seconds).toFixed(1)} 秒`;
+  return `${Math.max(0, Number(seconds || 0)).toFixed(1)} 秒`;
+}
+
+function formatReadableDuration(seconds) {
+  let s = Math.max(0, Math.floor(Number(seconds || 0)));
+
+  const d = Math.floor(s / 86400);
+  s %= 86400;
+  const h = Math.floor(s / 3600);
+  s %= 3600;
+  const m = Math.floor(s / 60);
+  s %= 60;
+
+  if (d > 0) return `${d}d${h}h${m}m${s}s`;
+  if (h > 0) return `${h}h${m}m${s}s`;
+  if (m > 0) return `${m}m${s}s`;
+  return `${s}s`;
 }
 
 function getExpToNext(level) {
@@ -44,11 +91,20 @@ function getExpToNext(level) {
 }
 
 function getMaxStamina(state) {
-  return 100;
+  return 100 + ((state.staminaLevel || 1) - 1) * 10;
 }
 
 function getResourceLabel(id) {
   return resourceLabels[id] || id;
+}
+
+function createDefaultSkills() {
+  return Object.fromEntries(
+    Object.keys(skillLabels).map((key) => [
+      key,
+      { level: 1, exp: 0 }
+    ])
+  );
 }
 
 function createDefaultResources() {
@@ -90,32 +146,79 @@ function createState() {
     gold: 0,
     level: 1,
     exp: 0,
-    stamina: 100,
 
     intelligence: 0,
+
+    stamina: 100,
+    staminaLevel: 1,
+    staminaExp: 0,
+
     managementLevel: 1,
     managementExp: 0,
+
+    castleLevel: 1,
+    castleExp: 0,
+
     tradeLevel: 1,
+    tradeExp: 0,
     reputation: 0,
     pendingTax: 0,
-    castleLevel: 1,
 
-    housingCap: 0,
-    safetyValue: 0,
+    campfireSec: 0,
+
+    salaryTimer: 300,
+    salaryDebt: 0,
+
+    houses: {
+      cabin: 0,
+      stoneHouse: 0,
+      wall: 0
+    },
+
+    buildings: {
+      well: 0,
+      library: 0,
+      mill: 0,
+      alchemyHut: 0,
+      lumberMill: 0,
+      quarry: 0,
+      fishingShack: 0,
+      tannery: 0,
+      smithy: 0,
+      townCenter: 0,
+      ranch: 0,
+      waterChannel: 0,
+      windmill: 0
+    },
+
     workers: [],
+    nextWorkerId: 1,
+
+    merchant: {
+      minuteCounter: 0,
+      present: false,
+      presentSec: 0,
+      cash: 0,
+      maxCash: 0,
+      keep: {},
+      orders: [],
+      nextOrderId: 1
+    },
+
+    plots: [null, null, null],
+    ranchData: {},
 
     resources: createDefaultResources(),
+    skills: createDefaultSkills(),
+
     logs: [],
 
     currentAction: null,
     actionQueue: [],
 
-    research: {},
     currentResearch: null,
     researchQueue: [],
-
-    housing: {},
-    buildings: {},
+    research: Object.fromEntries(Object.keys(researchDefs).map((id) => [id, false])),
 
     ui: {
       mainPage: "production"
@@ -129,36 +232,100 @@ function ensureStateShape(s) {
   s.gold = Number(s.gold || 0);
   s.level = Math.max(1, Number(s.level || 1));
   s.exp = Math.max(0, Number(s.exp || 0));
-  s.stamina = Number(s.stamina || 100);
 
   s.intelligence = Number(s.intelligence || 0);
-  s.managementLevel = Math.max(1, Number(s.managementLevel || 1));
-  s.managementExp = Number(s.managementExp || 0);
-  s.tradeLevel = Math.max(1, Number(s.tradeLevel || 1));
-  s.reputation = Number(s.reputation || 0);
-  s.pendingTax = Number(s.pendingTax || 0);
-  s.castleLevel = Math.max(1, Number(s.castleLevel || 1));
 
-  s.housingCap = Number(s.housingCap || 0);
-  s.safetyValue = Number(s.safetyValue || 0);
+  s.staminaLevel = Math.max(1, Number(s.staminaLevel || 1));
+  s.staminaExp = Math.max(0, Number(s.staminaExp || 0));
+  s.stamina = clamp(Number(s.stamina || 100), 0, getMaxStamina(s));
+
+  s.managementLevel = Math.max(1, Number(s.managementLevel || 1));
+  s.managementExp = Math.max(0, Number(s.managementExp || 0));
+
+  s.castleLevel = Math.max(1, Number(s.castleLevel || 1));
+  s.castleExp = Math.max(0, Number(s.castleExp || 0));
+
+  s.tradeLevel = Math.max(1, Number(s.tradeLevel || 1));
+  s.tradeExp = Math.max(0, Number(s.tradeExp || 0));
+  s.reputation = Number(s.reputation || 0);
+  s.pendingTax = Math.max(0, Number(s.pendingTax || 0));
+
+  s.campfireSec = Math.max(0, Number(s.campfireSec || 0));
+
+  s.salaryTimer = Math.max(0, Number(s.salaryTimer || 300));
+  s.salaryDebt = Math.max(0, Number(s.salaryDebt || 0));
+
+  if (!s.houses || typeof s.houses !== "object") s.houses = {};
+  s.houses.cabin = Math.max(0, Number(s.houses.cabin || 0));
+  s.houses.stoneHouse = Math.max(0, Number(s.houses.stoneHouse || 0));
+  s.houses.wall = Math.max(0, Number(s.houses.wall || 0));
+
+  if (!s.buildings || typeof s.buildings !== "object") s.buildings = {};
+  [
+    "well",
+    "library",
+    "mill",
+    "alchemyHut",
+    "lumberMill",
+    "quarry",
+    "fishingShack",
+    "tannery",
+    "smithy",
+    "townCenter",
+    "ranch",
+    "waterChannel",
+    "windmill"
+  ].forEach((key) => {
+    s.buildings[key] = Math.max(0, Number(s.buildings[key] || 0));
+  });
+
   if (!Array.isArray(s.workers)) s.workers = [];
+  s.nextWorkerId = Math.max(1, Number(s.nextWorkerId || 1));
+
+  if (!s.merchant || typeof s.merchant !== "object") {
+    s.merchant = {
+      minuteCounter: 0,
+      present: false,
+      presentSec: 0,
+      cash: 0,
+      maxCash: 0,
+      keep: {},
+      orders: [],
+      nextOrderId: 1
+    };
+  }
+
+  if (!Array.isArray(s.plots)) s.plots = [null, null, null];
+  if (!s.ranchData || typeof s.ranchData !== "object") s.ranchData = {};
 
   s.resources = {
     ...createDefaultResources(),
     ...(s.resources || {})
   };
 
+  if (!s.skills || typeof s.skills !== "object") s.skills = createDefaultSkills();
+  Object.keys(skillLabels).forEach((key) => {
+    if (!s.skills[key] || typeof s.skills[key] !== "object") {
+      s.skills[key] = { level: 1, exp: 0 };
+    }
+    s.skills[key].level = Math.max(1, Number(s.skills[key].level || 1));
+    s.skills[key].exp = Math.max(0, Number(s.skills[key].exp || 0));
+  });
+
   s.logs = normalizeLogs(s.logs);
 
   if (!s.currentAction || typeof s.currentAction !== "object") s.currentAction = null;
   if (!Array.isArray(s.actionQueue)) s.actionQueue = [];
 
-  if (!s.research || typeof s.research !== "object") s.research = {};
   if (!s.currentResearch || typeof s.currentResearch !== "object") s.currentResearch = null;
   if (!Array.isArray(s.researchQueue)) s.researchQueue = [];
 
-  if (!s.housing || typeof s.housing !== "object") s.housing = {};
-  if (!s.buildings || typeof s.buildings !== "object") s.buildings = {};
+  if (!s.research || typeof s.research !== "object") {
+    s.research = Object.fromEntries(Object.keys(researchDefs).map((id) => [id, false]));
+  }
+  Object.keys(researchDefs).forEach((id) => {
+    s.research[id] = !!s.research[id];
+  });
 
   if (!s.ui || typeof s.ui !== "object") s.ui = {};
   if (!s.ui.mainPage) s.ui.mainPage = "production";
@@ -177,7 +344,6 @@ function addLog(text, type = "important") {
     text,
     type
   });
-
   state.logs = state.logs.slice(0, LOG_LIMIT);
 }
 
@@ -200,11 +366,9 @@ function canAfford(costs = {}) {
 
 function spendCosts(costs = {}) {
   if (!canAfford(costs)) return false;
-
   Object.entries(costs).forEach(([id, amount]) => {
     state.resources[id] -= amount;
   });
-
   return true;
 }
 
@@ -218,6 +382,27 @@ function addMainExp(amount) {
   }
 }
 
+function addStaminaExp(amount) {
+  state.staminaExp += amount;
+
+  while (state.staminaExp >= getExpToNext(state.staminaLevel)) {
+    state.staminaExp -= getExpToNext(state.staminaLevel);
+    state.staminaLevel += 1;
+    state.stamina = Math.min(getMaxStamina(state), state.stamina + 10);
+    addLog(`體力等級提升到 Lv.${state.staminaLevel}`, "important");
+  }
+}
+
+function addManagementExp(amount) {
+  state.managementExp += amount;
+
+  while (state.managementExp >= getExpToNext(state.managementLevel)) {
+    state.managementExp -= getExpToNext(state.managementLevel);
+    state.managementLevel += 1;
+    addLog(`管理等級提升到 Lv.${state.managementLevel}`, "important");
+  }
+}
+
 function getBestFoodId() {
   for (const id of foodOrder) {
     if ((state.resources[id] || 0) > 0 && typeof edibleValues[id] === "number") {
@@ -225,6 +410,36 @@ function getBestFoodId() {
     }
   }
   return "";
+}
+
+function getCycleTimeText() {
+  return (getWorkDuration(workDefs.labor) || 10).toFixed(2);
+}
+
+function getHousingUsed(state) {
+  return Array.isArray(state.workers) ? state.workers.length : 0;
+}
+
+function getHousingCap(state) {
+  return (state.houses.cabin || 0) * 2 + (state.houses.stoneHouse || 0) * 5;
+}
+
+function getSafetyValue(state) {
+  return (state.castleLevel || 1) * 5 + (state.houses.wall || 0) * 2;
+}
+
+function getTownStageName(state) {
+  let current = "荒地";
+  for (const stage of townStageDefs) {
+    if ((state.castleLevel || 1) >= stage.minCastle) {
+      current = stage.name;
+    }
+  }
+  return current;
+}
+
+function getCampfireBarPercent(state) {
+  return clamp((Number(state.campfireSec || 0) / 300) * 100, 0, 100);
 }
 
 function rest() {
@@ -237,6 +452,7 @@ function rest() {
     return;
   }
 
+  addStaminaExp(actual);
   addLog(`你休息恢復 ${actual} 體力`, "important");
 }
 
@@ -262,6 +478,8 @@ function eatResource(resourceId) {
   state.stamina = clamp(state.stamina + value, 0, getMaxStamina(state));
   const actual = state.stamina - before;
 
+  if (actual > 0) addStaminaExp(actual);
+
   addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
 }
 
@@ -271,8 +489,20 @@ function eatBestFood() {
     addLog("目前沒有可吃的食物", "important");
     return;
   }
-
   eatResource(best);
+}
+
+function claimTax() {
+  const amount = Math.floor(Number(state.pendingTax || 0));
+  if (amount <= 0) {
+    addLog("目前沒有可領取的稅收", "important");
+    return;
+  }
+
+  state.gold += amount;
+  state.pendingTax = 0;
+  addManagementExp(Math.max(1, Math.floor(amount * 0.5)));
+  addLog(`已領取稅收 ${amount} 金`, "important");
 }
 
 function isCraftHidden(def) {
@@ -375,11 +605,9 @@ function loadGame({ silent = false } = {}) {
 
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
-
   const fresh = ensureStateShape(createState());
   Object.keys(state).forEach((key) => delete state[key]);
   Object.assign(state, fresh);
-
   addLog("已重置存檔", "important");
   renderAll();
 }
@@ -399,7 +627,6 @@ function setMainPage(pageName) {
 function syncDerivedResearchUnlocks() {
   Object.entries(researchDefs).forEach(([researchId, def]) => {
     if (!state.research[researchId]) return;
-
     if (def.unlockCraft) state.research[def.unlockCraft] = true;
     if (def.unlockBuild) state.research[def.unlockBuild] = true;
     if (def.unlockHouse) state.research[def.unlockHouse] = true;
@@ -417,22 +644,19 @@ const researchSystem = createResearchSystem({
   state,
   addLog,
   gainResource,
-  countBuiltPlots: () => 0
+  countBuiltPlots: () => Array.isArray(state.plots) ? state.plots.length : 0
 });
 
-function renderPlaceholders() {
-  const setPlaceholder = (id, text) => {
-    const el = document.getElementById(id);
-    if (el && !el.innerHTML.trim()) {
-      el.innerHTML = `<div class="small muted">${text}</div>`;
-    }
-  };
+function renderCraftLane() {
+  const textEl = document.getElementById("craftText");
+  const barEl = document.getElementById("craftBar");
+  const queueEl = document.getElementById("craftQueueTop");
 
-  setPlaceholder("buildingButtons", "建築系統尚未接回 main.js");
-  setPlaceholder("plots", "農田系統尚未接回 main.js");
-  setPlaceholder("pastureArea", "牧場系統尚未接回 main.js");
-  setPlaceholder("merchantArea", "商人 / 貿易系統尚未接回 main.js");
-  setPlaceholder("workers", "工人系統尚未接回 main.js");
+  if (!textEl || !barEl || !queueEl) return;
+
+  textEl.textContent = "製作線：目前為即時製作模式。";
+  barEl.style.width = "0%";
+  queueEl.innerHTML = `<span class="small muted">目前沒有製作列隊</span>`;
 }
 
 function renderAll() {
@@ -440,11 +664,16 @@ function renderAll() {
 
   renderTopStats({
     state,
+    skillLabels,
     getExpToNext,
     getMaxStamina,
-    getBestFoodId,
-    getResourceLabel,
-    edibleValues
+    formatReadableDuration,
+    getCycleTimeText,
+    getHousingUsed,
+    getHousingCap,
+    getSafetyValue,
+    getTownStageName,
+    getCampfireBarPercent
   });
 
   renderResources({
@@ -505,9 +734,8 @@ function renderAll() {
     formatSeconds
   });
 
+  renderCraftLane();
   renderLog({ state });
-
-  renderPlaceholders();
 }
 
 function loop(now) {
@@ -530,6 +758,33 @@ function loop(now) {
   });
 
   requestAnimationFrame(loop);
+}
+
+function initExtraButtons() {
+  document.getElementById("claimTaxBtn")?.addEventListener("click", () => {
+    claimTax();
+    renderAll();
+  });
+
+  document.getElementById("seedSelectBtn")?.addEventListener("click", () => {
+    addLog("農田系統下一步接回", "important");
+  });
+
+  document.getElementById("plantBtn")?.addEventListener("click", () => {
+    addLog("農田系統下一步接回", "important");
+  });
+
+  document.getElementById("payDebtBtn")?.addEventListener("click", () => {
+    addLog("欠薪 / 工人系統下一步接回", "important");
+  });
+
+  document.getElementById("recruitBtn")?.addEventListener("click", () => {
+    addLog("工人招募系統下一步接回", "important");
+  });
+
+  document.getElementById("toggleResourcesBtn")?.addEventListener("click", () => {
+    addLog("倉庫分組收合下一步接回", "important");
+  });
 }
 
 function init() {
@@ -564,6 +819,7 @@ function init() {
     }
   });
 
+  initExtraButtons();
   setMainPage(state.ui.mainPage || "production");
   renderAll();
   requestAnimationFrame(loop);
