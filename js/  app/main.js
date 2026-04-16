@@ -3,8 +3,9 @@ import { crafts } from "../data/crafts.js";
 import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
 import { bindEvents } from "./bindEvents.js";
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
+import { createStaminaSystem, getMaxStamina } from "../systems/stamina.js";
 
-const STORAGE_KEY = "city_lord_rewrite_save_v9";
+const STORAGE_KEY = "city_lord_save_v0.0.1";
 const WORK_QUEUE_LIMIT = 3;
 const LOG_LIMIT = 80;
 
