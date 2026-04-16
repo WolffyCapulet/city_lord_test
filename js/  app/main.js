@@ -1,6 +1,9 @@
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { resourceLabels, edibleValues } from "../data/resources.js";
+import { housingDefs, buildingDefs } from "../data/buildings.js";
+
+import { createInitialState, resetState } from "../core/state.js";
 
 import { bindEvents } from "./bindEvents.js";
 
@@ -9,6 +12,7 @@ import { createStaminaSystem, getMaxStamina } from "../systems/stamina.js";
 import { createPlayerSystem, getExpToNext } from "../systems/player.js";
 import { createCraftSystem } from "../systems/craft.js";
 import { createResearchSystem } from "../systems/research.js";
+import { createBuildSystem, getBuildingLevel } from "../systems/build.js";
 
 const STORAGE_KEY = "city_lord_save_v0.0.1";
 const WORK_QUEUE_LIMIT = 3;
@@ -81,24 +85,7 @@ function normalizeLoadedLogs(logs) {
     .slice(0, LOG_LIMIT);
 }
 
-const state = {
-  gold: 0,
-  level: 1,
-  exp: 0,
-  stamina: 100,
-
-  resources: createDefaultResources(),
-  logs: [],
-
-  currentAction: null,
-  actionQueue: [],
-
-  research: {},
-  currentResearch: null,
-  researchQueue: [],
-
-  logFilter: "all"
-};
+const state = createInitialState(createDefaultResources);
 
 let lastFrameTime = performance.now();
 
@@ -139,25 +126,6 @@ function spendCosts(costs = {}) {
   return true;
 }
 
-function hardResetState() {
-  state.gold = 0;
-  state.level = 1;
-  state.exp = 0;
-  state.stamina = 100;
-
-  state.resources = createDefaultResources();
-  state.logs = [];
-
-  state.currentAction = null;
-  state.actionQueue = [];
-
-  state.research = {};
-  state.currentResearch = null;
-  state.researchQueue = [];
-
-  state.logFilter = "all";
-}
-
 const playerSystem = createPlayerSystem({
   state,
   addLog
@@ -187,6 +155,12 @@ const craftSystem = createCraftSystem({
   addMainExp: playerSystem.addMainExp,
   gainResource,
   canAfford,
+  spendCosts
+});
+
+const buildSystem = createBuildSystem({
+  state,
+  addLog,
   spendCosts
 });
 
@@ -261,6 +235,9 @@ function loadGame({ silent = false } = {}) {
       ? data.actionQueue.filter((id) => !!workDefs[id]).slice(0, WORK_QUEUE_LIMIT)
       : [];
 
+    state.housing = data.housing && typeof data.housing === "object" ? data.housing : {};
+    state.buildings = data.buildings && typeof data.buildings === "object" ? data.buildings : {};
+
     if (!silent) addLog("已讀檔", "important");
     return true;
   } catch (error) {
@@ -268,6 +245,10 @@ function loadGame({ silent = false } = {}) {
     if (!silent) addLog("讀檔失敗", "important");
     return false;
   }
+}
+
+function hardResetState() {
+  resetState(state, createDefaultResources);
 }
 
 function resetGame() {
@@ -278,6 +259,8 @@ function resetGame() {
 
 function renderTopStats() {
   const maxStaminaValue = getMaxStamina(state);
+  const housingCap = buildSystem.getHousingCapacity();
+  const safetyValue = buildSystem.getSafetyValue();
 
   if ($("gold")) $("gold").textContent = state.gold;
   if ($("level")) $("level").textContent = state.level;
@@ -285,6 +268,10 @@ function renderTopStats() {
   if ($("expNext")) $("expNext").textContent = getExpToNext(state.level);
   if ($("stamina")) $("stamina").textContent = Math.floor(state.stamina);
   if ($("maxStamina")) $("maxStamina").textContent = maxStaminaValue;
+
+  if ($("housingCap")) $("housingCap").textContent = housingCap;
+  if ($("housingUsed")) $("housingUsed").textContent = 0;
+  if ($("safetyValue")) $("safetyValue").textContent = safetyValue;
 
   const expRate = clamp((state.exp / getExpToNext(state.level)) * 100, 0, 100);
   const staminaRate = clamp((state.stamina / maxStaminaValue) * 100, 0, 100);
@@ -337,6 +324,28 @@ function bindDynamicCraftButtons(root = document) {
     if (btn.dataset.bound === "1") return;
     btn.dataset.bound = "1";
     btn.addEventListener("click", () => craftSystem.craftItem(btn.dataset.craft));
+  });
+}
+
+function bindDynamicHousingButtons(root = document) {
+  root.querySelectorAll("[data-build]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      buildSystem.buildHousing(btn.dataset.build);
+      render();
+    });
+  });
+}
+
+function bindDynamicBuildingUpgradeButtons(root = document) {
+  root.querySelectorAll("[data-upgrade-building]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      buildSystem.upgradeBuilding(btn.dataset.upgradeBuilding);
+      render();
+    });
   });
 }
 
@@ -419,6 +428,46 @@ function renderCraftList() {
     .join("");
 
   bindDynamicCraftButtons(root);
+}
+
+function renderBuildingButtons() {
+  const root = $("buildingButtons");
+  if (!root) {
+    bindDynamicHousingButtons(document);
+    return;
+  }
+
+  root.innerHTML = Object.entries(buildingDefs)
+    .map(([id, def]) => {
+      const level = getBuildingLevel(state, id);
+      const costs = buildSystem.getUpgradeCost(id);
+      const unlocked = !def.unlockResearch || state.research?.[def.unlockResearch];
+
+      const costText = Object.entries(costs)
+        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
+        .join("、");
+
+      return `
+        <div class="recipe-card">
+          <div class="top">
+            <strong>${def.name} Lv.${level}</strong>
+            <button data-upgrade-building="${id}" type="button" ${unlocked ? "" : "disabled"}>
+              升級
+            </button>
+          </div>
+          <div class="small muted">${def.effectText}</div>
+          <div class="row" style="margin-top:8px;">
+            <span class="pill">上限：${def.maxLevel}</span>
+            <span class="pill">成本：${costText || "無"}</span>
+            ${def.unlockResearch ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${def.unlockResearch}`}</span>` : ""}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  bindDynamicBuildingUpgradeButtons(root);
+  bindDynamicHousingButtons(document);
 }
 
 function renderActionLane() {
@@ -527,6 +576,7 @@ function render() {
   renderActionLane();
   renderResearchLane();
   renderCraftList();
+  renderBuildingButtons();
   renderLog();
 }
 
@@ -562,6 +612,7 @@ function init() {
 
   renderWorkButtons();
   renderCraftList();
+  renderBuildingButtons();
   render();
   requestAnimationFrame(loop);
 }
