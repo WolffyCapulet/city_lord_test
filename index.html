@@ -167,7 +167,7 @@
     <div class="header-top">
       <div>
         <h1 id="gameTitle">城主村莊測試版 v0.1.0.4</h1>
-        <div class="muted small" id="gameVersionNote">v0.1.0.3：穩定回復版：以可運行的 0.1.0.2 為基礎，保留舊存檔相容與既有數據。</div>
+        <div class="muted small" id="gameVersionNote">v0.1.0.4：穩定回復版：以可運行的 0.1.0.2 為基礎，保留舊存檔相容與既有數據。</div>
       </div>
       <div class="header-actions">
         <button id="saveBtn" class="tiny-btn">存檔</button>
@@ -569,7 +569,7 @@ const resourceLabels = {
   wood:'木頭', stone:'石頭', dirt:'泥土', sand:'沙子',
   copperOre:'銅礦', coal:'煤炭', ironOre:'鐵礦', silverOre:'銀礦', goldOre:'金礦', magnetite:'磁石', crystal:'水晶', gem:'寶石', coalPowder:'碳粉', copperPowder:'銅粉', ironPowder:'鐵粉', silverPowder:'銀粉', goldPowder:'金粉', magnetitePowder:'磁石粉', crystalPowder:'水晶粉', gemPowder:'寶石粉',
   herb:'草藥', rareHerb:'稀有藥草', mushroom:'蘑菇', branch:'樹枝', leaf:'樹葉', fiber:'纖維', ginseng:'人蔘',
-  apple:'蘋果', wheat:'小麥', cotton:'棉花', carrot:'蘿蔔', wheatFlour:'小麥粉', bread:'麵包', cottonThread:'棉線', cottonCloth:'棉布', grassThread:'草線', grassCloth:'草布', boneMeal:'骨粉', compost:'肥料堆',
+  apple:'蘋果', wheat:'小麥', cotton:'棉花', carrot:'蘿蔔', wheatFlour:'小麥粉', cottonThread:'棉線', cottonCloth:'棉布', grassThread:'草線', grassCloth:'草布', boneMeal:'骨粉', compost:'肥料堆',
   wheatSeed:'小麥種子', mushroomSpore:'蘑菇菌種', appleSeed:'蘋果種子', cottonSeed:'棉花種子', carrotSeed:'蘿蔔種子',
   shellfish:'貝類', shell:'貝殼', clamMeat:'蛤肉', pearl:'珍珠', coral:'珊瑚',
   fish:'魚', shrimp:'蝦子', crab:'螃蟹', snail:'蝸牛', chicken:'雞', egg:'雞蛋', rawChicken:'生雞肉', feather:'羽毛',
@@ -916,10 +916,11 @@ function scheduleWorkAction(workId, qty=1, mode='start'){
   if(state.productionAction || state.isResting) cancelCurrentProduction({startNext:false, silent:true});
   state.autoWork = workId;
   state.autoWorkCount = qty < 0 ? -1 : Math.max(1, qty);
+  const suffix = qty < 0 ? '（無限）' : ` × ${qty}`;
   if(beginWorkCycle(workId, {silent:true})){
-    addLog(`${hadActive ? '已切換生產為' : ''}${workDefs[workId].name}${qty < 0 ? '（無限）' : ` × ${qty}`}。`.replace(/^已切換生產為/, '已切換生產為'));
+    addLog(`${hadActive ? '已切換生產為' : '已開始生產：'}${workDefs[workId].name}${suffix}。`);
   }else{
-    addLog(`已設定生產：${workDefs[workId].name}${qty < 0 ? '（無限）' : ` × ${qty}`}。`);
+    addLog(`已設定生產：${workDefs[workId].name}${suffix}。`);
   }
   render();
 }
@@ -1084,7 +1085,7 @@ function renderResearchQueue(){
   pill.className = 'queue-pill' + (qCount ? ' clickable' : '');
   pill.textContent = qCount ? `+${qCount} 列隊｜${formatQueueTimeShort(qInfo.total, qInfo.infinite)}` : '等待隊列：空';
   if(qCount){
-    pill.title = `目前共有 ${qCount} 格列隊，總次數 ${qInfo.infinite ? '含∞' : qTotal}，預估時間 ${formatQueueTimeShort(qInfo.total, qInfo.infinite)}。點擊可${state.ui.researchQueueExpanded ? '收合' : '展開'}。`;
+    pill.title = `目前共有 ${qCount} 格列隊，總次數 ${qInfo.infinite ? '含∞' : qTotal}，預估時間 ${formatQueueTimeShort(qInfo.total, qInfo.infinite)}。點擊可查看列隊詳情。`;
     pill.onpointerdown = (e)=>{ e.preventDefault(); e.stopPropagation(); openQueueModal('research'); };
     pill.onclick = (e)=>e.preventDefault();
   }
@@ -1429,8 +1430,6 @@ function normalizeState(s){
   if(!s.ui.shopSellQty || typeof s.ui.shopSellQty !== 'object') s.ui.shopSellQty = {};
   if(typeof s.ui.manualSeedSelection !== 'string' || !farmingDefs[s.ui.manualSeedSelection]) s.ui.manualSeedSelection = 'wheatSeed';
   if(typeof s.ui.farmerSeedPreference !== 'string' || (s.ui.farmerSeedPreference !== 'auto' && !farmingDefs[s.ui.farmerSeedPreference])) s.ui.farmerSeedPreference = 'auto';
-  if(typeof s.ui.workQueueExpanded !== 'boolean') s.ui.workQueueExpanded = false;
-  if(typeof s.ui.researchQueueExpanded !== 'boolean') s.ui.researchQueueExpanded = false;
   if(typeof s.ui.workQueueExpanded !== 'boolean') s.ui.workQueueExpanded = false;
   if(typeof s.ui.researchQueueExpanded !== 'boolean') s.ui.researchQueueExpanded = false;
 
@@ -3961,7 +3960,6 @@ function render(){
   const merchantActiveEl = document.activeElement;
   const merchantFocused = !!(merchantActiveEl && merchantActiveEl.closest && merchantActiveEl.closest('#merchantArea') && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/i.test(merchantActiveEl.tagName || ''));
   if(!merchantFocused && !isMerchantUiInteractionLocked()) renderMerchant();
-  renderWorkerCraftSelect();
   renderWorkQueue();
   renderCraftQueue();
   renderResearchQueue();
@@ -5462,7 +5460,7 @@ ${safetyBand.desc}`;
   });
   root.appendChild(grid);
 }
-function renderWorkerCraftSelect(){ const box = document.getElementById('workerCraftSelect'); if(box) box.closest('label')?.parentElement?.remove(); }
+function renderWorkerCraftSelect(){ /* legacy hook removed: workerCraftSelect no longer exists in DOM */ }
 
 function renderLog(){
   const root = document.getElementById('log');
@@ -5594,6 +5592,12 @@ function loop(now){
 }
 window.addEventListener('error', (e) => {
   console.error('[window.error]', e.error || e.message);
+});
+window.addEventListener('beforeunload', () => { try { saveGame(); } catch(err) { console.error('[beforeunload:save]', err); } });
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden'){
+    try { saveGame(); } catch(err) { console.error('[visibilitychange:save]', err); }
+  }
 });
 render();
 requestAnimationFrame(loop);
