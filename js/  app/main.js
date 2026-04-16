@@ -8,17 +8,16 @@ import { bindEvents } from "./bindEvents.js";
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 
-import { components } from "../ui/components.js";
-import { modals } from "../ui/modals.js";
-
-import { renderTopStats } from "../ui/render/renderTopStats.js";
-import { renderResources } from "../ui/render/renderResources.js";
-import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
-import { renderCraftList } from "../ui/render/renderCraftList.js";
-import { renderResearchArea } from "../ui/render/renderResearchArea.js";
-import { renderActionLane } from "../ui/render/renderActionLane.js";
-import { renderResearchLane } from "../ui/render/renderResearchLane.js";
-import { renderLog } from "../ui/render/renderLog.js";
+import {
+  renderTopStats,
+  renderResources,
+  renderWorkButtons,
+  renderCraftList,
+  renderResearchArea,
+  renderActionLane,
+  renderResearchLane,
+  renderLog
+} from "../ui/components.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v1";
 const LOG_LIMIT = 100;
