@@ -19,7 +19,7 @@ import {
   renderLog
 } from "../ui/components.js";
 
-const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
+const STORAGE_KEY = "city_lord_modular_min_v1";
 const LOG_LIMIT = 100;
 const WORK_QUEUE_LIMIT = 3;
 
@@ -422,7 +422,7 @@ const researchSystem = createResearchSystem({
 
 function renderPlaceholders() {
   const setPlaceholder = (id, text) => {
-    const el = $(id);
+    const el = document.getElementById(id);
     if (el && !el.innerHTML.trim()) {
       el.innerHTML = `<div class="small muted">${text}</div>`;
     }
