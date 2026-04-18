@@ -16,6 +16,7 @@ import {
   renderResearchArea,
   renderActionLane,
   renderResearchLane,
+  renderSkillPills,
   renderLog
 } from "../ui/components.js";
 
