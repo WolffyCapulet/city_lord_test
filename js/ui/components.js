@@ -1,3 +1,31 @@
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function setWidth(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.style.width = value;
+}
+
+function formatInt(value) {
+  return Math.floor(Number(value || 0));
+}
+
+function safeNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export function renderTopStats({
   state,
   getExpToNext,
@@ -6,46 +34,37 @@ export function renderTopStats({
   getResourceLabel,
   edibleValues
 }) {
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
+  const level = Math.max(1, safeNumber(state.level, 1));
+  const expNext = Math.max(1, safeNumber(getExpToNext(level), 1));
+  const maxStamina = Math.max(1, safeNumber(getMaxStamina(state), 100));
+  const stamina = Math.max(0, safeNumber(state.stamina, 0));
 
-  const setWidth = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.style.width = value;
-  };
-
-  const expNext = getExpToNext(state.level);
-  const maxStamina = getMaxStamina(state);
-
-  setText("gold", Math.floor(state.gold || 0));
-  setText("level", state.level || 1);
-  setText("exp", Math.floor(state.exp || 0));
+  setText("gold", formatInt(state.gold));
+  setText("level", level);
+  setText("exp", formatInt(state.exp));
   setText("expNext", expNext);
-  setText("intelligence", state.intelligence || 0);
-  setText("stamina", Math.floor(state.stamina || 0));
+  setText("intelligence", formatInt(state.intelligence));
+  setText("stamina", formatInt(stamina));
   setText("maxStamina", maxStamina);
 
-  setText("managementLevel", state.managementLevel || 1);
-  setText("managementExp", Math.floor(state.managementExp || 0));
-  setText("managementExpNext", getExpToNext(state.managementLevel || 1));
+  setText("managementLevel", Math.max(1, formatInt(state.managementLevel || 1)));
+  setText("managementExp", formatInt(state.managementExp));
+  setText("managementExpNext", Math.max(1, safeNumber(getExpToNext(state.managementLevel || 1), 1)));
 
-  setText("tradeLevel", state.tradeLevel || 1);
-  setText("reputationValue", (state.reputation || 0).toFixed(1));
-  setText("taxIncome", Math.floor(state.pendingTax || 0));
-  setText("castleLevel", state.castleLevel || 1);
+  setText("tradeLevel", Math.max(1, formatInt(state.tradeLevel || 1)));
+  setText("reputationValue", safeNumber(state.reputation, 0).toFixed(1));
+  setText("taxIncome", formatInt(state.pendingTax));
+  setText("castleLevel", Math.max(1, formatInt(state.castleLevel || 1)));
 
   setText("housingUsed", Array.isArray(state.workers) ? state.workers.length : 0);
-  setText("housingCap", state.housingCap || 0);
-  setText("safetyValue", state.safetyValue || 0);
+  setText("housingCap", formatInt(state.housingCap));
+  setText("safetyValue", formatInt(state.safetyValue));
 
-  setWidth("expBar", `${Math.min(100, Math.max(0, ((state.exp || 0) / expNext) * 100))}%`);
-  setWidth("staminaBar", `${Math.min(100, Math.max(0, ((state.stamina || 0) / maxStamina) * 100))}%`);
-  setWidth(
-    "managementBar",
-    `${Math.min(100, Math.max(0, ((state.managementExp || 0) / getExpToNext(state.managementLevel || 1)) * 100))}%`
-  );
+  const managementExpNext = Math.max(1, safeNumber(getExpToNext(state.managementLevel || 1), 1));
+
+  setWidth("expBar", `${Math.min(100, Math.max(0, (safeNumber(state.exp, 0) / expNext) * 100))}%`);
+  setWidth("staminaBar", `${Math.min(100, Math.max(0, (stamina / maxStamina) * 100))}%`);
+  setWidth("managementBar", `${Math.min(100, Math.max(0, (safeNumber(state.managementExp, 0) / managementExpNext) * 100))}%`);
 
   const eatHint = document.getElementById("eatHint");
   if (eatHint) {
@@ -64,17 +83,22 @@ export function renderResources({
   const root = document.getElementById("resources");
   if (!root) return;
 
-  const totalKinds = Object.keys(state.resources || {}).length;
-  const totalAmount = Object.values(state.resources || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+  const entries = Object.entries(state.resources || {}).sort((a, b) =>
+    getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant")
+  );
+
+  const totalKinds = entries.length;
+  const totalAmount = entries.reduce((sum, [, n]) => sum + safeNumber(n, 0), 0);
 
   root.innerHTML = `
     <div class="small muted" style="margin-bottom:8px;">
-      物資種類：${totalKinds}｜總數量：${Math.floor(totalAmount)}
+      物資種類：${totalKinds}｜總數量：${formatInt(totalAmount)}
     </div>
     <div class="resource-list">
-      ${Object.entries(state.resources || {})
-        .sort((a, b) => getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant"))
+      ${entries
         .map(([id, value]) => {
+          const label = escapeHtml(getResourceLabel(id));
+          const amount = formatInt(value);
           const edible =
             typeof edibleValues[id] === "number"
               ? `<div class="meta">可食用：${edibleValues[id] >= 0 ? "+" : ""}${edibleValues[id]} 體力</div>`
@@ -82,8 +106,8 @@ export function renderResources({
 
           return `
             <div class="resource-item">
-              <div>${getResourceLabel(id)}</div>
-              <div><strong>${Math.floor(value)}</strong></div>
+              <div>${label}</div>
+              <div><strong>${amount}</strong></div>
               ${edible}
             </div>
           `;
@@ -105,9 +129,11 @@ export function renderWorkButtons({
 
   root.innerHTML = Object.entries(workDefs)
     .map(([id, def]) => {
-      const cost = getWorkCost(def);
-      const duration = getWorkDuration(def);
-      return `<button data-work="${id}" type="button">${def.name}（-${cost} 體力 / ${formatSeconds(duration)}）</button>`;
+      const cost = safeNumber(getWorkCost(def), 0);
+      const duration = safeNumber(getWorkDuration(def), 0);
+      return `<button data-work="${escapeHtml(id)}" type="button">${escapeHtml(def.name)}（-${cost} 體力 / ${escapeHtml(
+        formatSeconds(duration)
+      )}）</button>`;
     })
     .join("");
 
@@ -133,25 +159,29 @@ export function renderCraftList({
       const unlocked = isCraftUnlocked(def);
 
       const costText = Object.entries(def.costs || {})
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
+        .map(([resId, amount]) => `${escapeHtml(getResourceLabel(resId))} ${amount}`)
         .join("、");
 
       const yieldText = Object.entries(def.yields || {})
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
+        .map(([resId, amount]) => `${escapeHtml(getResourceLabel(resId))} ${amount}`)
         .join("、");
 
       return `
         <div class="recipe-card">
           <div class="top">
-            <strong>${def.name}</strong>
-            <button data-craft="${id}" type="button" ${unlocked ? "" : "disabled"}>製作</button>
+            <strong>${escapeHtml(def.name)}</strong>
+            <button data-craft="${escapeHtml(id)}" type="button" ${unlocked ? "" : "disabled"}>製作</button>
           </div>
-          <div class="small muted">${def.skill || "craft"}</div>
+          <div class="small muted">${escapeHtml(def.skill || "craft")}</div>
           <div class="row" style="margin-top:8px;">
-            <span class="pill">消耗體力：${def.stamina ?? 1}</span>
+            <span class="pill">消耗體力：${safeNumber(def.stamina ?? 1, 1)}</span>
             <span class="pill">材料：${costText || "無"}</span>
             <span class="pill">產出：${yieldText || "無"}</span>
-            ${def.unlock ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${def.unlock}`}</span>` : ""}
+            ${
+              def.unlock
+                ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${escapeHtml(def.unlock)}`}</span>`
+                : ""
+            }
           </div>
         </div>
       `;
@@ -181,13 +211,13 @@ export function renderResearchArea({
 
   const bookCards = Object.entries(books)
     .map(([id, book]) => {
-      const own = Math.floor(state.resources?.[id] || 0);
+      const own = formatInt(state.resources?.[id] || 0);
       return `
         <div class="book-card">
-          <strong>${book.name}</strong>
+          <strong>${escapeHtml(book.name)}</strong>
           <div class="small muted">持有：${own}</div>
-          <div class="small muted">閱讀：${formatSeconds(book.duration)}</div>
-          <button data-read-book="${id}" type="button" ${own > 0 ? "" : "disabled"}>閱讀</button>
+          <div class="small muted">閱讀：${escapeHtml(formatSeconds(book.duration))}</div>
+          <button data-read-book="${escapeHtml(id)}" type="button" ${own > 0 ? "" : "disabled"}>閱讀</button>
         </div>
       `;
     })
@@ -204,12 +234,14 @@ export function renderResearchArea({
           return `
             <div class="research-card">
               <div class="research-summary">
-                <strong>${def.name}</strong>
+                <strong>${escapeHtml(def.name)}</strong>
                 <div class="research-status ${done ? "done" : ""}">
-                  ${done ? "已完成" : available ? "可研究" : getMissingRequirementText(def)}
+                  ${done ? "已完成" : escapeHtml(available ? "可研究" : getMissingRequirementText(def))}
                 </div>
               </div>
-              <button data-start-research="${id}" type="button" class="research-mini-btn" ${done ? "disabled" : ""}>
+              <button data-start-research="${escapeHtml(id)}" type="button" class="research-mini-btn" ${
+            done ? "disabled" : ""
+          }>
                 ${done ? "完成" : "研究"}
               </button>
             </div>
@@ -219,7 +251,7 @@ export function renderResearchArea({
 
       return `
         <details open>
-          <summary>${category}</summary>
+          <summary>${escapeHtml(category)}</summary>
           <div class="research-grid">${cards}</div>
         </details>
       `;
@@ -260,19 +292,16 @@ export function renderActionLane({
 
   if (state.currentAction && workDefs[state.currentAction.id]) {
     const def = workDefs[state.currentAction.id];
-    const progress = Math.min(
-      100,
-      Math.max(
-        0,
-        ((state.currentAction.total - state.currentAction.remaining) / state.currentAction.total) * 100
-      )
-    );
+    const total = Math.max(0.01, safeNumber(state.currentAction.total, 0.01));
+    const remaining = Math.max(0, safeNumber(state.currentAction.remaining, 0));
 
-    textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(state.currentAction.remaining)}`;
+    const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
+
+    textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
   } else if (state.actionQueue?.length > 0) {
     const nextDef = workDefs[state.actionQueue[0]];
-    if (nextDef && state.stamina < getWorkCost(nextDef)) {
+    if (nextDef && safeNumber(state.stamina, 0) < getWorkCost(nextDef)) {
       textEl.textContent = `等待中：${nextDef.name}｜體力不足，需要 ${getWorkCost(nextDef)} 體力`;
     } else {
       textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知工作"}`;
@@ -285,7 +314,7 @@ export function renderActionLane({
 
   queueEl.innerHTML = state.actionQueue?.length
     ? state.actionQueue
-        .map((id, index) => `<span class="queue-pill">${index + 1}. ${workDefs[id]?.name || id}</span>`)
+        .map((id, index) => `<span class="queue-pill">${index + 1}. ${escapeHtml(workDefs[id]?.name || id)}</span>`)
         .join("")
     : `<span class="small muted">行動列為空</span>`;
 
@@ -304,15 +333,11 @@ export function renderResearchLane({
   if (!textEl || !barEl || !queueEl) return;
 
   if (state.currentResearch) {
-    const progress = Math.min(
-      100,
-      Math.max(
-        0,
-        ((state.currentResearch.total - state.currentResearch.remaining) / state.currentResearch.total) * 100
-      )
-    );
+    const total = Math.max(0.01, safeNumber(state.currentResearch.total, 0.01));
+    const remaining = Math.max(0, safeNumber(state.currentResearch.remaining, 0));
+    const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
 
-    textEl.textContent = `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(state.currentResearch.remaining)}`;
+    textEl.textContent = `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
   } else if (state.researchQueue?.length > 0) {
     textEl.textContent = `等待中：下一項 ${state.researchQueue[0].name}`;
@@ -324,7 +349,7 @@ export function renderResearchLane({
 
   queueEl.innerHTML = state.researchQueue?.length
     ? state.researchQueue
-        .map((item, index) => `<span class="queue-pill">${index + 1}. ${item.name}</span>`)
+        .map((item, index) => `<span class="queue-pill">${index + 1}. ${escapeHtml(item.name)}</span>`)
         .join("")
     : `<span class="small muted">研究列為空</span>`;
 }
@@ -345,7 +370,9 @@ export function renderLog({ state }) {
       .map((item) => {
         const text = typeof item === "string" ? item : item.text;
         const time = typeof item === "string" ? "" : item.time || "";
-        return `<div class="log-item">${time ? `<span class="small muted">${time}</span> ` : ""}${text}</div>`;
+        return `<div class="log-item">${time ? `<span class="small muted">${escapeHtml(time)}</span> ` : ""}${escapeHtml(
+          text
+        )}</div>`;
       })
       .join("");
   }
