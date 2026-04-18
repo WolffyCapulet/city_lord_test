@@ -456,6 +456,14 @@ function renderAll() {
     getResourceLabel,
     edibleValues
   });
+  
+  renderSkillPills({
+    state,
+    skillLabels,
+    expToNext: getExpToNext,
+    format: (v) => Math.floor(Number(v || 0)).toString(),
+    getSeedReturnDisplayText
+  });
 
   renderResources({
     state,
