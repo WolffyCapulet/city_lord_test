@@ -39,6 +39,10 @@ function formatSeconds(seconds) {
   return `${Math.max(0, seconds).toFixed(1)} 秒`;
 }
 
+function qsa(selector, root = document) {
+  return [...root.querySelectorAll(selector)];
+}
+
 function getExpToNext(level) {
   return Math.round(5 + 2.5 * level * (level - 1));
 }
@@ -387,11 +391,11 @@ function resetGame() {
 function setMainPage(pageName) {
   state.ui.mainPage = pageName;
 
-  qsa("[data-main-page]").forEach((panel) => {
+  document.querySelectorAll("[data-main-page]").forEach((panel) => {
     panel.classList.toggle("page-hidden", panel.dataset.mainPage !== pageName);
   });
 
-  qsa("[data-main-nav]").forEach((btn) => {
+  document.querySelectorAll("[data-main-nav]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mainNav === pageName);
   });
 }
@@ -419,6 +423,11 @@ const researchSystem = createResearchSystem({
   gainResource,
   countBuiltPlots: () => 0
 });
+
+function showFeatureStub(featureName) {
+  addLog(`${featureName}功能尚未接回 main.js`, "important");
+  renderAll();
+}
 
 function renderPlaceholders() {
   const setPlaceholder = (id, text) => {
@@ -561,7 +570,14 @@ function init() {
     },
     onSetMainPage: (pageName) => {
       setMainPage(pageName);
-    }
+    },
+    onClaimTax: () => showFeatureStub("稅收"),
+    onPayDebt: () => showFeatureStub("支付欠薪"),
+    onRecruitWorker: () => showFeatureStub("招募工人"),
+    onOpenSeedSelect: () => showFeatureStub("種子選擇"),
+    onPlant: () => showFeatureStub("種植"),
+    onToggleFarmerSeedMode: () => showFeatureStub("農夫種植模式"),
+    onToggleFarmerAutoFertilize: () => showFeatureStub("自動施肥")
   });
 
   setMainPage(state.ui.mainPage || "production");
