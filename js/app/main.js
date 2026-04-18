@@ -16,13 +16,36 @@ import {
   renderResearchArea,
   renderActionLane,
   renderResearchLane,
-  renderSkillPills,
   renderLog
 } from "../ui/components.js";
+
+import { renderSkillPills } from "../ui/render/renderSkillPills.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
 const WORK_QUEUE_LIMIT = 3;
+const skillLabels = {
+  labor: "打工",
+  lumber: "伐木",
+  mining: "挖礦",
+  fishing: "釣魚",
+  hunting: "狩獵",
+  gathering: "採集",
+  digging: "挖掘",
+  farming: "耕種",
+  woodworking: "木工",
+  masonry: "石工",
+  cooking: "烹飪",
+  smelting: "冶煉",
+  alchemy: "煉金",
+  tanning: "裁縫"
+};
+
+function createDefaultSkills() {
+  return Object.fromEntries(
+    Object.keys(skillLabels).map((id) => [id, { level: 1, exp: 0 }])
+  );
+}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -110,6 +133,7 @@ function createState() {
     workers: [],
 
     resources: createDefaultResources(),
+    skills: createDefaultSkills(),
     logs: [],
 
     currentAction: null,
@@ -152,6 +176,18 @@ function ensureStateShape(s) {
     ...createDefaultResources(),
     ...(s.resources || {})
   };
+
+  s.skills = {
+    ...createDefaultSkills(),
+    ...(s.skills || {})
+  };
+
+  Object.keys(skillLabels).forEach((id) => {
+    s.skills[id] = {
+      level: Math.max(1, Number(s.skills[id]?.level || 1)),
+      exp: Math.max(0, Number(s.skills[id]?.exp || 0))
+    };
+  });
 
   s.logs = normalizeLogs(s.logs);
 
@@ -220,6 +256,18 @@ function addMainExp(amount) {
     state.exp -= getExpToNext(state.level);
     state.level += 1;
     addLog(`主等級提升到 Lv.${state.level}`, "important");
+  }
+}
+
+function addSkillExp(skillId, amount = 1) {
+  if (!state.skills?.[skillId]) return;
+
+  state.skills[skillId].exp += amount;
+
+  while (state.skills[skillId].exp >= getExpToNext(state.skills[skillId].level)) {
+    state.skills[skillId].exp -= getExpToNext(state.skills[skillId].level);
+    state.skills[skillId].level += 1;
+    addLog(`${skillLabels[skillId] || skillId} 等級提升到 Lv.${state.skills[skillId].level}`, "important");
   }
 }
 
@@ -323,6 +371,10 @@ function craftItem(craftId) {
   }
 
   addMainExp(1);
+
+  if (def.skill) {
+    addSkillExp(def.skill, 1);
+  }
 
   const gainText = Object.entries(def.yields || {})
     .map(([id, amount]) => `${getResourceLabel(id)} +${amount}`)
@@ -456,13 +508,11 @@ function renderAll() {
     getResourceLabel,
     edibleValues
   });
-  
+
   renderSkillPills({
     state,
     skillLabels,
-    expToNext: getExpToNext,
-    format: (v) => Math.floor(Number(v || 0)).toString(),
-    getSeedReturnDisplayText
+    expToNext: getExpToNext
   });
 
   renderResources({
@@ -551,7 +601,7 @@ function loop(now) {
 }
 
 function init() {
-  loadGame({ silent: true });
+  loadGame({ silent = true });
 
   bindEvents({
     onRest: () => {
