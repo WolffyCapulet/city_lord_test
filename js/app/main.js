@@ -601,7 +601,7 @@ function loop(now) {
 }
 
 function init() {
-  loadGame({ silent = true });
+  loadGame({ silent : true });
 
   bindEvents({
     onRest: () => {
