@@ -1,3 +1,7 @@
+export { renderResources } from "./render/renderResources.js";
+export { renderWorkButtons } from "./render/renderWorkButtons.js";
+export { renderCraftList } from "./render/renderCraftList.js";
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -26,6 +30,20 @@ function safeNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function ensureResearchUiState(state) {
+  if (!state.ui) state.ui = {};
+  if (!state.ui.openSections) state.ui.openSections = {};
+  if (!state.ui.openSections.research) {
+    state.ui.openSections.research = {
+      books: true
+    };
+  }
+}
+
+function getResearchSectionKey(category) {
+  return `category:${category || "other"}`;
+}
+
 export function renderTopStats({
   state,
   getExpToNext,
@@ -49,7 +67,10 @@ export function renderTopStats({
 
   setText("managementLevel", Math.max(1, formatInt(state.managementLevel || 1)));
   setText("managementExp", formatInt(state.managementExp));
-  setText("managementExpNext", Math.max(1, safeNumber(getExpToNext(state.managementLevel || 1), 1)));
+  setText(
+    "managementExpNext",
+    Math.max(1, safeNumber(getExpToNext(state.managementLevel || 1), 1))
+  );
 
   setText("tradeLevel", Math.max(1, formatInt(state.tradeLevel || 1)));
   setText("reputationValue", safeNumber(state.reputation, 0).toFixed(1));
@@ -60,137 +81,36 @@ export function renderTopStats({
   setText("housingCap", formatInt(state.housingCap));
   setText("safetyValue", formatInt(state.safetyValue));
 
-  const managementExpNext = Math.max(1, safeNumber(getExpToNext(state.managementLevel || 1), 1));
+  const managementExpNext = Math.max(
+    1,
+    safeNumber(getExpToNext(state.managementLevel || 1), 1)
+  );
 
-  setWidth("expBar", `${Math.min(100, Math.max(0, (safeNumber(state.exp, 0) / expNext) * 100))}%`);
-  setWidth("staminaBar", `${Math.min(100, Math.max(0, (stamina / maxStamina) * 100))}%`);
-  setWidth("managementBar", `${Math.min(100, Math.max(0, (safeNumber(state.managementExp, 0) / managementExpNext) * 100))}%`);
+  setWidth(
+    "expBar",
+    `${Math.min(100, Math.max(0, (safeNumber(state.exp, 0) / expNext) * 100))}%`
+  );
+  setWidth(
+    "staminaBar",
+    `${Math.min(100, Math.max(0, (stamina / maxStamina) * 100))}%`
+  );
+  setWidth(
+    "managementBar",
+    `${Math.min(
+      100,
+      Math.max(0, (safeNumber(state.managementExp, 0) / managementExpNext) * 100)
+    )}%`
+  );
 
   const eatHint = document.getElementById("eatHint");
   if (eatHint) {
     const bestFood = getBestFoodId();
     eatHint.textContent = bestFood
-      ? `目前最佳食物：${getResourceLabel(bestFood)}（${edibleValues[bestFood] >= 0 ? "+" : ""}${edibleValues[bestFood]}）`
+      ? `目前最佳食物：${getResourceLabel(bestFood)}（${
+          edibleValues[bestFood] >= 0 ? "+" : ""
+        }${edibleValues[bestFood]}）`
       : "目前沒有可吃的食物";
   }
-}
-
-export function renderResources({
-  state,
-  getResourceLabel,
-  edibleValues
-}) {
-  const root = document.getElementById("resources");
-  if (!root) return;
-
-  const entries = Object.entries(state.resources || {}).sort((a, b) =>
-    getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant")
-  );
-
-  const totalKinds = entries.length;
-  const totalAmount = entries.reduce((sum, [, n]) => sum + safeNumber(n, 0), 0);
-
-  root.innerHTML = `
-    <div class="small muted" style="margin-bottom:8px;">
-      物資種類：${totalKinds}｜總數量：${formatInt(totalAmount)}
-    </div>
-    <div class="resource-list">
-      ${entries
-        .map(([id, value]) => {
-          const label = escapeHtml(getResourceLabel(id));
-          const amount = formatInt(value);
-          const edible =
-            typeof edibleValues[id] === "number"
-              ? `<div class="meta">可食用：${edibleValues[id] >= 0 ? "+" : ""}${edibleValues[id]} 體力</div>`
-              : "";
-
-          return `
-            <div class="resource-item">
-              <div>${label}</div>
-              <div><strong>${amount}</strong></div>
-              ${edible}
-            </div>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
-}
-
-export function renderWorkButtons({
-  workDefs,
-  getWorkCost,
-  getWorkDuration,
-  formatSeconds,
-  onWorkClick
-}) {
-  const root = document.getElementById("workButtons");
-  if (!root) return;
-
-  root.innerHTML = Object.entries(workDefs)
-    .map(([id, def]) => {
-      const cost = safeNumber(getWorkCost(def), 0);
-      const duration = safeNumber(getWorkDuration(def), 0);
-      return `<button data-work="${escapeHtml(id)}" type="button">${escapeHtml(def.name)}（-${cost} 體力 / ${escapeHtml(
-        formatSeconds(duration)
-      )}）</button>`;
-    })
-    .join("");
-
-  root.querySelectorAll("[data-work]").forEach((btn) => {
-    btn.addEventListener("click", () => onWorkClick(btn.dataset.work));
-  });
-}
-
-export function renderCraftList({
-  crafts,
-  getResourceLabel,
-  isCraftHidden,
-  isCraftUnlocked,
-  onCraftClick
-}) {
-  const root = document.getElementById("craftList");
-  if (!root) return;
-
-  const entries = Object.entries(crafts).filter(([, def]) => !isCraftHidden(def));
-
-  root.innerHTML = entries
-    .map(([id, def]) => {
-      const unlocked = isCraftUnlocked(def);
-
-      const costText = Object.entries(def.costs || {})
-        .map(([resId, amount]) => `${escapeHtml(getResourceLabel(resId))} ${amount}`)
-        .join("、");
-
-      const yieldText = Object.entries(def.yields || {})
-        .map(([resId, amount]) => `${escapeHtml(getResourceLabel(resId))} ${amount}`)
-        .join("、");
-
-      return `
-        <div class="recipe-card">
-          <div class="top">
-            <strong>${escapeHtml(def.name)}</strong>
-            <button data-craft="${escapeHtml(id)}" type="button" ${unlocked ? "" : "disabled"}>製作</button>
-          </div>
-          <div class="small muted">${escapeHtml(def.skill || "craft")}</div>
-          <div class="row" style="margin-top:8px;">
-            <span class="pill">消耗體力：${safeNumber(def.stamina ?? 1, 1)}</span>
-            <span class="pill">材料：${costText || "無"}</span>
-            <span class="pill">產出：${yieldText || "無"}</span>
-            ${
-              def.unlock
-                ? `<span class="pill ${unlocked ? "" : "bad"}">${unlocked ? "已解鎖" : `需研究：${escapeHtml(def.unlock)}`}</span>`
-                : ""
-            }
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  root.querySelectorAll("[data-craft]").forEach((btn) => {
-    btn.addEventListener("click", () => onCraftClick(btn.dataset.craft));
-  });
 }
 
 export function renderResearchArea({
@@ -207,17 +127,40 @@ export function renderResearchArea({
   const root = document.getElementById("researchArea");
   if (!root) return;
 
-  const categories = [...new Set(Object.values(researchDefs).map((def) => def.category || "other"))];
+  ensureResearchUiState(state);
+
+  const categories = [
+    ...new Set(Object.values(researchDefs).map((def) => def.category || "other"))
+  ];
+
+  if (typeof state.ui.openSections.research.books !== "boolean") {
+    state.ui.openSections.research.books = true;
+  }
+
+  categories.forEach((category) => {
+    const key = getResearchSectionKey(category);
+    if (typeof state.ui.openSections.research[key] !== "boolean") {
+      state.ui.openSections.research[key] = true;
+    }
+  });
 
   const bookCards = Object.entries(books)
     .map(([id, book]) => {
       const own = formatInt(state.resources?.[id] || 0);
+      const title = [
+        book.name,
+        `持有：${own}`,
+        `閱讀：${formatSeconds(book.duration)}`
+      ].join("\n");
+
       return `
-        <div class="book-card">
+        <div class="book-card" title="${escapeHtml(title)}">
           <strong>${escapeHtml(book.name)}</strong>
           <div class="small muted">持有：${own}</div>
           <div class="small muted">閱讀：${escapeHtml(formatSeconds(book.duration))}</div>
-          <button data-read-book="${escapeHtml(id)}" type="button" ${own > 0 ? "" : "disabled"}>閱讀</button>
+          <button data-read-book="${escapeHtml(id)}" type="button" ${
+        own > 0 ? "" : "disabled"
+      }>閱讀</button>
         </div>
       `;
     })
@@ -225,23 +168,39 @@ export function renderResearchArea({
 
   const blocks = categories
     .map((category) => {
+      const key = getResearchSectionKey(category);
+      const isOpen = !!state.ui.openSections.research[key];
+
       const cards = Object.entries(researchDefs)
         .filter(([, def]) => (def.category || "other") === category)
         .map(([id, def]) => {
           const done = isResearchCompleted(id);
           const available = meetsResearchRequirements(def);
+          const statusText = done
+            ? "已完成"
+            : available
+            ? "可研究"
+            : getMissingRequirementText(def);
+
+          const title = [
+            def.name,
+            statusText
+          ].join("\n");
 
           return `
-            <div class="research-card">
+            <div class="research-card" title="${escapeHtml(title)}">
               <div class="research-summary">
                 <strong>${escapeHtml(def.name)}</strong>
                 <div class="research-status ${done ? "done" : ""}">
-                  ${done ? "已完成" : escapeHtml(available ? "可研究" : getMissingRequirementText(def))}
+                  ${done ? "已完成" : escapeHtml(statusText)}
                 </div>
               </div>
-              <button data-start-research="${escapeHtml(id)}" type="button" class="research-mini-btn" ${
-            done ? "disabled" : ""
-          }>
+              <button
+                data-start-research="${escapeHtml(id)}"
+                type="button"
+                class="research-mini-btn"
+                ${done ? "disabled" : ""}
+              >
                 ${done ? "完成" : "研究"}
               </button>
             </div>
@@ -250,7 +209,10 @@ export function renderResearchArea({
         .join("");
 
       return `
-        <details open>
+        <details
+          data-research-group="${escapeHtml(key)}"
+          ${isOpen ? "open" : ""}
+        >
           <summary>${escapeHtml(category)}</summary>
           <div class="research-grid">${cards}</div>
         </details>
@@ -259,11 +221,16 @@ export function renderResearchArea({
     .join("");
 
   root.innerHTML = `
-    <div class="section-title">
-      <strong>書籍閱讀</strong>
-    </div>
-    <div class="book-grid">${bookCards}</div>
-    <div style="margin-top:12px"></div>
+    <details
+      data-research-group="books"
+      ${state.ui.openSections.research.books ? "open" : ""}
+    >
+      <summary>書籍閱讀</summary>
+      <div class="book-grid" style="margin-top:8px;">${bookCards}</div>
+    </details>
+
+    <div style="margin-top:12px;"></div>
+
     ${blocks}
   `;
 
@@ -274,6 +241,12 @@ export function renderResearchArea({
   root.querySelectorAll("[data-read-book]").forEach((btn) => {
     btn.addEventListener("click", () => onReadBook(btn.dataset.readBook));
   });
+
+  root.querySelectorAll("[data-research-group]").forEach((detail) => {
+    detail.addEventListener("toggle", () => {
+      state.ui.openSections.research[detail.dataset.researchGroup] = detail.open;
+    });
+  });
 }
 
 export function renderActionLane({
@@ -282,9 +255,15 @@ export function renderActionLane({
   getWorkCost,
   formatSeconds
 }) {
-  const textEl = document.getElementById("productionText") || document.getElementById("actionStatus");
-  const barEl = document.getElementById("productionBar") || document.getElementById("actionProgressBar");
-  const queueEl = document.getElementById("productionQueue") || document.getElementById("actionQueue");
+  const textEl =
+    document.getElementById("productionText") ||
+    document.getElementById("actionStatus");
+  const barEl =
+    document.getElementById("productionBar") ||
+    document.getElementById("actionProgressBar");
+  const queueEl =
+    document.getElementById("productionQueue") ||
+    document.getElementById("actionQueue");
   const cancelBtn = document.getElementById("cancelActionBtn");
   const clearBtn = document.getElementById("clearActionQueueBtn");
 
@@ -294,10 +273,13 @@ export function renderActionLane({
     const def = workDefs[state.currentAction.id];
     const total = Math.max(0.01, safeNumber(state.currentAction.total, 0.01));
     const remaining = Math.max(0, safeNumber(state.currentAction.remaining, 0));
-
-    const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
+    const progress = Math.min(
+      100,
+      Math.max(0, ((total - remaining) / total) * 100)
+    );
 
     textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
+    textEl.title = `${def.name}\n剩餘：${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
   } else if (state.actionQueue?.length > 0) {
     const nextDef = workDefs[state.actionQueue[0]];
@@ -306,15 +288,22 @@ export function renderActionLane({
     } else {
       textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知工作"}`;
     }
+    textEl.title = textEl.textContent;
     barEl.style.width = "0%";
   } else {
     textEl.textContent = "目前沒有進行中的工作";
+    textEl.title = "目前沒有進行中的工作";
     barEl.style.width = "0%";
   }
 
   queueEl.innerHTML = state.actionQueue?.length
     ? state.actionQueue
-        .map((id, index) => `<span class="queue-pill">${index + 1}. ${escapeHtml(workDefs[id]?.name || id)}</span>`)
+        .map(
+          (id, index) =>
+            `<span class="queue-pill" title="${escapeHtml(
+              workDefs[id]?.name || id
+            )}">${index + 1}. ${escapeHtml(workDefs[id]?.name || id)}</span>`
+        )
         .join("")
     : `<span class="small muted">行動列為空</span>`;
 
@@ -334,22 +323,38 @@ export function renderResearchLane({
 
   if (state.currentResearch) {
     const total = Math.max(0.01, safeNumber(state.currentResearch.total, 0.01));
-    const remaining = Math.max(0, safeNumber(state.currentResearch.remaining, 0));
-    const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
+    const remaining = Math.max(
+      0,
+      safeNumber(state.currentResearch.remaining, 0)
+    );
+    const progress = Math.min(
+      100,
+      Math.max(0, ((total - remaining) / total) * 100)
+    );
 
-    textEl.textContent = `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(remaining)}`;
+    textEl.textContent = `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(
+      remaining
+    )}`;
+    textEl.title = `${state.currentResearch.name}\n剩餘：${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
   } else if (state.researchQueue?.length > 0) {
     textEl.textContent = `等待中：下一項 ${state.researchQueue[0].name}`;
+    textEl.title = textEl.textContent;
     barEl.style.width = "0%";
   } else {
     textEl.textContent = "目前沒有進行中的研究";
+    textEl.title = "目前沒有進行中的研究";
     barEl.style.width = "0%";
   }
 
   queueEl.innerHTML = state.researchQueue?.length
     ? state.researchQueue
-        .map((item, index) => `<span class="queue-pill">${index + 1}. ${escapeHtml(item.name)}</span>`)
+        .map(
+          (item, index) =>
+            `<span class="queue-pill" title="${escapeHtml(
+              item.name
+            )}">${index + 1}. ${escapeHtml(item.name)}</span>`
+        )
         .join("")
     : `<span class="small muted">研究列為空</span>`;
 }
@@ -358,9 +363,11 @@ export function renderLog({ state }) {
   const root = document.getElementById("log");
   if (!root) return;
 
+  const activeFilter = state.logFilter || state.ui?.logFilter || "all";
   let rows = state.logs || [];
-  if (state.logFilter !== "all") {
-    rows = rows.filter((item) => (item.type || "important") === state.logFilter);
+
+  if (activeFilter !== "all") {
+    rows = rows.filter((item) => (item.type || "important") === activeFilter);
   }
 
   if (rows.length === 0) {
@@ -370,15 +377,22 @@ export function renderLog({ state }) {
       .map((item) => {
         const text = typeof item === "string" ? item : item.text;
         const time = typeof item === "string" ? "" : item.time || "";
-        return `<div class="log-item">${time ? `<span class="small muted">${escapeHtml(time)}</span> ` : ""}${escapeHtml(
-          text
-        )}</div>`;
+        return `
+          <div class="log-item">
+            ${
+              time
+                ? `<span class="small muted">${escapeHtml(time)}</span> `
+                : ""
+            }
+            ${escapeHtml(text)}
+          </div>
+        `;
       })
       .join("");
   }
 
-  document.getElementById("logAllBtn")?.classList.toggle("active", state.logFilter === "all");
-  document.getElementById("logImportantBtn")?.classList.toggle("active", state.logFilter === "important");
-  document.getElementById("logLootBtn")?.classList.toggle("active", state.logFilter === "loot");
-  document.getElementById("logWorkerBtn")?.classList.toggle("active", state.logFilter === "worker");
+  document.getElementById("logAllBtn")?.classList.toggle("active", activeFilter === "all");
+  document.getElementById("logImportantBtn")?.classList.toggle("active", activeFilter === "important");
+  document.getElementById("logLootBtn")?.classList.toggle("active", activeFilter === "loot");
+  document.getElementById("logWorkerBtn")?.classList.toggle("active", activeFilter === "worker");
 }
