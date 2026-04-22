@@ -25,6 +25,7 @@ import { createResearchSystem } from "../systems/research.js";
 
 import { renderResearchArea } from "../ui/render/renderResearchArea.js";
 import { renderActionLane } from "../ui/render/renderActionLane.js";
+import { renderCraftLane } from "../ui/render/renderCraftLane.js";
 import { renderResearchLane } from "../ui/render/renderResearchLane.js";
 import { renderLog } from "../ui/render/renderLog.js";
 import { renderTopStats } from "../ui/render/renderTopStats.js";
@@ -216,8 +217,12 @@ function ensureStateShape(s = {}) {
       smithy: false,
       alchemy: false,
       tailoring: false,
+      processing: false,
       other: false
     };
+  }
+  if (typeof state.ui.openSections.crafts.processing !== "boolean") {
+    state.ui.openSections.crafts.processing = false;
   }
   if (!state.ui.openSections.research || typeof state.ui.openSections.research !== "object") {
     state.ui.openSections.research = {
@@ -324,7 +329,10 @@ function addSkillExp(skillId, amount = 1) {
   while (state.skills[skillId].exp >= getExpToNext(state.skills[skillId].level)) {
     state.skills[skillId].exp -= getExpToNext(state.skills[skillId].level);
     state.skills[skillId].level += 1;
-    addLog(`${skillLabels[skillId] || skillId} 等級提升到 Lv.${state.skills[skillId].level}`, "important");
+    addLog(
+      `${skillLabels[skillId] || skillId} 等級提升到 Lv.${state.skills[skillId].level}`,
+      "important"
+    );
   }
 }
 
@@ -445,34 +453,67 @@ function isCraftUnlocked(def) {
   return !!state.research?.[def.unlock];
 }
 
-function craftItem(craftId) {
+function getCraftDuration(def, id) {
+  return Math.max(0.2, Number(def?.duration ?? 1));
+}
+
+function canStartCraft(def) {
+  if (!def) return { ok: false, reason: "invalid" };
+  if (isCraftHidden(def)) return { ok: false, reason: "hidden" };
+  if (!isCraftUnlocked(def)) return { ok: false, reason: "locked" };
+
+  const staminaCost = Math.max(1, Number(def.stamina ?? 1));
+  if (state.stamina < staminaCost) return { ok: false, reason: "stamina" };
+  if (!canAfford(def.costs || {})) return { ok: false, reason: "materials" };
+
+  return { ok: true, reason: "" };
+}
+
+function beginCraft(craftId, { silent = false } = {}) {
   const def = crafts[craftId];
-  if (!def) return false;
+  const check = canStartCraft(def);
 
-  if (isCraftHidden(def)) {
-    addLog(`${def.name}目前不可見`, "important");
-    return false;
-  }
-
-  if (!isCraftUnlocked(def)) {
-    addLog(`${def.name}尚未解鎖，需要研究：${def.unlock}`, "important");
+  if (!check.ok) {
+    if (!silent) {
+      if (check.reason === "hidden") {
+        addLog(`${def?.name || craftId}目前不可見`, "important");
+      } else if (check.reason === "locked") {
+        addLog(`${def?.name || craftId}尚未解鎖，需要研究：${def?.unlock}`, "important");
+      } else if (check.reason === "stamina") {
+        addLog(`${def?.name || craftId}製作失敗，體力不足`, "important");
+      } else if (check.reason === "materials") {
+        addLog(`${def?.name || craftId}製作失敗，材料不足`, "important");
+      }
+    }
     return false;
   }
 
   const staminaCost = Math.max(1, Number(def.stamina ?? 1));
-
-  if (state.stamina < staminaCost) {
-    addLog(`${def.name}製作失敗，體力不足`, "important");
-    return false;
-  }
-
-  if (!canAfford(def.costs || {})) {
-    addLog(`${def.name}製作失敗，材料不足`, "important");
-    return false;
-  }
-
   spendCosts(def.costs || {});
   state.stamina -= staminaCost;
+
+  const duration = getCraftDuration(def, craftId);
+  state.currentCraft = {
+    id: craftId,
+    total: duration,
+    remaining: duration
+  };
+
+  if (!silent) {
+    addLog(`開始製作：${def.name}`, "important");
+  }
+
+  return true;
+}
+
+function finishCurrentCraft() {
+  if (!state.currentCraft) return;
+
+  const craftId = state.currentCraft.id;
+  const def = crafts[craftId];
+  state.currentCraft = null;
+
+  if (!def) return;
 
   for (const [resourceId, amount] of Object.entries(def.yields || {})) {
     gainResource(resourceId, amount);
@@ -489,7 +530,60 @@ function craftItem(craftId) {
     .join("、");
 
   addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`, "loot");
-  return true;
+}
+
+function tryStartNextCraft() {
+  if (state.currentCraft) return false;
+  if (!Array.isArray(state.craftQueue) || state.craftQueue.length === 0) return false;
+
+  const nextId = state.craftQueue[0];
+  const def = crafts[nextId];
+  const check = canStartCraft(def);
+
+  if (!check.ok) {
+    if (check.reason === "hidden" || check.reason === "locked" || check.reason === "invalid") {
+      state.craftQueue.shift();
+      return tryStartNextCraft();
+    }
+    return false;
+  }
+
+  state.craftQueue.shift();
+  return beginCraft(nextId, { silent: true });
+}
+
+function updateCraft(deltaSeconds) {
+  if (!state.currentCraft) return;
+
+  state.currentCraft.remaining = Math.max(
+    0,
+    Number(state.currentCraft.remaining || 0) - deltaSeconds
+  );
+
+  if (state.currentCraft.remaining <= 0) {
+    finishCurrentCraft();
+    tryStartNextCraft();
+  }
+}
+
+function craftItem(craftId) {
+  if (state.currentCraft) {
+    if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
+
+    if (state.craftQueue.length >= 3) {
+      addLog("製作列隊已滿，最多等待 3 項", "important");
+      return false;
+    }
+
+    const def = crafts[craftId];
+    if (!def) return false;
+
+    state.craftQueue.push(craftId);
+    addLog(`已加入製作列隊：${def.name}`, "important");
+    return true;
+  }
+
+  return beginCraft(craftId);
 }
 
 function saveGame() {
@@ -604,7 +698,6 @@ function renderPlaceholders() {
 function renderHeaderStats() {
   renderTopStats({
     state,
-    skillLabels,
     getExpToNext,
     getMaxStamina,
     formatReadableDuration,
@@ -656,9 +749,7 @@ function renderAll() {
       craftItem(craftId);
       renderAll();
     },
-    getCraftDuration: (def, id) => {
-      return typeof def.duration === "number" ? def.duration : 1;
-    },
+    getCraftDuration,
     formatSeconds
   });
 
@@ -687,6 +778,12 @@ function renderAll() {
     formatSeconds
   });
 
+  renderCraftLane({
+    state,
+    crafts,
+    formatSeconds
+  });
+
   renderResearchLane({
     state,
     formatSeconds
@@ -704,7 +801,12 @@ function loop(now) {
   state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
 
   workSystem.updateAction(deltaSeconds);
+  updateCraft(deltaSeconds);
   researchSystem.updateResearch(deltaSeconds);
+
+  if (!state.currentCraft && state.craftQueue?.length) {
+    tryStartNextCraft();
+  }
 
   renderHeaderStats();
 
@@ -712,6 +814,12 @@ function loop(now) {
     state,
     workDefs,
     getWorkCost,
+    formatSeconds
+  });
+
+  renderCraftLane({
+    state,
+    crafts,
     formatSeconds
   });
 
