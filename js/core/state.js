@@ -3,7 +3,7 @@ function isPlainObject(value) {
 }
 
 function deepMerge(base, patch) {
-  if (!isPlainObject(base)) return patch;
+  if (!isPlainObject(base)) return patch ?? base;
   if (!isPlainObject(patch)) return patch ?? base;
 
   const result = { ...base };
@@ -28,20 +28,26 @@ function deepMerge(base, patch) {
   return result;
 }
 
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function buildDefaultUiState() {
   return {
     mainPage: "production",
     logFilter: "all",
+    craftSmithyTab: "ingot",
     openSections: {
       resources: {},
       crafts: {
-        "基礎加工": true,
-        "烹飪": false,
-        "研磨": false,
-        "冶煉與工具": false,
-        "煉金與文具": false,
-        "製革與裁縫": false,
-        "獵物分解與開殼": false
+        basic: true,
+        cooking: false,
+        grinding: false,
+        smithy: false,
+        alchemy: false,
+        tailoring: false,
+        other: false
       },
       research: {
         books: true
@@ -86,7 +92,10 @@ function buildDefaultMerchantState() {
   };
 }
 
-export function createInitialState(createDefaultResources = () => ({})) {
+function buildDefaultState({
+  createDefaultResources = () => ({}),
+  createDefaultSkills = () => ({})
+} = {}) {
   return {
     gold: 0,
     level: 1,
@@ -112,6 +121,7 @@ export function createInitialState(createDefaultResources = () => ({})) {
     campfireSec: 0,
 
     resources: createDefaultResources(),
+    skills: createDefaultSkills(),
     logs: [],
 
     workers: [],
@@ -133,29 +143,94 @@ export function createInitialState(createDefaultResources = () => ({})) {
 
     ui: buildDefaultUiState(),
 
-    // 先保留一份相容欄位，避免你現有 render 還在讀舊位置
+    // 相容舊 render
     logFilter: "all"
   };
 }
 
-export function normalizeState(state, createDefaultResources = () => ({})) {
-  const defaults = createInitialState(createDefaultResources);
+export function createInitialState(options = {}) {
+  return buildDefaultState(options);
+}
+
+export function normalizeState(state, options = {}) {
+  const defaults = buildDefaultState(options);
   const normalized = deepMerge(defaults, state || {});
 
-  // resources 要保留預設資源鍵
+  const defaultResources =
+    typeof options.createDefaultResources === "function"
+      ? options.createDefaultResources()
+      : {};
+  const defaultSkills =
+    typeof options.createDefaultSkills === "function"
+      ? options.createDefaultSkills()
+      : {};
+
+  normalized.gold = toNumber(normalized.gold, 0);
+  normalized.level = Math.max(1, toNumber(normalized.level, 1));
+  normalized.exp = Math.max(0, toNumber(normalized.exp, 0));
+  normalized.intelligence = Math.max(0, toNumber(normalized.intelligence, 0));
+
+  normalized.stamina = Math.max(0, toNumber(normalized.stamina, 100));
+  normalized.staminaLevel = Math.max(1, toNumber(normalized.staminaLevel, 1));
+  normalized.staminaExp = Math.max(0, toNumber(normalized.staminaExp, 0));
+
+  normalized.managementLevel = Math.max(1, toNumber(normalized.managementLevel, 1));
+  normalized.managementExp = Math.max(0, toNumber(normalized.managementExp, 0));
+
+  normalized.tradeLevel = Math.max(1, toNumber(normalized.tradeLevel, 1));
+  normalized.tradeExp = Math.max(0, toNumber(normalized.tradeExp, 0));
+  normalized.reputation = Math.max(0, toNumber(normalized.reputation, 0));
+
+  normalized.castleLevel = Math.max(1, toNumber(normalized.castleLevel, 1));
+  normalized.castleExp = Math.max(0, toNumber(normalized.castleExp, 0));
+  normalized.safetyValue = Math.max(0, toNumber(normalized.safetyValue, 0));
+
+  normalized.pendingTax = Math.max(0, toNumber(normalized.pendingTax, 0));
+  normalized.campfireSec = Math.max(0, toNumber(normalized.campfireSec, 0));
+  normalized.housingCap = Math.max(0, toNumber(normalized.housingCap, 0));
+
   normalized.resources = {
-    ...createDefaultResources(),
-    ...(state?.resources || {})
+    ...defaultResources,
+    ...(normalized.resources || {})
   };
 
-  // ui / openSections 保底
-  normalized.ui = deepMerge(buildDefaultUiState(), normalized.ui || {});
-  normalized.ui.openSections = deepMerge(
-    buildDefaultUiState().openSections,
-    normalized.ui.openSections || {}
-  );
+  normalized.skills = deepMerge(defaultSkills, normalized.skills || {});
+  Object.keys(defaultSkills).forEach((id) => {
+    normalized.skills[id] = {
+      level: Math.max(1, toNumber(normalized.skills[id]?.level, 1)),
+      exp: Math.max(0, toNumber(normalized.skills[id]?.exp, 0))
+    };
+  });
 
-  // 讓舊 renderLog 也能吃到
+  if (!Array.isArray(normalized.logs)) normalized.logs = [];
+  if (!Array.isArray(normalized.workers)) normalized.workers = [];
+  if (!Array.isArray(normalized.actionQueue)) normalized.actionQueue = [];
+  if (!Array.isArray(normalized.craftQueue)) normalized.craftQueue = [];
+  if (!Array.isArray(normalized.researchQueue)) normalized.researchQueue = [];
+
+  if (!isPlainObject(normalized.research)) normalized.research = {};
+  if (!isPlainObject(normalized.housing)) normalized.housing = {};
+  if (!isPlainObject(normalized.buildings)) normalized.buildings = {};
+  if (!isPlainObject(normalized.merchant)) normalized.merchant = {};
+  if (!isPlainObject(normalized.ui)) normalized.ui = {};
+
+  normalized.housing = deepMerge(buildDefaultHousing(), normalized.housing);
+  normalized.buildings = deepMerge(buildDefaultBuildings(), normalized.buildings);
+  normalized.merchant = deepMerge(buildDefaultMerchantState(), normalized.merchant);
+  normalized.ui = deepMerge(buildDefaultUiState(), normalized.ui);
+
+  if (!normalized.currentAction || typeof normalized.currentAction !== "object") {
+    normalized.currentAction = null;
+  }
+
+  if (!normalized.currentCraft || typeof normalized.currentCraft !== "object") {
+    normalized.currentCraft = null;
+  }
+
+  if (!normalized.currentResearch || typeof normalized.currentResearch !== "object") {
+    normalized.currentResearch = null;
+  }
+
   if (typeof normalized.logFilter !== "string") {
     normalized.logFilter = normalized.ui.logFilter || "all";
   }
@@ -164,41 +239,56 @@ export function normalizeState(state, createDefaultResources = () => ({})) {
     normalized.ui.logFilter = normalized.logFilter || "all";
   }
 
-  // housing / buildings / merchant 保底
-  normalized.housing = deepMerge(buildDefaultHousing(), normalized.housing || {});
-  normalized.buildings = deepMerge(buildDefaultBuildings(), normalized.buildings || {});
-  normalized.merchant = deepMerge(buildDefaultMerchantState(), normalized.merchant || {});
+  if (typeof normalized.ui.mainPage !== "string") {
+    normalized.ui.mainPage = "production";
+  }
 
-  if (!Array.isArray(normalized.logs)) normalized.logs = [];
-  if (!Array.isArray(normalized.workers)) normalized.workers = [];
-  if (!Array.isArray(normalized.actionQueue)) normalized.actionQueue = [];
-  if (!Array.isArray(normalized.craftQueue)) normalized.craftQueue = [];
-  if (!Array.isArray(normalized.researchQueue)) normalized.researchQueue = [];
+  if (typeof normalized.ui.craftSmithyTab !== "string") {
+    normalized.ui.craftSmithyTab = "ingot";
+  }
+
+  if (!isPlainObject(normalized.ui.openSections)) {
+    normalized.ui.openSections = buildDefaultUiState().openSections;
+  }
+
+  if (!isPlainObject(normalized.ui.openSections.resources)) {
+    normalized.ui.openSections.resources = {};
+  }
+
+  if (!isPlainObject(normalized.ui.openSections.crafts)) {
+    normalized.ui.openSections.crafts = buildDefaultUiState().openSections.crafts;
+  }
+
+  if (!isPlainObject(normalized.ui.openSections.research)) {
+    normalized.ui.openSections.research = buildDefaultUiState().openSections.research;
+  }
+
+  if (!isPlainObject(normalized.ui.openSections.workers)) {
+    normalized.ui.openSections.workers = {};
+  }
 
   return normalized;
 }
 
-export function resetState(state, createDefaultResources = () => ({})) {
-  const fresh = createInitialState(createDefaultResources);
+export function resetState(state, options = {}) {
+  const fresh = createInitialState(options);
 
   Object.keys(state).forEach((key) => {
     delete state[key];
   });
 
   Object.assign(state, fresh);
-
   return state;
 }
 
-export function applyStatePatch(state, patch = {}, createDefaultResources = () => ({})) {
-  const merged = normalizeState(deepMerge(state, patch), createDefaultResources);
+export function applyStatePatch(state, patch = {}, options = {}) {
+  const merged = normalizeState(deepMerge(state, patch), options);
 
   Object.keys(state).forEach((key) => {
     delete state[key];
   });
 
   Object.assign(state, merged);
-
   return state;
 }
 
