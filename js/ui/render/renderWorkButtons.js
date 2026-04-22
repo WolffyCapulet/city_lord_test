@@ -1,3 +1,12 @@
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function renderWorkButtons({
   workDefs,
   getWorkCost,
@@ -10,12 +19,22 @@ export function renderWorkButtons({
 
   root.innerHTML = Object.entries(workDefs)
     .map(([id, def]) => {
-      const cost = getWorkCost(def);
-      const duration = getWorkDuration(def);
+      const cost = Number(getWorkCost(def) || 0);
+      const duration = Number(getWorkDuration(def) || 0);
+
+      const title = [
+        def.name,
+        `體力：${cost}`,
+        `生產節奏：${formatSeconds(duration)}`
+      ].join("\n");
 
       return `
-        <button data-work="${id}" type="button">
-          ${def.name}（-${cost} 體力 / ${formatSeconds(duration)}）
+        <button
+          data-work="${escapeHtml(id)}"
+          type="button"
+          title="${escapeHtml(title)}"
+        >
+          ${escapeHtml(def.name)}
         </button>
       `;
     })
