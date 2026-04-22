@@ -1,11 +1,21 @@
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function renderLog({ state }) {
   const root = document.getElementById("log");
   if (!root) return;
 
+  const activeFilter = state.logFilter || state.ui?.logFilter || "all";
   let rows = state.logs || [];
 
-  if (state.logFilter !== "all") {
-    rows = rows.filter((item) => (item.type || "important") === state.logFilter);
+  if (activeFilter !== "all") {
+    rows = rows.filter((item) => (item.type || "important") === activeFilter);
   }
 
   if (rows.length === 0) {
@@ -18,16 +28,16 @@ export function renderLog({ state }) {
 
         return `
           <div class="log-item">
-            ${time ? `<span class="small muted">${time}</span> ` : ""}
-            ${text}
+            ${time ? `<span class="small muted">${escapeHtml(time)}</span> ` : ""}
+            ${escapeHtml(text)}
           </div>
         `;
       })
       .join("");
   }
 
-  document.getElementById("logAllBtn")?.classList.toggle("active", state.logFilter === "all");
-  document.getElementById("logImportantBtn")?.classList.toggle("active", state.logFilter === "important");
-  document.getElementById("logLootBtn")?.classList.toggle("active", state.logFilter === "loot");
-  document.getElementById("logWorkerBtn")?.classList.toggle("active", state.logFilter === "worker");
+  document.getElementById("logAllBtn")?.classList.toggle("active", activeFilter === "all");
+  document.getElementById("logImportantBtn")?.classList.toggle("active", activeFilter === "important");
+  document.getElementById("logLootBtn")?.classList.toggle("active", activeFilter === "loot");
+  document.getElementById("logWorkerBtn")?.classList.toggle("active", activeFilter === "worker");
 }
