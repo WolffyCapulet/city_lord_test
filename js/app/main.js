@@ -10,9 +10,17 @@ import { books, researchDefs } from "../data/research.js";
 
 import { bindEvents } from "./bindEvents.js";
 
-import { createInitialState, normalizeState, resetState } from "../core/state.js";
+import {
+  createInitialState,
+  normalizeState,
+  resetState
+} from "../core/state.js";
 
-import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
+import {
+  createWorkSystem,
+  getWorkCost,
+  getWorkDuration
+} from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 
 import {
@@ -82,7 +90,7 @@ function getExpToNext(level) {
   return Math.round(5 + 2.5 * level * (level - 1));
 }
 
-function getMaxStamina(state) {
+function getMaxStamina() {
   return 100;
 }
 
@@ -129,7 +137,152 @@ const stateOptions = {
   createDefaultSkills
 };
 
-const state = createInitialState(stateOptions);
+function ensureStateShape(s = {}) {
+  const state = s;
+
+  state.gold = Number(state.gold || 0);
+  state.level = Math.max(1, Number(state.level || 1));
+  state.exp = Math.max(0, Number(state.exp || 0));
+  state.intelligence = Math.max(0, Number(state.intelligence || 0));
+
+  state.stamina = Math.max(0, Number(state.stamina || 100));
+  state.staminaLevel = Math.max(1, Number(state.staminaLevel || 1));
+  state.staminaExp = Math.max(0, Number(state.staminaExp || 0));
+
+  state.managementLevel = Math.max(1, Number(state.managementLevel || 1));
+  state.managementExp = Math.max(0, Number(state.managementExp || 0));
+
+  state.tradeLevel = Math.max(1, Number(state.tradeLevel || 1));
+  state.tradeExp = Math.max(0, Number(state.tradeExp || 0));
+  state.reputation = Math.max(0, Number(state.reputation || 0));
+
+  state.castleLevel = Math.max(1, Number(state.castleLevel || 1));
+  state.castleExp = Math.max(0, Number(state.castleExp || 0));
+  state.safetyValue = Math.max(0, Number(state.safetyValue || 0));
+
+  state.pendingTax = Math.max(0, Number(state.pendingTax || 0));
+  state.campfireSec = Math.max(0, Number(state.campfireSec || 0));
+  state.housingCap = Math.max(0, Number(state.housingCap || 0));
+
+  state.resources = {
+    ...createDefaultResources(),
+    ...(state.resources || {})
+  };
+
+  state.skills = {
+    ...createDefaultSkills(),
+    ...(state.skills || {})
+  };
+
+  Object.keys(skillLabels).forEach((id) => {
+    state.skills[id] = {
+      level: Math.max(1, Number(state.skills[id]?.level || 1)),
+      exp: Math.max(0, Number(state.skills[id]?.exp || 0))
+    };
+  });
+
+  state.logs = normalizeLogs(state.logs);
+
+  if (!Array.isArray(state.workers)) state.workers = [];
+  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
+  if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
+  if (!Array.isArray(state.researchQueue)) state.researchQueue = [];
+
+  if (!state.research || typeof state.research !== "object") state.research = {};
+  if (!state.housing || typeof state.housing !== "object") state.housing = {};
+  if (!state.buildings || typeof state.buildings !== "object") state.buildings = {};
+  if (!state.merchant || typeof state.merchant !== "object") {
+    state.merchant = {
+      present: false,
+      cash: 0,
+      orders: [],
+      storeFunds: 0
+    };
+  }
+
+  if (!state.ui || typeof state.ui !== "object") state.ui = {};
+  if (typeof state.ui.mainPage !== "string") state.ui.mainPage = "production";
+  if (typeof state.ui.logFilter !== "string") state.ui.logFilter = "all";
+  if (typeof state.ui.craftSmithyTab !== "string") state.ui.craftSmithyTab = "ingot";
+
+  if (!state.ui.openSections || typeof state.ui.openSections !== "object") {
+    state.ui.openSections = {};
+  }
+  if (!state.ui.openSections.resources || typeof state.ui.openSections.resources !== "object") {
+    state.ui.openSections.resources = {};
+  }
+  if (!state.ui.openSections.crafts || typeof state.ui.openSections.crafts !== "object") {
+    state.ui.openSections.crafts = {
+      basic: true,
+      cooking: false,
+      grinding: false,
+      smithy: false,
+      alchemy: false,
+      tailoring: false,
+      other: false
+    };
+  }
+  if (!state.ui.openSections.research || typeof state.ui.openSections.research !== "object") {
+    state.ui.openSections.research = {
+      books: true
+    };
+  }
+  if (!state.ui.openSections.workers || typeof state.ui.openSections.workers !== "object") {
+    state.ui.openSections.workers = {};
+  }
+
+  if (!state.currentAction || typeof state.currentAction !== "object") state.currentAction = null;
+  if (!state.currentCraft || typeof state.currentCraft !== "object") state.currentCraft = null;
+  if (!state.currentResearch || typeof state.currentResearch !== "object") state.currentResearch = null;
+
+  if (typeof state.logFilter !== "string") state.logFilter = state.ui.logFilter || "all";
+  state.ui.logFilter = state.logFilter;
+
+  return state;
+}
+
+function safeCreateInitialState() {
+  try {
+    return ensureStateShape(createInitialState(stateOptions));
+  } catch {
+    try {
+      return ensureStateShape(createInitialState(createDefaultResources));
+    } catch {
+      return ensureStateShape({});
+    }
+  }
+}
+
+function safeNormalizeState(raw) {
+  try {
+    return ensureStateShape(normalizeState(raw, stateOptions));
+  } catch {
+    try {
+      return ensureStateShape(normalizeState(raw, createDefaultResources));
+    } catch {
+      return ensureStateShape(raw || {});
+    }
+  }
+}
+
+function safeResetState(target) {
+  try {
+    resetState(target, stateOptions);
+    return ensureStateShape(target);
+  } catch {
+    try {
+      resetState(target, createDefaultResources);
+      return ensureStateShape(target);
+    } catch {
+      const fresh = safeCreateInitialState();
+      Object.keys(target).forEach((key) => delete target[key]);
+      Object.assign(target, fresh);
+      return target;
+    }
+  }
+}
+
+const state = safeCreateInitialState();
 let lastFrameTime = performance.now();
 
 function addLog(text, type = "important") {
@@ -378,7 +531,7 @@ function loadGame({ silent = false } = {}) {
       return false;
     }
 
-    const data = normalizeState(JSON.parse(raw), stateOptions);
+    const data = safeNormalizeState(JSON.parse(raw));
 
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, data);
@@ -404,7 +557,7 @@ function loadGame({ silent = false } = {}) {
 
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
-  resetState(state, stateOptions);
+  safeResetState(state);
   addLog("已重置存檔", "important");
   renderAll();
 }
