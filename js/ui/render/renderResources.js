@@ -1,3 +1,11 @@
+import {
+  getResourceGroupKey,
+  getResourceLabel as defaultGetResourceLabel,
+  resourceGroupDefs,
+  resourceUiText,
+  fuelDurations as defaultFuelDurations
+} from "../../data/resources.js";
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -23,159 +31,8 @@ function ensureResourceOpenState(state, groups) {
   });
 }
 
-function getResourceGroupKey(id) {
-  const foodIds = new Set([
-    "rawMeat",
-    "rawChicken",
-    "fish",
-    "shrimp",
-    "crab",
-    "snail",
-    "shellfish",
-    "clamMeat",
-    "egg",
-    "milk",
-    "apple",
-    "wheat",
-    "carrot",
-    "mushroom",
-    "grilledMeat",
-    "grilledFish",
-    "bread",
-    "grilledSausage",
-    "bearStew",
-    "applePie",
-    "clamSoup",
-    "sashimi",
-    "staminaPotion"
-  ]);
-
-  const herbBookIds = new Set([
-    "herb",
-    "rareHerb",
-    "ginseng",
-    "paper",
-    "ink",
-    "note",
-    "manual",
-    "herbTonic"
-  ]);
-
-  const cropSeedIds = new Set([
-    "wheatSeed",
-    "mushroomSpore",
-    "appleSeed",
-    "cottonSeed",
-    "carrotSeed",
-    "wheatSeedBundle",
-    "cotton",
-    "fiber"
-  ]);
-
-  const basicMaterialIds = new Set([
-    "wood",
-    "stone",
-    "dirt",
-    "sand",
-    "branch",
-    "leaf",
-    "coal",
-    "copperOre",
-    "ironOre",
-    "silverOre",
-    "goldOre",
-    "magnetite",
-    "crystal",
-    "gem",
-    "coalPowder",
-    "copperPowder",
-    "ironPowder",
-    "silverPowder",
-    "goldPowder",
-    "magnetitePowder",
-    "crystalPowder",
-    "gemPowder"
-  ]);
-
-  const animalIds = new Set([
-    "chicken",
-    "rabbit",
-    "boar",
-    "deer",
-    "wolf",
-    "brownBear",
-    "blackBear",
-    "dairyCow",
-    "bull"
-  ]);
-
-  const huntDropIds = new Set([
-    "offal",
-    "hide",
-    "bone",
-    "boarTusk",
-    "deerAntler",
-    "bearPaw",
-    "bearFang",
-    "feather",
-    "shell",
-    "pearl",
-    "coral",
-    "cowHorn"
-  ]);
-
-  const processedIds = new Set([
-    "planks",
-    "firewood",
-    "stoneBrick",
-    "brick",
-    "glass",
-    "glassBottle",
-    "wheatFlour",
-    "boneMeal",
-    "compost",
-    "ironIngot",
-    "copperIngot",
-    "leather",
-    "softLeather",
-    "cottonThread",
-    "cottonCloth",
-    "grassThread",
-    "grassCloth",
-    "clothes"
-  ]);
-
-  if (foodIds.has(id)) return "food";
-  if (cropSeedIds.has(id)) return "crops";
-  if (herbBookIds.has(id)) return "herbsBooks";
-  if (animalIds.has(id)) return "animals";
-  if (huntDropIds.has(id)) return "animalDrops";
-  if (processedIds.has(id)) return "processed";
-  if (basicMaterialIds.has(id)) return "materials";
-
-  if (id.endsWith("Tool")) return "tools";
-  if (id.endsWith("Ore")) return "materials";
-  if (id.endsWith("Powder")) return "materials";
-  if (id.endsWith("Seed")) return "crops";
-  if (id.endsWith("Ingot")) return "processed";
-
-  return "other";
-}
-
 function buildGroups(resources, getResourceLabel) {
-  const defs = [
-    { key: "food", title: "食物與飲品" },
-    { key: "crops", title: "作物與種子" },
-    { key: "herbsBooks", title: "草藥與文具" },
-    { key: "materials", title: "基礎材料與礦物" },
-    { key: "processed", title: "加工材料" },
-    { key: "tools", title: "工具" },
-    { key: "animals", title: "活體動物" },
-    { key: "animalDrops", title: "獵物素材" },
-    { key: "other", title: "其他" }
-  ];
-
-  const groups = defs.map((def) => ({ ...def, items: [] }));
+  const groups = resourceGroupDefs.map((def) => ({ ...def, items: [] }));
 
   Object.entries(resources || {})
     .filter(([, value]) => Number(value || 0) > 0)
@@ -199,10 +56,24 @@ function canClickResource(id, isResourceClickable, onResourceClick) {
   return true;
 }
 
+function getBadgeText({ edibleValue, fuelValue }) {
+  if (typeof edibleValue === "number" && typeof fuelValue === "number") {
+    return resourceUiText.edibleFuel;
+  }
+  if (typeof edibleValue === "number") {
+    return resourceUiText.edible;
+  }
+  if (typeof fuelValue === "number") {
+    return resourceUiText.fuel;
+  }
+  return resourceUiText.empty;
+}
+
 export function renderResources({
   state,
-  getResourceLabel,
+  getResourceLabel = defaultGetResourceLabel,
   edibleValues = {},
+  fuelDurations = defaultFuelDurations,
   isResourceClickable = null,
   getResourceHint = null,
   onResourceClick = null
@@ -256,6 +127,7 @@ export function renderResources({
                         .map(({ id, value }) => {
                           const label = getResourceLabel(id);
                           const edibleValue = edibleValues[id];
+                          const fuelValue = fuelDurations[id];
                           const clickable = canClickResource(
                             id,
                             isResourceClickable,
@@ -266,8 +138,14 @@ export function renderResources({
 
                           if (typeof edibleValue === "number") {
                             meta.push(
-                              `可食用：${edibleValue >= 0 ? "+" : ""}${edibleValue} 體力`
+                              `${resourceUiText.edible}：${
+                                edibleValue >= 0 ? "+" : ""
+                              }${edibleValue} 體力`
                             );
+                          }
+
+                          if (typeof fuelValue === "number") {
+                            meta.push(`${resourceUiText.fuel}：可增加篝火 ${fuelValue} 秒`);
                           }
 
                           if (typeof getResourceHint === "function") {
@@ -283,11 +161,9 @@ export function renderResources({
                             >
                               <div class="resource-name">${escapeHtml(label)}</div>
                               <div class="resource-value"><strong>${value}</strong></div>
-                              ${
-                                typeof edibleValue === "number"
-                                  ? `<div class="meta">可食用</div>`
-                                  : `<div class="meta">　</div>`
-                              }
+                              <div class="meta">${escapeHtml(
+                                getBadgeText({ edibleValue, fuelValue })
+                              )}</div>
                             </div>
                           `;
                         })
@@ -307,10 +183,12 @@ export function renderResources({
     btn.addEventListener("click", () => {
       const key = btn.dataset.toggleResourceGroup;
       state.ui.openSections.resources[key] = !state.ui.openSections.resources[key];
+
       renderResources({
         state,
         getResourceLabel,
         edibleValues,
+        fuelDurations,
         isResourceClickable,
         getResourceHint,
         onResourceClick
@@ -337,6 +215,7 @@ export function renderResources({
         state,
         getResourceLabel,
         edibleValues,
+        fuelDurations,
         isResourceClickable,
         getResourceHint,
         onResourceClick
