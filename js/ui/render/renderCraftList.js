@@ -18,8 +18,13 @@ function ensureCraftUiState(state) {
       smithy: false,
       alchemy: false,
       tailoring: false,
+      processing: false,
       other: false
     };
+  }
+
+  if (typeof state.ui.openSections.crafts.processing !== "boolean") {
+    state.ui.openSections.crafts.processing = false;
   }
 
   if (typeof state.ui.craftSmithyTab !== "string") {
@@ -34,6 +39,7 @@ const craftGroupDefs = [
   { key: "smithy", title: "冶煉與工具" },
   { key: "alchemy", title: "煉金與文具" },
   { key: "tailoring", title: "製革與裁縫" },
+  { key: "processing", title: "獵物分解與開殼" },
   { key: "other", title: "其他" }
 ];
 
@@ -127,7 +133,18 @@ const craftGroupMap = {
   cottonCloth: "tailoring",
   grassThread: "tailoring",
   grassCloth: "tailoring",
-  clothes: "tailoring"
+  clothes: "tailoring",
+
+  processRabbit: "processing",
+  processChicken: "processing",
+  processBoar: "processing",
+  processDeer: "processing",
+  processWolf: "processing",
+  processBrownBear: "processing",
+  processBlackBear: "processing",
+  processDairyCow: "processing",
+  processBull: "processing",
+  processShellfish: "processing"
 };
 
 const smithyTabDefs = [
