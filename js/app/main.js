@@ -23,13 +23,10 @@ import {
 } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 
-import {
-  renderResearchArea,
-  renderActionLane,
-  renderResearchLane,
-  renderLog
-} from "../ui/components.js";
-
+import { renderResearchArea } from "../ui/render/renderResearchArea.js";
+import { renderActionLane } from "../ui/render/renderActionLane.js";
+import { renderResearchLane } from "../ui/render/renderResearchLane.js";
+import { renderLog } from "../ui/render/renderLog.js";
 import { renderTopStats } from "../ui/render/renderTopStats.js";
 import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
@@ -245,11 +242,7 @@ function safeCreateInitialState() {
   try {
     return ensureStateShape(createInitialState(stateOptions));
   } catch {
-    try {
-      return ensureStateShape(createInitialState(createDefaultResources));
-    } catch {
-      return ensureStateShape({});
-    }
+    return ensureStateShape({});
   }
 }
 
@@ -257,11 +250,7 @@ function safeNormalizeState(raw) {
   try {
     return ensureStateShape(normalizeState(raw, stateOptions));
   } catch {
-    try {
-      return ensureStateShape(normalizeState(raw, createDefaultResources));
-    } catch {
-      return ensureStateShape(raw || {});
-    }
+    return ensureStateShape(raw || {});
   }
 }
 
@@ -270,15 +259,10 @@ function safeResetState(target) {
     resetState(target, stateOptions);
     return ensureStateShape(target);
   } catch {
-    try {
-      resetState(target, createDefaultResources);
-      return ensureStateShape(target);
-    } catch {
-      const fresh = safeCreateInitialState();
-      Object.keys(target).forEach((key) => delete target[key]);
-      Object.assign(target, fresh);
-      return target;
-    }
+    const fresh = safeCreateInitialState();
+    Object.keys(target).forEach((key) => delete target[key]);
+    Object.assign(target, fresh);
+    return target;
   }
 }
 
@@ -536,7 +520,6 @@ function loadGame({ silent = false } = {}) {
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, data);
 
-    state.logs = normalizeLogs(state.logs);
     state.stamina = clamp(state.stamina, 0, getMaxStamina(state));
 
     if (!silent) {
@@ -672,6 +655,9 @@ function renderAll() {
     onCraftClick: (craftId) => {
       craftItem(craftId);
       renderAll();
+    },
+    getCraftDuration: (def, id) => {
+      return typeof def.duration === "number" ? def.duration : 1;
     },
     formatSeconds
   });
