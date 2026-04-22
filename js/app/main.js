@@ -5,25 +5,27 @@ import { books, researchDefs } from "../data/research.js";
 
 import { bindEvents } from "./bindEvents.js";
 
+import { createInitialState, normalizeState, resetState } from "../core/state.js";
+
 import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 
 import {
   renderTopStats,
-  renderResources,
-  renderWorkButtons,
-  renderCraftList,
   renderResearchArea,
   renderActionLane,
   renderResearchLane,
   renderLog
 } from "../ui/components.js";
 
+import { renderResources } from "../ui/render/renderResources.js";
+import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
+import { renderCraftList } from "../ui/render/renderCraftList.js";
 import { renderSkillPills } from "../ui/render/renderSkillPills.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
-const WORK_QUEUE_LIMIT = 3;
+
 const skillLabels = {
   labor: "打工",
   lumber: "伐木",
@@ -60,18 +62,14 @@ function nowTime() {
 }
 
 function formatSeconds(seconds) {
-  return `${Math.max(0, seconds).toFixed(1)} 秒`;
-}
-
-function qsa(selector, root = document) {
-  return [...root.querySelectorAll(selector)];
+  return `${Math.max(0, Number(seconds || 0)).toFixed(1)} 秒`;
 }
 
 function getExpToNext(level) {
   return Math.round(5 + 2.5 * level * (level - 1));
 }
 
-function getMaxStamina(state) {
+function getMaxStamina() {
   return 100;
 }
 
@@ -113,103 +111,12 @@ function normalizeLogs(logs) {
     .slice(0, LOG_LIMIT);
 }
 
-function createState() {
-  return {
-    gold: 0,
-    level: 1,
-    exp: 0,
-    stamina: 100,
+const stateOptions = {
+  createDefaultResources,
+  createDefaultSkills
+};
 
-    intelligence: 0,
-    managementLevel: 1,
-    managementExp: 0,
-    tradeLevel: 1,
-    reputation: 0,
-    pendingTax: 0,
-    castleLevel: 1,
-
-    housingCap: 0,
-    safetyValue: 0,
-    workers: [],
-
-    resources: createDefaultResources(),
-    skills: createDefaultSkills(),
-    logs: [],
-
-    currentAction: null,
-    actionQueue: [],
-
-    research: {},
-    currentResearch: null,
-    researchQueue: [],
-
-    housing: {},
-    buildings: {},
-
-    ui: {
-      mainPage: "production"
-    },
-
-    logFilter: "all"
-  };
-}
-
-function ensureStateShape(s) {
-  s.gold = Number(s.gold || 0);
-  s.level = Math.max(1, Number(s.level || 1));
-  s.exp = Math.max(0, Number(s.exp || 0));
-  s.stamina = Number(s.stamina || 100);
-
-  s.intelligence = Number(s.intelligence || 0);
-  s.managementLevel = Math.max(1, Number(s.managementLevel || 1));
-  s.managementExp = Number(s.managementExp || 0);
-  s.tradeLevel = Math.max(1, Number(s.tradeLevel || 1));
-  s.reputation = Number(s.reputation || 0);
-  s.pendingTax = Number(s.pendingTax || 0);
-  s.castleLevel = Math.max(1, Number(s.castleLevel || 1));
-
-  s.housingCap = Number(s.housingCap || 0);
-  s.safetyValue = Number(s.safetyValue || 0);
-  if (!Array.isArray(s.workers)) s.workers = [];
-
-  s.resources = {
-    ...createDefaultResources(),
-    ...(s.resources || {})
-  };
-
-  s.skills = {
-    ...createDefaultSkills(),
-    ...(s.skills || {})
-  };
-
-  Object.keys(skillLabels).forEach((id) => {
-    s.skills[id] = {
-      level: Math.max(1, Number(s.skills[id]?.level || 1)),
-      exp: Math.max(0, Number(s.skills[id]?.exp || 0))
-    };
-  });
-
-  s.logs = normalizeLogs(s.logs);
-
-  if (!s.currentAction || typeof s.currentAction !== "object") s.currentAction = null;
-  if (!Array.isArray(s.actionQueue)) s.actionQueue = [];
-
-  if (!s.research || typeof s.research !== "object") s.research = {};
-  if (!s.currentResearch || typeof s.currentResearch !== "object") s.currentResearch = null;
-  if (!Array.isArray(s.researchQueue)) s.researchQueue = [];
-
-  if (!s.housing || typeof s.housing !== "object") s.housing = {};
-  if (!s.buildings || typeof s.buildings !== "object") s.buildings = {};
-
-  if (!s.ui || typeof s.ui !== "object") s.ui = {};
-  if (!s.ui.mainPage) s.ui.mainPage = "production";
-
-  if (typeof s.logFilter !== "string") s.logFilter = "all";
-
-  return s;
-}
-
-const state = ensureStateShape(createState());
+const state = createInitialState(stateOptions);
 let lastFrameTime = performance.now();
 
 function addLog(text, type = "important") {
@@ -219,7 +126,7 @@ function addLog(text, type = "important") {
     type
   });
 
-  state.logs = state.logs.slice(0, LOG_LIMIT);
+  state.logs = normalizeLogs(state.logs).slice(0, LOG_LIMIT);
 }
 
 function gainResource(id, amount) {
@@ -407,7 +314,7 @@ function loadGame({ silent = false } = {}) {
       return false;
     }
 
-    const data = ensureStateShape(JSON.parse(raw));
+    const data = normalizeState(JSON.parse(raw), stateOptions);
 
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, data);
@@ -432,11 +339,7 @@ function loadGame({ silent = false } = {}) {
 
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
-
-  const fresh = ensureStateShape(createState());
-  Object.keys(state).forEach((key) => delete state[key]);
-  Object.assign(state, fresh);
-
+  resetState(state, stateOptions);
   addLog("已重置存檔", "important");
   renderAll();
 }
@@ -533,6 +436,7 @@ function renderAll() {
   });
 
   renderCraftList({
+    state,
     crafts,
     getResourceLabel,
     isCraftHidden,
@@ -540,7 +444,8 @@ function renderAll() {
     onCraftClick: (craftId) => {
       craftItem(craftId);
       renderAll();
-    }
+    },
+    formatSeconds
   });
 
   renderResearchArea({
@@ -601,7 +506,7 @@ function loop(now) {
 }
 
 function init() {
-  loadGame({ silent : true });
+  loadGame({ silent: true });
 
   bindEvents({
     onRest: () => {
@@ -625,6 +530,7 @@ function init() {
     },
     onSetLogFilter: (filter) => {
       state.logFilter = filter;
+      state.ui.logFilter = filter;
       renderLog({ state });
     },
     onSetMainPage: (pageName) => {
