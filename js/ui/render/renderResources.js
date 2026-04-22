@@ -246,9 +246,7 @@ export function renderResources({
                           meta.push(`${label}：${value}`);
 
                           if (typeof edibleValue === "number") {
-                            meta.push(
-                              `可食用：${edibleValue >= 0 ? "+" : ""}${edibleValue} 體力`
-                            );
+                            meta.push(`可食用：${edibleValue >= 0 ? "+" : ""}${edibleValue} 體力`);
                           }
 
                           const clickable = typeof onResourceClick === "function";
