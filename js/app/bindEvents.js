@@ -1,3 +1,19 @@
+function closeResetModal(resetModal, resetAcknowledge, resetConfirmBtn) {
+  resetModal?.classList.remove("show");
+  resetModal?.setAttribute("aria-hidden", "true");
+
+  if (resetAcknowledge) resetAcknowledge.checked = false;
+  if (resetConfirmBtn) resetConfirmBtn.disabled = true;
+}
+
+function openResetModal(resetModal, resetAcknowledge, resetConfirmBtn) {
+  resetModal?.classList.add("show");
+  resetModal?.setAttribute("aria-hidden", "false");
+
+  if (resetAcknowledge) resetAcknowledge.checked = false;
+  if (resetConfirmBtn) resetConfirmBtn.disabled = true;
+}
+
 export function bindEvents({
   onRest,
   onEatBest,
@@ -56,16 +72,17 @@ export function bindEvents({
       return;
     }
 
-    resetModal.classList.add("show");
-    resetModal.setAttribute("aria-hidden", "false");
-
-    if (resetAcknowledge) resetAcknowledge.checked = false;
-    if (resetConfirmBtn) resetConfirmBtn.disabled = true;
+    openResetModal(resetModal, resetAcknowledge, resetConfirmBtn);
   });
 
   resetCancelBtn?.addEventListener("click", () => {
-    resetModal?.classList.remove("show");
-    resetModal?.setAttribute("aria-hidden", "true");
+    closeResetModal(resetModal, resetAcknowledge, resetConfirmBtn);
+  });
+
+  resetModal?.addEventListener("click", (event) => {
+    if (event.target === resetModal) {
+      closeResetModal(resetModal, resetAcknowledge, resetConfirmBtn);
+    }
   });
 
   resetAcknowledge?.addEventListener("change", () => {
@@ -75,8 +92,7 @@ export function bindEvents({
   });
 
   resetConfirmBtn?.addEventListener("click", () => {
-    resetModal?.classList.remove("show");
-    resetModal?.setAttribute("aria-hidden", "true");
+    closeResetModal(resetModal, resetAcknowledge, resetConfirmBtn);
     onResetConfirm?.();
   });
 }
