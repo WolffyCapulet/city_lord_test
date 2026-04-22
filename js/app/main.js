@@ -36,8 +36,6 @@ import { renderSkillPills } from "../ui/render/renderSkillPills.js";
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
 const QUEUE_LIMIT = 3;
-const PRODUCTION_MIN_CYCLE_SECONDS = 5;
-const CRAFT_MIN_CYCLE_SECONDS = 5;
 
 const skillLabels = {
   labor: "打工",
@@ -446,213 +444,6 @@ function handleWarehouseResourceClick(resourceId) {
   }
 }
 
-function hasResource(id) {
-  return Number(state.resources?.[id] || 0) > 0;
-}
-
-function getWorkSpeedBonus(workId = null) {
-  let bonus = 0;
-
-  if (workId === "lumber") {
-    bonus += (state.buildings?.lumberMill || 0) * 0.10;
-    bonus += hasResource("ironAxeTool")
-      ? 0.25
-      : hasResource("copperAxeTool")
-      ? 0.20
-      : hasResource("stoneAxeTool")
-      ? 0.10
-      : hasResource("woodAxeTool")
-      ? 0.05
-      : 0;
-  }
-
-  if (workId === "mining") {
-    bonus += (state.buildings?.quarry || 0) * 0.10;
-    bonus += hasResource("ironPickTool")
-      ? 0.25
-      : hasResource("copperPickTool")
-      ? 0.20
-      : hasResource("stonePickTool")
-      ? 0.10
-      : hasResource("woodPickTool")
-      ? 0.05
-      : 0;
-  }
-
-  if (workId === "digging") {
-    bonus += (state.buildings?.quarry || 0) * 0.10;
-    bonus += hasResource("ironShovelTool")
-      ? 0.25
-      : hasResource("copperShovelTool")
-      ? 0.20
-      : hasResource("shovelTool")
-      ? 0.10
-      : hasResource("woodShovelTool")
-      ? 0.05
-      : 0;
-  }
-
-  if (workId === "fishing") {
-    bonus += (state.buildings?.fishingShack || 0) * 0.10;
-    bonus += hasResource("ironFishingRodTool")
-      ? 0.25
-      : hasResource("copperFishingRodTool")
-      ? 0.20
-      : hasResource("fishingRodTool")
-      ? 0.10
-      : hasResource("woodFishingRodTool")
-      ? 0.05
-      : 0;
-  }
-
-  if (workId === "hunting") {
-    bonus += hasResource("ironBowTool")
-      ? 0.25
-      : hasResource("copperBowTool")
-      ? 0.20
-      : hasResource("stoneBowTool")
-      ? 0.12
-      : hasResource("woodBowTool")
-      ? 0.06
-      : 0;
-  }
-
-  return bonus;
-}
-
-function getPlayerCycleTime(workId = null) {
-  const raw = (1 + 0.02 * Number(state.intelligence || 0)) / 10;
-  const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
-  const base = 1 / capped;
-  const bonus = workId ? getWorkSpeedBonus(workId) : 0;
-  return base / (1 + bonus);
-}
-
-function getProductionDurationUncapped(workId = null) {
-  return getPlayerCycleTime(workId);
-}
-
-function getProductionDuration(workId = null) {
-  return Math.max(PRODUCTION_MIN_CYCLE_SECONDS, getProductionDurationUncapped(workId));
-}
-
-const grindingCrafts = new Set([
-  "flour",
-  "boneMeal",
-  "compost",
-  "wheatSeedBundle",
-  "coalPowder",
-  "copperPowder",
-  "ironPowder",
-  "silverPowder",
-  "goldPowder",
-  "magnetitePowder",
-  "crystalPowder",
-  "gemPowder"
-]);
-
-const alchemyCrafts = new Set([
-  "herbTonic",
-  "staminaPotion",
-  "paper",
-  "ink",
-  "note",
-  "manual"
-]);
-
-const smithyCrafts = new Set([
-  "ironFirewood",
-  "ironCoal",
-  "copperFirewood",
-  "copperCoal",
-  "woodAxeTool",
-  "woodPickTool",
-  "woodShovelTool",
-  "woodCarvingKnifeTool",
-  "woodHammerTool",
-  "woodPotTool",
-  "woodHoeTool",
-  "woodPitchforkTool",
-  "woodFishingRodTool",
-  "woodBowTool",
-  "stoneAxeTool",
-  "stonePickTool",
-  "shovelTool",
-  "stoneCarvingKnifeTool",
-  "stoneHammerTool",
-  "stonePotTool",
-  "stoneHoeTool",
-  "stonePitchforkTool",
-  "fishingRodTool",
-  "stoneBowTool",
-  "copperAxeTool",
-  "copperPickTool",
-  "copperShovelTool",
-  "copperCarvingKnifeTool",
-  "copperHammerTool",
-  "copperPotTool",
-  "copperHoeTool",
-  "copperPitchforkTool",
-  "copperFishingRodTool",
-  "copperBowTool",
-  "ironAxeTool",
-  "ironPickTool",
-  "ironShovelTool",
-  "ironCarvingKnifeTool",
-  "ironHammerTool",
-  "ironPotTool",
-  "ironHoeTool",
-  "ironPitchforkTool",
-  "ironFishingRodTool",
-  "ironBowTool",
-  "fishNetTool"
-]);
-
-const tailoringCrafts = new Set([
-  "leather",
-  "softLeather",
-  "cottonThread",
-  "cottonCloth",
-  "grassThread",
-  "grassCloth",
-  "clothes"
-]);
-
-function getCraftSpeedBonus(craftId) {
-  let bonus = 0;
-
-  if (grindingCrafts.has(craftId)) {
-    bonus += (state.buildings?.mill || 0) * 0.20;
-    bonus += (state.buildings?.windmill || 0) * 0.15;
-  }
-
-  if (alchemyCrafts.has(craftId)) {
-    bonus += (state.buildings?.alchemyHut || 0) * 0.20;
-  }
-
-  if (smithyCrafts.has(craftId)) {
-    bonus += (state.buildings?.smithy || 0) * 0.20;
-  }
-
-  if (tailoringCrafts.has(craftId)) {
-    bonus += (state.buildings?.tannery || 0) * 0.20;
-  }
-
-  return bonus;
-}
-
-function getCraftCycleTime(craftId = null) {
-  const raw = (1 + 0.02 * Number(state.intelligence || 0)) / 10;
-  const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
-  const base = 1 / capped;
-  const bonus = craftId ? getCraftSpeedBonus(craftId) : 0;
-  return base / (1 + bonus);
-}
-
-function getCraftDuration(def, craftId) {
-  return Math.max(CRAFT_MIN_CYCLE_SECONDS, getCraftCycleTime(craftId));
-}
-
 function isCraftHidden(def) {
   return !!def.hidden;
 }
@@ -660,6 +451,10 @@ function isCraftHidden(def) {
 function isCraftUnlocked(def) {
   if (!def.unlock) return true;
   return !!state.research?.[def.unlock];
+}
+
+function getCraftDuration(def, id) {
+  return Math.max(0.2, Number(def?.duration ?? 1));
 }
 
 function canStartCraft(def) {
@@ -672,51 +467,6 @@ function canStartCraft(def) {
   if (!canAfford(def.costs || {})) return { ok: false, reason: "materials" };
 
   return { ok: true, reason: "" };
-}
-
-function queueWork(workId) {
-  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
-
-  if (state.actionQueue.length >= QUEUE_LIMIT) {
-    addLog(`生產列隊已滿，最多等待 ${QUEUE_LIMIT} 項`, "important");
-    return false;
-  }
-
-  state.actionQueue.push(workId);
-  addLog(`已加入生產列隊：${workDefs[workId]?.name || workId}`, "important");
-  return true;
-}
-
-function startWorkNow(workId) {
-  workSystem.requestWork(workId);
-
-  if (state.currentAction && state.currentAction.id === workId) {
-    const duration = getProductionDuration(workId);
-    state.currentAction.total = duration;
-    state.currentAction.remaining = duration;
-    return true;
-  }
-
-  return false;
-}
-
-function tryStartNextWork() {
-  if (state.currentAction) return false;
-  if (!Array.isArray(state.actionQueue) || state.actionQueue.length === 0) return false;
-
-  const nextId = state.actionQueue[0];
-  const def = workDefs[nextId];
-  if (!def) {
-    state.actionQueue.shift();
-    return tryStartNextWork();
-  }
-
-  if (state.stamina < getWorkCost(def)) {
-    return false;
-  }
-
-  state.actionQueue.shift();
-  return startWorkNow(nextId);
 }
 
 function beginCraft(craftId, { silent = false } = {}) {
@@ -743,7 +493,6 @@ function beginCraft(craftId, { silent = false } = {}) {
   state.stamina -= staminaCost;
 
   const duration = getCraftDuration(def, craftId);
-
   state.currentCraft = {
     id: craftId,
     total: duration,
@@ -783,6 +532,19 @@ function finishCurrentCraft() {
   addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`, "loot");
 }
 
+function updateCraft(deltaSeconds) {
+  if (!state.currentCraft) return;
+
+  state.currentCraft.remaining = Math.max(
+    0,
+    Number(state.currentCraft.remaining || 0) - deltaSeconds
+  );
+
+  if (state.currentCraft.remaining <= 0) {
+    finishCurrentCraft();
+  }
+}
+
 function queueCraft(craftId) {
   if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
 
@@ -816,19 +578,6 @@ function tryStartNextCraft() {
   return beginCraft(nextId, { silent: true });
 }
 
-function updateCraft(deltaSeconds) {
-  if (!state.currentCraft) return;
-
-  state.currentCraft.remaining = Math.max(
-    0,
-    Number(state.currentCraft.remaining || 0) - deltaSeconds
-  );
-
-  if (state.currentCraft.remaining <= 0) {
-    finishCurrentCraft();
-  }
-}
-
 function craftItem(craftId) {
   if (state.currentCraft) {
     return queueCraft(craftId);
@@ -836,6 +585,58 @@ function craftItem(craftId) {
 
   return beginCraft(craftId);
 }
+
+const workSystem = createWorkSystem({
+  state,
+  addLog,
+  addMainExp,
+  gainResource
+});
+
+function queueWork(workId) {
+  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
+
+  if (state.actionQueue.length >= QUEUE_LIMIT) {
+    addLog(`行動列隊已滿，最多等待 ${QUEUE_LIMIT} 項`, "important");
+    return false;
+  }
+
+  state.actionQueue.push(workId);
+  addLog(`已加入行動列隊：${workDefs[workId]?.name || workId}`, "important");
+  return true;
+}
+
+function startWorkNow(workId) {
+  workSystem.requestWork(workId);
+  return true;
+}
+
+function tryStartNextWork() {
+  if (state.currentAction) return false;
+  if (!Array.isArray(state.actionQueue) || state.actionQueue.length === 0) return false;
+
+  const nextId = state.actionQueue[0];
+  const nextDef = workDefs[nextId];
+
+  if (!nextDef) {
+    state.actionQueue.shift();
+    return tryStartNextWork();
+  }
+
+  if (state.stamina < getWorkCost(nextDef)) {
+    return false;
+  }
+
+  state.actionQueue.shift();
+  return startWorkNow(nextId);
+}
+
+const researchSystem = createResearchSystem({
+  state,
+  addLog,
+  gainResource,
+  countBuiltPlots: () => 0
+});
 
 function saveGame() {
   try {
@@ -912,20 +713,6 @@ function syncDerivedResearchUnlocks() {
   });
 }
 
-const workSystem = createWorkSystem({
-  state,
-  addLog,
-  addMainExp,
-  gainResource
-});
-
-const researchSystem = createResearchSystem({
-  state,
-  addLog,
-  gainResource,
-  countBuiltPlots: () => 0
-});
-
 function showFeatureStub(featureName) {
   addLog(`${featureName}功能尚未接回 main.js`, "important");
   renderAll();
@@ -947,15 +734,12 @@ function renderPlaceholders() {
 }
 
 function renderHeaderStats() {
-  const activeWorkId = state.currentAction?.id || null;
-
   renderTopStats({
     state,
     getExpToNext,
     getMaxStamina,
     formatReadableDuration,
-    getCycleTimeText: () =>
-      activeWorkId ? getProductionDuration(activeWorkId).toFixed(2) : getProductionDuration().toFixed(2),
+    getCycleTimeText: () => "",
     getCampfireBarPercent: (s) =>
       Math.min(100, Math.max(0, (Number(s.campfireSec || 0) / 180) * 100))
   });
@@ -985,7 +769,8 @@ function renderAll() {
   renderWorkButtons({
     workDefs,
     getWorkCost,
-    getWorkDuration: (def, id) => getProductionDuration(id),
+    getWorkDuration: (def, id) =>
+      typeof def.duration === "number" ? def.duration : 1,
     formatSeconds,
     onWorkClick: (workId) => {
       if (state.currentAction) {
@@ -1063,16 +848,10 @@ function loop(now) {
   researchSystem.updateResearch(deltaSeconds);
 
   if (!state.currentAction && state.actionQueue?.length > 0) {
-    const nextId = state.actionQueue[0];
-    const nextDef = workDefs[nextId];
-    if (nextDef && state.stamina >= getWorkCost(nextDef)) {
-      tryStartNextWork();
-    }
+    tryStartNextWork();
   }
 
-  if (state.currentCraft && state.currentCraft.remaining <= 0) {
-    tryStartNextCraft();
-  } else if (!state.currentCraft && state.craftQueue?.length > 0) {
+  if (!state.currentCraft && state.craftQueue?.length > 0) {
     tryStartNextCraft();
   }
 
