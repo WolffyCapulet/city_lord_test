@@ -235,6 +235,24 @@ function eatBestFood() {
   eatResource(best);
 }
 
+function isWarehouseResourceClickable(resourceId) {
+  return typeof edibleValues[resourceId] === "number";
+}
+
+function getWarehouseResourceHint(resourceId) {
+  if (typeof edibleValues[resourceId] === "number") {
+    return "點擊使用";
+  }
+  return "";
+}
+
+function handleWarehouseResourceClick(resourceId) {
+  if (typeof edibleValues[resourceId] === "number") {
+    eatResource(resourceId);
+    renderAll();
+  }
+}
+
 function isCraftHidden(def) {
   return !!def.hidden;
 }
@@ -422,7 +440,10 @@ function renderAll() {
   renderResources({
     state,
     getResourceLabel,
-    edibleValues
+    edibleValues,
+    isResourceClickable: isWarehouseResourceClickable,
+    getResourceHint: getWarehouseResourceHint,
+    onResourceClick: handleWarehouseResourceClick
   });
 
   renderWorkButtons({
