@@ -1,6 +1,5 @@
 export function renderTopStats({
   state,
-  skillLabels = {},
   getExpToNext,
   getMaxStamina,
   formatReadableDuration = (seconds) => `${Math.max(0, Math.ceil(Number(seconds || 0)))}s`,
@@ -72,11 +71,11 @@ export function renderTopStats({
 
   setText("salaryTimer", formatReadableDuration(state.salaryTimer || 0));
   setText("salaryDebt", Math.floor(state.salaryDebt || 0));
-  setText("wageDebt", Math.floor(state.salaryDebt || 0)); // 舊版 / 新版兼容
+  setText("wageDebt", Math.floor(state.salaryDebt || 0));
   setText("campfireSec", formatReadableDuration(state.campfireSec || 0));
-  setText("campfireTimer", formatReadableDuration(state.campfireSec || 0)); // 舊版 / 新版兼容
+  setText("campfireTimer", formatReadableDuration(state.campfireSec || 0));
   setText("townStageLabel", townStageName);
-  setText("researchUnlockText", townStageName); // 舊版 / 新版兼容
+  setText("researchUnlockText", townStageName);
 
   setWidth(
     "expBar",
@@ -119,17 +118,4 @@ export function renderTopStats({
   toggleClass("salaryPill", "bad", Number(state.salaryDebt || 0) > 0);
   toggleClass("campfirePill", "bad", Number(state.campfireSec || 0) <= 0);
   toggleClass("taxPill", "good", Number(state.pendingTax || 0) > 0);
-
-  const skillPills = document.getElementById("skillPills");
-  if (skillPills) {
-    const entries = Object.entries(skillLabels)
-      .map(([key, label]) => {
-        const skill = state.skills?.[key];
-        if (!skill) return "";
-        return `<span class="pill">${label} Lv.${skill.level || 1}</span>`;
-      })
-      .filter(Boolean);
-
-    skillPills.innerHTML = entries.join("");
-  }
 }
