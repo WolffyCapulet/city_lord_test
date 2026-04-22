@@ -179,7 +179,9 @@ function buildGroups(resources, getResourceLabel) {
 
   Object.entries(resources || {})
     .filter(([, value]) => Number(value || 0) > 0)
-    .sort((a, b) => getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant"))
+    .sort((a, b) =>
+      getResourceLabel(a[0]).localeCompare(getResourceLabel(b[0]), "zh-Hant")
+    )
     .forEach(([id, value]) => {
       const key = getResourceGroupKey(id);
       const group = groups.find((g) => g.key === key);
@@ -191,18 +193,31 @@ function buildGroups(resources, getResourceLabel) {
   return groups.filter((group) => group.items.length > 0);
 }
 
+function canClickResource(id, isResourceClickable, onResourceClick) {
+  if (typeof onResourceClick !== "function") return false;
+  if (typeof isResourceClickable === "function") return !!isResourceClickable(id);
+  return true;
+}
+
 export function renderResources({
   state,
   getResourceLabel,
   edibleValues = {},
+  isResourceClickable = null,
+  getResourceHint = null,
   onResourceClick = null
 }) {
   const root = document.getElementById("resources");
   if (!root) return;
 
   const resources = state.resources || {};
-  const totalKinds = Object.keys(resources).filter((key) => Number(resources[key] || 0) > 0).length;
-  const totalAmount = Object.values(resources).reduce((sum, n) => sum + Number(n || 0), 0);
+  const totalKinds = Object.keys(resources).filter(
+    (key) => Number(resources[key] || 0) > 0
+  ).length;
+  const totalAmount = Object.values(resources).reduce(
+    (sum, n) => sum + Number(n || 0),
+    0
+  );
 
   const groups = buildGroups(resources, getResourceLabel);
   ensureResourceOpenState(state, groups);
@@ -241,20 +256,29 @@ export function renderResources({
                         .map(({ id, value }) => {
                           const label = getResourceLabel(id);
                           const edibleValue = edibleValues[id];
-                          const meta = [];
+                          const clickable = canClickResource(
+                            id,
+                            isResourceClickable,
+                            onResourceClick
+                          );
 
-                          meta.push(`${label}：${value}`);
+                          const meta = [`${label}：${value}`];
 
                           if (typeof edibleValue === "number") {
-                            meta.push(`可食用：${edibleValue >= 0 ? "+" : ""}${edibleValue} 體力`);
+                            meta.push(
+                              `可食用：${edibleValue >= 0 ? "+" : ""}${edibleValue} 體力`
+                            );
                           }
 
-                          const clickable = typeof onResourceClick === "function";
+                          if (typeof getResourceHint === "function") {
+                            const hint = getResourceHint(id);
+                            if (hint) meta.push(hint);
+                          }
 
                           return `
                             <div
                               class="resource-item ${clickable ? "clickable" : ""}"
-                              data-resource-id="${escapeHtml(id)}"
+                              ${clickable ? `data-resource-id="${escapeHtml(id)}"` : ""}
                               title="${escapeHtml(meta.join("\n"))}"
                             >
                               <div class="resource-name">${escapeHtml(label)}</div>
@@ -287,18 +311,18 @@ export function renderResources({
         state,
         getResourceLabel,
         edibleValues,
+        isResourceClickable,
+        getResourceHint,
         onResourceClick
       });
     });
   });
 
-  if (typeof onResourceClick === "function") {
-    root.querySelectorAll("[data-resource-id]").forEach((item) => {
-      item.addEventListener("click", () => {
-        onResourceClick(item.dataset.resourceId);
-      });
+  root.querySelectorAll("[data-resource-id]").forEach((item) => {
+    item.addEventListener("click", () => {
+      onResourceClick?.(item.dataset.resourceId);
     });
-  }
+  });
 
   const toggleBtn = document.getElementById("toggleResourcesBtn");
   if (toggleBtn) {
@@ -313,6 +337,8 @@ export function renderResources({
         state,
         getResourceLabel,
         edibleValues,
+        isResourceClickable,
+        getResourceHint,
         onResourceClick
       });
     };
