@@ -143,7 +143,6 @@ function buildDefaultState({
 
     ui: buildDefaultUiState(),
 
-    // 相容舊 render
     logFilter: "all"
   };
 }
