@@ -1,338 +1,487 @@
-export const resourceLabels = {
-  wood: "木頭",
-  stone: "石頭",
-  dirt: "泥土",
-  sand: "沙子",
-  copperOre: "銅礦",
-  coal: "煤炭",
-  ironOre: "鐵礦",
-  silverOre: "銀礦",
-  goldOre: "金礦",
-  magnetite: "磁石",
-  crystal: "水晶",
-  gem: "寶石",
-  coalPowder: "碳粉",
-  copperPowder: "銅粉",
-  ironPowder: "鐵粉",
-  silverPowder: "銀粉",
-  goldPowder: "金粉",
-  magnetitePowder: "磁石粉",
-  crystalPowder: "水晶粉",
-  gemPowder: "寶石粉",
-  herb: "草藥",
-  rareHerb: "稀有藥草",
-  mushroom: "蘑菇",
-  branch: "樹枝",
-  leaf: "樹葉",
-  fiber: "纖維",
-  ginseng: "人蔘",
-  apple: "蘋果",
-  wheat: "小麥",
-  cotton: "棉花",
-  carrot: "蘿蔔",
-  wheatFlour: "小麥粉",
-  bread: "麵包",
-  cottonThread: "棉線",
-  cottonCloth: "棉布",
-  grassThread: "草線",
-  grassCloth: "草布",
-  boneMeal: "骨粉",
-  compost: "肥料堆",
-  wheatSeed: "小麥種子",
-  mushroomSpore: "蘑菇菌種",
-  appleSeed: "蘋果種子",
-  cottonSeed: "棉花種子",
-  carrotSeed: "蘿蔔種子",
-  shellfish: "貝類",
-  shell: "貝殼",
-  clamMeat: "蛤肉",
-  pearl: "珍珠",
-  coral: "珊瑚",
-  fish: "魚",
-  shrimp: "蝦子",
-  crab: "螃蟹",
-  snail: "蝸牛",
-  chicken: "雞",
-  egg: "雞蛋",
-  rawChicken: "生雞肉",
-  feather: "羽毛",
-  rabbit: "兔子",
-  boar: "野豬",
-  deer: "鹿",
-  wolf: "野狼",
-  brownBear: "棕熊",
-  blackBear: "黑熊",
-  rawMeat: "生肉",
-  offal: "內臟",
-  hide: "生皮",
-  bone: "骨頭",
-  boarTusk: "野豬牙",
-  deerAntler: "鹿角",
-  bearPaw: "熊掌",
-  bearFang: "熊牙",
-  planks: "木板",
-  firewood: "柴火",
-  stoneBrick: "石磚",
-  brick: "磚塊",
-  glass: "玻璃",
-  glassBottle: "玻璃瓶",
-  grilledMeat: "烤肉",
-  grilledFish: "烤魚",
-  grilledSausage: "烤香腸",
-  bearStew: "燉熊掌",
-  applePie: "蘋果派",
-  herbTonic: "鞣劑",
-  clamSoup: "海鮮湯",
-  staminaPotion: "體力藥劑",
-  paper: "紙張",
-  ink: "墨水",
-  note: "破舊筆記",
-  manual: "入門教程",
-  ironIngot: "鐵錠",
-  copperIngot: "銅錠",
-  leather: "皮革",
-  softLeather: "柔軟皮革",
-  clothes: "衣服",
-  woodAxeTool: "木斧",
-  woodPickTool: "木鎬",
-  woodShovelTool: "木鏟",
-  woodCarvingKnifeTool: "木刻刀",
-  woodHammerTool: "木鎚子",
-  woodPotTool: "木鍋子",
-  woodHoeTool: "木鋤頭",
-  woodPitchforkTool: "木草叉",
-  woodFishingRodTool: "木釣竿",
-  stoneAxeTool: "石斧",
-  stonePickTool: "石鎬",
-  shovelTool: "石鏟",
-  stoneCarvingKnifeTool: "石刻木刀",
-  stoneHammerTool: "石鎚子",
-  stonePotTool: "石鍋子",
-  stoneHoeTool: "石鋤頭",
-  stonePitchforkTool: "石草叉",
-  woodBowTool: "木弓",
-  stoneBowTool: "石弓",
-  copperBowTool: "銅弓",
-  ironBowTool: "鐵弓",
-  fishingRodTool: "石釣竿",
-  fishNetTool: "魚網",
-  copperAxeTool: "銅斧",
-  copperShovelTool: "銅鏟",
-  copperPickTool: "銅鎬",
-  copperCarvingKnifeTool: "銅刻木刀",
-  copperHammerTool: "銅鎚子",
-  copperPotTool: "銅鍋子",
-  copperHoeTool: "銅鋤頭",
-  copperPitchforkTool: "銅草叉",
-  copperFishingRodTool: "銅釣竿",
-  ironAxeTool: "鐵斧",
-  ironShovelTool: "鐵鏟",
-  ironPickTool: "鐵鎬",
-  ironCarvingKnifeTool: "鐵刻木刀",
-  ironHammerTool: "鐵鎚子",
-  ironPotTool: "鐵鍋子",
-  ironHoeTool: "鐵鋤頭",
-  ironPitchforkTool: "鐵草叉",
-  ironFishingRodTool: "鐵釣竿",
-  dairyCow: "乳牛",
-  bull: "公牛",
-  milk: "牛奶",
-  cowHorn: "牛角",
-  dictionary: "萬用字典"
+export const books = {
+  note: {
+    name: "破舊筆記",
+    duration: 30,
+    intGain: 1,
+    expGain: 1,
+    consume: 1
+  },
+  manual: {
+    name: "入門教程",
+    duration: 120,
+    intGain: 5,
+    expGain: 5,
+    consume: 1
+  }
 };
 
-export function getResourceLabel(id) {
-  return resourceLabels[id] || id;
-}
+export const researchDefs = {
+  stoneAxe: {
+    name: "石斧設計",
+    category: "tool",
+    intReq: 5,
+    duration: 40,
+    desc: "解鎖石斧製作。石斧在倉庫中時伐木產量 +20%，伐木速度 +10%",
+    rewardInt: 1,
+    unlockCraft: "stoneAxeTool"
+  },
+  shovel: {
+    name: "鏟子設計",
+    category: "tool",
+    intReq: 8,
+    duration: 50,
+    desc: "解鎖鏟子製作。鏟子在倉庫中時挖掘產量 +20%，挖掘速度 +10%",
+    rewardInt: 1,
+    unlockCraft: "shovelTool"
+  },
+  fishingRod: {
+    name: "魚竿設計",
+    category: "tool",
+    intReq: 10,
+    duration: 60,
+    desc: "解鎖魚竿製作。魚竿在倉庫中時釣魚產量 +20%，釣魚速度 +10%",
+    rewardInt: 2,
+    unlockCraft: "fishingRodTool"
+  },
+  stonePick: {
+    name: "石鎬設計",
+    category: "tool",
+    intReq: 6,
+    duration: 45,
+    desc: "解鎖石鎬製作。石鎬可供挖礦工人使用。",
+    rewardInt: 1,
+    unlockCraft: "stonePickTool"
+  },
+  stoneKnife: {
+    name: "石刻木刀設計",
+    category: "tool",
+    intReq: 6,
+    duration: 45,
+    desc: "解鎖石刻木刀製作。主要用於木工類製作。",
+    rewardInt: 1,
+    unlockCraft: "stoneCarvingKnifeTool"
+  },
+  stoneHammer: {
+    name: "石鎚子設計",
+    category: "tool",
+    intReq: 7,
+    duration: 50,
+    desc: "解鎖石鎚子製作。可供工匠使用。",
+    rewardInt: 1,
+    unlockCraft: "stoneHammerTool"
+  },
+  stonePot: {
+    name: "石鍋子設計",
+    category: "tool",
+    intReq: 7,
+    duration: 50,
+    desc: "解鎖石鍋子製作。可供廚師使用。",
+    rewardInt: 1,
+    unlockCraft: "stonePotTool"
+  },
+  stoneHoe: {
+    name: "石鋤頭設計",
+    category: "tool",
+    intReq: 7,
+    duration: 50,
+    desc: "解鎖石鋤頭製作。可供農夫使用。",
+    rewardInt: 1,
+    unlockCraft: "stoneHoeTool"
+  },
+  stonePitchfork: {
+    name: "石草叉設計",
+    category: "tool",
+    intReq: 7,
+    duration: 50,
+    desc: "解鎖石草叉製作。可供牧場工人使用。",
+    rewardInt: 1,
+    unlockCraft: "stonePitchforkTool"
+  },
+  stoneBow: {
+    name: "石弓設計",
+    category: "tool",
+    intReq: 6,
+    duration: 45,
+    desc: "解鎖石弓製作。可供狩獵工人使用。",
+    rewardInt: 1,
+    unlockCraft: "stoneBowTool"
+  },
+  fishNet: {
+    name: "魚網設計",
+    category: "tool",
+    intReq: 8,
+    duration: 55,
+    desc: "解鎖魚網製作。可供釣魚工人使用。",
+    rewardInt: 1,
+    unlockCraft: "fishNetTool"
+  },
 
-export const resourceGroupDefs = [
-  { key: "food", title: "食物與飲品" },
-  { key: "crops", title: "作物與種子" },
-  { key: "herbsBooks", title: "草藥與文具" },
-  { key: "materials", title: "基礎材料與礦物" },
-  { key: "processed", title: "加工材料" },
-  { key: "tools", title: "工具" },
-  { key: "animals", title: "活體動物" },
-  { key: "animalDrops", title: "獵物素材" },
-  { key: "other", title: "其他" }
-];
+  copperAxe: {
+    name: "銅斧設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅斧製作。",
+    rewardInt: 2,
+    unlockCraft: "copperAxeTool"
+  },
+  copperPick: {
+    name: "銅鎬設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅鎬製作。",
+    rewardInt: 2,
+    unlockCraft: "copperPickTool"
+  },
+  copperShovel: {
+    name: "銅鏟設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅鏟製作。",
+    rewardInt: 2,
+    unlockCraft: "copperShovelTool"
+  },
+  copperKnife: {
+    name: "銅刻木刀設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅刻木刀製作。主要用於木工類製作。",
+    rewardInt: 2,
+    unlockCraft: "copperCarvingKnifeTool"
+  },
+  copperHammer: {
+    name: "銅鎚子設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅鎚子製作。",
+    rewardInt: 2,
+    unlockCraft: "copperHammerTool"
+  },
+  copperPot: {
+    name: "銅鍋子設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅鍋子製作。",
+    rewardInt: 2,
+    unlockCraft: "copperPotTool"
+  },
+  copperHoe: {
+    name: "銅鋤頭設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅鋤頭製作。",
+    rewardInt: 2,
+    unlockCraft: "copperHoeTool"
+  },
+  copperPitchfork: {
+    name: "銅草叉設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅草叉製作。",
+    rewardInt: 2,
+    unlockCraft: "copperPitchforkTool"
+  },
+  copperFishingRod: {
+    name: "銅釣竿設計",
+    category: "tool",
+    intReq: 11,
+    duration: 70,
+    desc: "解鎖銅釣竿製作。",
+    rewardInt: 2,
+    unlockCraft: "copperFishingRodTool"
+  },
+  copperBow: {
+    name: "銅弓設計",
+    category: "tool",
+    intReq: 12,
+    duration: 75,
+    desc: "解鎖銅弓製作。",
+    rewardInt: 2,
+    unlockCraft: "copperBowTool"
+  },
 
-export const resourceUiText = {
-  edible: "可食用",
-  fuel: "燃料",
-  edibleFuel: "可食/燃料",
-  empty: "　"
-};
+  ironAxe: {
+    name: "鐵斧設計",
+    category: "tool",
+    intReq: 14,
+    duration: 90,
+    desc: "解鎖鐵斧製作。",
+    rewardInt: 3,
+    unlockCraft: "ironAxeTool"
+  },
+  ironPick: {
+    name: "鐵鎬設計",
+    category: "tool",
+    intReq: 14,
+    duration: 90,
+    desc: "解鎖鐵鎬製作。",
+    rewardInt: 3,
+    unlockCraft: "ironPickTool"
+  },
+  ironShovel: {
+    name: "鐵鏟設計",
+    category: "tool",
+    intReq: 14,
+    duration: 90,
+    desc: "解鎖鐵鏟製作。",
+    rewardInt: 3,
+    unlockCraft: "ironShovelTool"
+  },
+  ironKnife: {
+    name: "鐵刻木刀設計",
+    category: "tool",
+    intReq: 15,
+    duration: 95,
+    desc: "解鎖鐵刻木刀製作。主要用於木工類製作。",
+    rewardInt: 3,
+    unlockCraft: "ironCarvingKnifeTool"
+  },
+  ironHammer: {
+    name: "鐵鎚子設計",
+    category: "tool",
+    intReq: 15,
+    duration: 95,
+    desc: "解鎖鐵鎚子製作。",
+    rewardInt: 3,
+    unlockCraft: "ironHammerTool"
+  },
+  ironPot: {
+    name: "鐵鍋子設計",
+    category: "tool",
+    intReq: 15,
+    duration: 95,
+    desc: "解鎖鐵鍋子製作。",
+    rewardInt: 3,
+    unlockCraft: "ironPotTool"
+  },
+  ironHoe: {
+    name: "鐵鋤頭設計",
+    category: "tool",
+    intReq: 14,
+    duration: 90,
+    desc: "解鎖鐵鋤頭製作。",
+    rewardInt: 3,
+    unlockCraft: "ironHoeTool"
+  },
+  ironPitchfork: {
+    name: "鐵草叉設計",
+    category: "tool",
+    intReq: 14,
+    duration: 90,
+    desc: "解鎖鐵草叉製作。",
+    rewardInt: 3,
+    unlockCraft: "ironPitchforkTool"
+  },
+  ironFishingRod: {
+    name: "鐵釣竿設計",
+    category: "tool",
+    intReq: 15,
+    duration: 95,
+    desc: "解鎖鐵釣竿製作。",
+    rewardInt: 3,
+    unlockCraft: "ironFishingRodTool"
+  },
+  ironBow: {
+    name: "鐵弓設計",
+    category: "tool",
+    intReq: 15,
+    duration: 95,
+    desc: "解鎖鐵弓製作。",
+    rewardInt: 3,
+    unlockCraft: "ironBowTool"
+  },
 
-const foodIds = new Set([
-  "rawMeat",
-  "rawChicken",
-  "fish",
-  "shrimp",
-  "crab",
-  "snail",
-  "shellfish",
-  "clamMeat",
-  "egg",
-  "milk",
-  "apple",
-  "wheat",
-  "carrot",
-  "mushroom",
-  "grilledMeat",
-  "grilledFish",
-  "bread",
-  "grilledSausage",
-  "bearStew",
-  "applePie",
-  "clamSoup",
-  "sashimi",
-  "staminaPotion"
-]);
+  autoMealPlan: {
+    name: "自動進食規劃",
+    category: "quality",
+    intReq: 9,
+    duration: 70,
+    desc: "解鎖玩家自動進食設定，可選擇低於幾%體力自動吃東西，以及指定要吃的食物。",
+    rewardInt: 1
+  },
 
-const herbBookIds = new Set([
-  "herb",
-  "rareHerb",
-  "ginseng",
-  "paper",
-  "ink",
-  "note",
-  "manual",
-  "herbTonic"
-]);
-
-const cropSeedIds = new Set([
-  "wheatSeed",
-  "mushroomSpore",
-  "appleSeed",
-  "cottonSeed",
-  "carrotSeed",
-  "wheatSeedBundle",
-  "cotton",
-  "fiber"
-]);
-
-const basicMaterialIds = new Set([
-  "wood",
-  "stone",
-  "dirt",
-  "sand",
-  "branch",
-  "leaf",
-  "coal",
-  "copperOre",
-  "ironOre",
-  "silverOre",
-  "goldOre",
-  "magnetite",
-  "crystal",
-  "gem",
-  "coalPowder",
-  "copperPowder",
-  "ironPowder",
-  "silverPowder",
-  "goldPowder",
-  "magnetitePowder",
-  "crystalPowder",
-  "gemPowder"
-]);
-
-const animalIds = new Set([
-  "chicken",
-  "rabbit",
-  "boar",
-  "deer",
-  "wolf",
-  "brownBear",
-  "blackBear",
-  "dairyCow",
-  "bull"
-]);
-
-const huntDropIds = new Set([
-  "offal",
-  "hide",
-  "bone",
-  "boarTusk",
-  "deerAntler",
-  "bearPaw",
-  "bearFang",
-  "feather",
-  "shell",
-  "pearl",
-  "coral",
-  "cowHorn"
-]);
-
-const processedIds = new Set([
-  "planks",
-  "firewood",
-  "stoneBrick",
-  "brick",
-  "glass",
-  "glassBottle",
-  "wheatFlour",
-  "boneMeal",
-  "compost",
-  "ironIngot",
-  "copperIngot",
-  "leather",
-  "softLeather",
-  "cottonThread",
-  "cottonCloth",
-  "grassThread",
-  "grassCloth",
-  "clothes"
-]);
-
-export function getResourceGroupKey(id) {
-  if (foodIds.has(id)) return "food";
-  if (cropSeedIds.has(id)) return "crops";
-  if (herbBookIds.has(id)) return "herbsBooks";
-  if (animalIds.has(id)) return "animals";
-  if (huntDropIds.has(id)) return "animalDrops";
-  if (processedIds.has(id)) return "processed";
-  if (basicMaterialIds.has(id)) return "materials";
-
-  if (id.endsWith("Tool")) return "tools";
-  if (id.endsWith("Ore")) return "materials";
-  if (id.endsWith("Powder")) return "materials";
-  if (id.endsWith("Seed")) return "crops";
-  if (id.endsWith("Ingot")) return "processed";
-
-  return "other";
-}
-
-export const edibleValues = {
-  rawMeat: -5,
-  rawChicken: -5,
-  fish: -5,
-  grilledMeat: 10,
-  grilledFish: 10,
-  bread: 25,
-  grilledSausage: 50,
-  bearStew: 100,
-  applePie: 50,
-  clamSoup: 75
-};
-
-export const foodOrder = [
-  "staminaPotion",
-  "bearStew",
-  "clamSoup",
-  "grilledSausage",
-  "applePie",
-  "bread",
-  "grilledMeat",
-  "grilledFish",
-  "rawChicken",
-  "rawMeat",
-  "fish"
-];
-
-export const fuelDurations = {
-  leaf: 5,
-  branch: 15,
-  firewood: 60,
-  coal: 180
+  wellPlan: {
+    name: "水井藍圖",
+    category: "building",
+    intReq: 4,
+    duration: 35,
+    desc: "解鎖水井建造。",
+    rewardInt: 1,
+    unlockBuild: "well",
+    levelReq: 2
+  },
+  wallPlan: {
+    name: "城牆藍圖",
+    category: "building",
+    intReq: 6,
+    duration: 45,
+    desc: "解鎖城牆建造。",
+    rewardInt: 1,
+    unlockHouse: "wall",
+    levelReq: 3,
+    reqHouses: { cabin: 2 },
+    reqBuildings: { well: 1 }
+  },
+  lumberMillPlan: {
+    name: "伐木廠藍圖",
+    category: "building",
+    intReq: 7,
+    duration: 50,
+    desc: "解鎖伐木廠升級。",
+    rewardInt: 1,
+    unlockBuild: "lumberMill",
+    levelReq: 4,
+    reqHouses: { cabin: 2 },
+    reqBuildings: { well: 1 }
+  },
+  fishingShackPlan: {
+    name: "釣魚小屋藍圖",
+    category: "building",
+    intReq: 7,
+    duration: 50,
+    desc: "解鎖釣魚小屋升級。",
+    rewardInt: 1,
+    unlockBuild: "fishingShack",
+    levelReq: 4,
+    reqHouses: { cabin: 2 },
+    reqBuildings: { well: 1 }
+  },
+  stoneHousePlan: {
+    name: "中石屋藍圖",
+    category: "building",
+    intReq: 8,
+    duration: 60,
+    desc: "解鎖中石屋建造。",
+    rewardInt: 2,
+    unlockHouse: "stoneHouse",
+    levelReq: 5,
+    reqHouses: { cabin: 3, wall: 1 },
+    reqBuildings: { well: 1 }
+  },
+  smithyPlan: {
+    name: "鐵匠鋪藍圖",
+    category: "building",
+    intReq: 9,
+    duration: 70,
+    desc: "解鎖鐵匠鋪升級。",
+    rewardInt: 2,
+    unlockBuild: "smithy",
+    levelReq: 6,
+    reqHouses: { wall: 3 },
+    reqBuildings: { well: 1 }
+  },
+  quarryPlan: {
+    name: "挖掘場藍圖",
+    category: "building",
+    intReq: 9,
+    duration: 70,
+    desc: "解鎖挖掘場升級。",
+    rewardInt: 2,
+    unlockBuild: "quarry",
+    levelReq: 6,
+    reqHouses: { stoneHouse: 1, wall: 4 },
+    reqBuildings: { well: 1 }
+  },
+  libraryPlan: {
+    name: "圖書室藍圖",
+    category: "building",
+    intReq: 10,
+    duration: 80,
+    desc: "解鎖圖書室升級。",
+    rewardInt: 2,
+    unlockBuild: "library",
+    levelReq: 7,
+    reqHouses: { stoneHouse: 1, wall: 4 },
+    reqBuildings: { well: 1 }
+  },
+  ranchPlan: {
+    name: "牧場藍圖",
+    category: "building",
+    intReq: 10,
+    duration: 75,
+    desc: "解鎖牧場升級。",
+    rewardInt: 2,
+    unlockBuild: "ranch",
+    levelReq: 7,
+    reqHouses: { cabin: 4 },
+    reqBuildings: { well: 1 }
+  },
+  waterChannelPlan: {
+    name: "水渠藍圖",
+    category: "building",
+    intReq: 10,
+    duration: 80,
+    desc: "解鎖水渠建造。水渠能加快農田生長，並略微提高農作物產量。",
+    rewardInt: 2,
+    unlockBuild: "waterChannel",
+    levelReq: 7,
+    reqBuildings: { well: 1 },
+    reqPlots: 3
+  },
+  millPlan: {
+    name: "磨坊藍圖",
+    category: "building",
+    intReq: 11,
+    duration: 85,
+    desc: "解鎖磨坊升級。磨坊能提升小麥粉、骨粉、肥料堆與各類礦物粉末的製作效率。",
+    rewardInt: 2,
+    unlockBuild: "mill",
+    levelReq: 8,
+    reqBuildings: { well: 2, waterChannel: 1 },
+    reqPlots: 4
+  },
+  windmillPlan: {
+    name: "風車藍圖",
+    category: "building",
+    intReq: 13,
+    duration: 110,
+    desc: "解鎖風車建造。風車能提高種子返還，並強化磨坊效率。",
+    rewardInt: 3,
+    unlockBuild: "windmill",
+    levelReq: 10,
+    reqBuildings: { mill: 1, waterChannel: 1 },
+    reqPlots: 6
+  },
+  tanneryPlan: {
+    name: "裁縫小屋藍圖",
+    category: "building",
+    intReq: 11,
+    duration: 85,
+    desc: "解鎖裁縫小屋升級。",
+    rewardInt: 2,
+    unlockBuild: "tannery",
+    levelReq: 8,
+    reqHouses: { stoneHouse: 1 },
+    reqBuildings: { well: 1 }
+  },
+  alchemyHutPlan: {
+    name: "煉金小屋藍圖",
+    category: "building",
+    intReq: 12,
+    duration: 95,
+    desc: "解鎖煉金小屋升級。",
+    rewardInt: 3,
+    unlockBuild: "alchemyHut",
+    levelReq: 9,
+    reqBuildings: { library: 1 }
+  },
+  townCenterPlan: {
+    name: "城鎮中心藍圖",
+    category: "building",
+    intReq: 14,
+    duration: 120,
+    desc: "解鎖城鎮中心升級。",
+    rewardInt: 3,
+    unlockBuild: "townCenter",
+    levelReq: 10,
+    reqHouses: { stoneHouse: 2, wall: 6 },
+    reqBuildings: { well: 2 }
+  }
 };
