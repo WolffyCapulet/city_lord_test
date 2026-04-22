@@ -1,4 +1,9 @@
-import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
+import {
+  resourceLabels,
+  edibleValues,
+  foodOrder,
+  fuelDurations
+} from "../data/resources.js";
 import { workDefs } from "../data/works.js";
 import { crafts } from "../data/crafts.js";
 import { books, researchDefs } from "../data/research.js";
@@ -11,13 +16,13 @@ import { createWorkSystem, getWorkCost, getWorkDuration } from "../systems/work.
 import { createResearchSystem } from "../systems/research.js";
 
 import {
-  renderTopStats,
   renderResearchArea,
   renderActionLane,
   renderResearchLane,
   renderLog
 } from "../ui/components.js";
 
+import { renderTopStats } from "../ui/render/renderTopStats.js";
 import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
 import { renderCraftList } from "../ui/render/renderCraftList.js";
@@ -65,11 +70,19 @@ function formatSeconds(seconds) {
   return `${Math.max(0, Number(seconds || 0)).toFixed(1)} 秒`;
 }
 
+function formatReadableDuration(seconds) {
+  const total = Math.max(0, Math.ceil(Number(seconds || 0)));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  if (m <= 0) return `${s}s`;
+  return `${m}m${String(s).padStart(2, "0")}s`;
+}
+
 function getExpToNext(level) {
   return Math.round(5 + 2.5 * level * (level - 1));
 }
 
-function getMaxStamina() {
+function getMaxStamina(state) {
   return 100;
 }
 
@@ -204,16 +217,16 @@ function eatResource(resourceId) {
   const value = edibleValues[resourceId];
   const label = getResourceLabel(resourceId);
 
-  if (typeof value !== "number") return;
+  if (typeof value !== "number") return false;
 
   if ((state.resources[resourceId] || 0) <= 0) {
     addLog(`沒有${label}可以使用`, "important");
-    return;
+    return false;
   }
 
   if (state.stamina >= getMaxStamina(state) && value >= 0) {
     addLog("體力已滿，不需要吃食物", "important");
-    return;
+    return false;
   }
 
   spendResource(resourceId, 1);
@@ -223,6 +236,7 @@ function eatResource(resourceId) {
   const actual = state.stamina - before;
 
   addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
+  return true;
 }
 
 function eatBestFood() {
@@ -235,21 +249,53 @@ function eatBestFood() {
   eatResource(best);
 }
 
+function addCampfireFuel(resourceId) {
+  const duration = Number(fuelDurations[resourceId] || 0);
+  const label = getResourceLabel(resourceId);
+
+  if (duration <= 0) return false;
+
+  if ((state.resources[resourceId] || 0) <= 0) {
+    addLog(`沒有${label}可以投入篝火`, "important");
+    return false;
+  }
+
+  spendResource(resourceId, 1);
+  state.campfireSec = Math.max(0, Number(state.campfireSec || 0)) + duration;
+
+  addLog(`你投入了 1 個${label}，篝火延長 ${duration} 秒`, "important");
+  return true;
+}
+
 function isWarehouseResourceClickable(resourceId) {
-  return typeof edibleValues[resourceId] === "number";
+  return (
+    typeof edibleValues[resourceId] === "number" ||
+    typeof fuelDurations[resourceId] === "number"
+  );
 }
 
 function getWarehouseResourceHint(resourceId) {
-  if (typeof edibleValues[resourceId] === "number") {
-    return "點擊使用";
-  }
+  const isFood = typeof edibleValues[resourceId] === "number";
+  const isFuel = typeof fuelDurations[resourceId] === "number";
+
+  if (isFood && isFuel) return "點擊使用 / 投入篝火";
+  if (isFood) return "點擊使用";
+  if (isFuel) return "點擊投入篝火";
   return "";
 }
 
 function handleWarehouseResourceClick(resourceId) {
   if (typeof edibleValues[resourceId] === "number") {
-    eatResource(resourceId);
-    renderAll();
+    if (eatResource(resourceId)) {
+      renderAll();
+    }
+    return;
+  }
+
+  if (typeof fuelDurations[resourceId] === "number") {
+    if (addCampfireFuel(resourceId)) {
+      renderAll();
+    }
   }
 }
 
@@ -419,16 +465,16 @@ function renderPlaceholders() {
   setPlaceholder("workers", "工人系統尚未接回 main.js");
 }
 
-function renderAll() {
-  syncDerivedResearchUnlocks();
-
+function renderHeaderStats() {
   renderTopStats({
     state,
+    skillLabels,
     getExpToNext,
     getMaxStamina,
-    getBestFoodId,
-    getResourceLabel,
-    edibleValues
+    formatReadableDuration,
+    getCycleTimeText: () => "",
+    getCampfireBarPercent: (s) =>
+      Math.min(100, Math.max(0, (Number(s.campfireSec || 0) / 180) * 100))
   });
 
   renderSkillPills({
@@ -436,11 +482,18 @@ function renderAll() {
     skillLabels,
     expToNext: getExpToNext
   });
+}
+
+function renderAll() {
+  syncDerivedResearchUnlocks();
+
+  renderHeaderStats();
 
   renderResources({
     state,
     getResourceLabel,
     edibleValues,
+    fuelDurations,
     isResourceClickable: isWarehouseResourceClickable,
     getResourceHint: getWarehouseResourceHint,
     onResourceClick: handleWarehouseResourceClick
@@ -509,8 +562,12 @@ function loop(now) {
   const deltaSeconds = Math.min(0.2, (now - lastFrameTime) / 1000);
   lastFrameTime = now;
 
+  state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
+
   workSystem.updateAction(deltaSeconds);
   researchSystem.updateResearch(deltaSeconds);
+
+  renderHeaderStats();
 
   renderActionLane({
     state,
