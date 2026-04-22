@@ -319,6 +319,7 @@ function loadGame({ silent = false } = {}) {
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, data);
 
+    state.logs = normalizeLogs(state.logs);
     state.stamina = clamp(state.stamina, 0, getMaxStamina(state));
 
     if (!silent) {
@@ -530,6 +531,7 @@ function init() {
     },
     onSetLogFilter: (filter) => {
       state.logFilter = filter;
+      if (!state.ui) state.ui = {};
       state.ui.logFilter = filter;
       renderLog({ state });
     },
