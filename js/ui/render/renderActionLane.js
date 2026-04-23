@@ -1,8 +1,19 @@
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function renderActionLane({
   state,
   workDefs,
   getWorkCost,
-  formatSeconds
+  formatSeconds,
+  onRemoveQueuedAction = null,
+  onMoveQueuedAction = null
 }) {
   const textEl =
     document.getElementById("productionText") ||
@@ -53,12 +64,56 @@ export function renderActionLane({
 
   queueEl.innerHTML = state.actionQueue?.length
     ? state.actionQueue
-        .map(
-          (id, index) =>
-            `<span class="queue-pill">${index + 1}. ${workDefs[id]?.name || id}</span>`
-        )
+        .map((id, index, arr) => {
+          const name = workDefs[id]?.name || id;
+          return `
+            <div class="queue-row">
+              <span class="queue-pill">${index + 1}. ${escapeHtml(name)}</span>
+              <div class="queue-row-actions">
+                <button
+                  type="button"
+                  class="tiny-btn"
+                  data-action-up="${index}"
+                  ${index === 0 ? "disabled" : ""}
+                  title="上移"
+                >↑</button>
+                <button
+                  type="button"
+                  class="tiny-btn"
+                  data-action-down="${index}"
+                  ${index === arr.length - 1 ? "disabled" : ""}
+                  title="下移"
+                >↓</button>
+                <button
+                  type="button"
+                  class="tiny-btn danger"
+                  data-action-remove="${index}"
+                  title="移除"
+                >×</button>
+              </div>
+            </div>
+          `;
+        })
         .join("")
     : `<span class="small muted">行動列為空</span>`;
+
+  queueEl.querySelectorAll("[data-action-remove]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onRemoveQueuedAction?.(Number(btn.dataset.actionRemove));
+    });
+  });
+
+  queueEl.querySelectorAll("[data-action-up]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onMoveQueuedAction?.(Number(btn.dataset.actionUp), -1);
+    });
+  });
+
+  queueEl.querySelectorAll("[data-action-down]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onMoveQueuedAction?.(Number(btn.dataset.actionDown), 1);
+    });
+  });
 
   if (cancelBtn) cancelBtn.disabled = !state.currentAction;
   if (clearBtn) clearBtn.disabled = !state.actionQueue?.length;
