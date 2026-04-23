@@ -32,6 +32,7 @@ import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
 import { renderCraftList } from "../ui/render/renderCraftList.js";
 import { renderSkillPills } from "../ui/render/renderSkillPills.js";
+import { showActionModal } from "../ui/modals.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
@@ -135,6 +136,39 @@ const stateOptions = {
   createDefaultSkills
 };
 
+function normalizeQueueEntries(queue = []) {
+  return (Array.isArray(queue) ? queue : [])
+    .map((item) => {
+      if (typeof item === "string") {
+        return { id: item, count: 1 };
+      }
+
+      return {
+        id: item?.id,
+        count: Math.max(1, Math.floor(Number(item?.count || 1)))
+      };
+    })
+    .filter((item) => typeof item.id === "string" && item.id);
+}
+
+function getQueuedId(item) {
+  return typeof item === "string" ? item : item?.id;
+}
+
+function getQueuedCount(item) {
+  if (typeof item === "string") return 1;
+  return Math.max(1, Math.floor(Number(item?.count || 1)));
+}
+
+function formatBundleText(bundle = {}) {
+  const entries = Object.entries(bundle);
+  if (!entries.length) return "無";
+
+  return entries
+    .map(([id, amount]) => `${getResourceLabel(id)} ${amount}`)
+    .join("、");
+}
+
 function ensureStateShape(s = {}) {
   const state = s;
 
@@ -182,8 +216,8 @@ function ensureStateShape(s = {}) {
   state.logs = normalizeLogs(state.logs);
 
   if (!Array.isArray(state.workers)) state.workers = [];
-  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
-  if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
+  state.actionQueue = normalizeQueueEntries(state.actionQueue);
+  state.craftQueue = normalizeQueueEntries(state.craftQueue);
   if (!Array.isArray(state.researchQueue)) state.researchQueue = [];
 
   if (!state.research || typeof state.research !== "object") state.research = {};
@@ -545,7 +579,7 @@ function updateCraft(deltaSeconds) {
   }
 }
 
-function queueCraft(craftId) {
+function queueCraft(craftId, count = 1) {
   if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
 
   if (state.craftQueue.length >= QUEUE_LIMIT) {
@@ -553,8 +587,9 @@ function queueCraft(craftId) {
     return false;
   }
 
-  state.craftQueue.push(craftId);
-  addLog(`已加入製作列隊：${crafts[craftId]?.name || craftId}`, "important");
+  const qty = Math.max(1, Math.floor(Number(count || 1)));
+  state.craftQueue.push({ id: craftId, count: qty });
+  addLog(`已加入製作列隊：${crafts[craftId]?.name || craftId} × ${qty}`, "important");
   return true;
 }
 
@@ -562,7 +597,9 @@ function tryStartNextCraft() {
   if (state.currentCraft) return false;
   if (!Array.isArray(state.craftQueue) || state.craftQueue.length === 0) return false;
 
-  const nextId = state.craftQueue[0];
+  const next = state.craftQueue[0];
+  const nextId = getQueuedId(next);
+  const nextCount = getQueuedCount(next);
   const def = crafts[nextId];
   const check = canStartCraft(def);
 
@@ -574,13 +611,46 @@ function tryStartNextCraft() {
     return false;
   }
 
-  state.craftQueue.shift();
-  return beginCraft(nextId, { silent: true });
+  const ok = beginCraft(nextId, { silent: true });
+  if (!ok) return false;
+
+  if (nextCount <= 1) {
+    state.craftQueue.shift();
+  } else {
+    state.craftQueue[0] = { id: nextId, count: nextCount - 1 };
+  }
+
+  return true;
+}
+
+function startCraftPlan(craftId, count = 1) {
+  const qty = Math.max(1, Math.floor(Number(count || 1)));
+
+  if (state.currentCraft) {
+    return queueCraft(craftId, qty);
+  }
+
+  const ok = beginCraft(craftId);
+  if (!ok) return false;
+
+  if (qty > 1) {
+    if (state.craftQueue.length < QUEUE_LIMIT) {
+      state.craftQueue.unshift({ id: craftId, count: qty - 1 });
+      addLog(`已安排 ${crafts[craftId]?.name || craftId} 連續製作 ${qty} 次`, "important");
+    } else {
+      addLog(
+        `已開始 ${crafts[craftId]?.name || craftId}，但列隊已滿，剩餘 ${qty - 1} 次未加入`,
+        "important"
+      );
+    }
+  }
+
+  return true;
 }
 
 function craftItem(craftId) {
   if (state.currentCraft) {
-    return queueCraft(craftId);
+    return queueCraft(craftId, 1);
   }
 
   return beginCraft(craftId);
@@ -592,7 +662,10 @@ function removeQueuedCraft(index) {
 
   const [removed] = state.craftQueue.splice(index, 1);
   if (removed) {
-    addLog(`已移除製作列隊：${crafts[removed]?.name || removed}`, "important");
+    addLog(
+      `已移除製作列隊：${crafts[getQueuedId(removed)]?.name || getQueuedId(removed)} × ${getQueuedCount(removed)}`,
+      "important"
+    );
     return true;
   }
   return false;
@@ -624,7 +697,7 @@ const workSystem = createWorkSystem({
   gainResource
 });
 
-function queueWork(workId) {
+function queueWork(workId, count = 1) {
   if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
 
   if (state.actionQueue.length >= QUEUE_LIMIT) {
@@ -632,8 +705,9 @@ function queueWork(workId) {
     return false;
   }
 
-  state.actionQueue.push(workId);
-  addLog(`已加入行動列隊：${workDefs[workId]?.name || workId}`, "important");
+  const qty = Math.max(1, Math.floor(Number(count || 1)));
+  state.actionQueue.push({ id: workId, count: qty });
+  addLog(`已加入行動列隊：${workDefs[workId]?.name || workId} × ${qty}`, "important");
   return true;
 }
 
@@ -642,11 +716,38 @@ function startWorkNow(workId) {
   return true;
 }
 
+function startWorkPlan(workId, count = 1) {
+  const qty = Math.max(1, Math.floor(Number(count || 1)));
+
+  if (state.currentAction) {
+    return queueWork(workId, qty);
+  }
+
+  const ok = startWorkNow(workId);
+  if (!ok) return false;
+
+  if (qty > 1) {
+    if (state.actionQueue.length < QUEUE_LIMIT) {
+      state.actionQueue.unshift({ id: workId, count: qty - 1 });
+      addLog(`已安排 ${workDefs[workId]?.name || workId} 連續進行 ${qty} 次`, "important");
+    } else {
+      addLog(
+        `已開始 ${workDefs[workId]?.name || workId}，但列隊已滿，剩餘 ${qty - 1} 次未加入`,
+        "important"
+      );
+    }
+  }
+
+  return true;
+}
+
 function tryStartNextWork() {
   if (state.currentAction) return false;
   if (!Array.isArray(state.actionQueue) || state.actionQueue.length === 0) return false;
 
-  const nextId = state.actionQueue[0];
+  const next = state.actionQueue[0];
+  const nextId = getQueuedId(next);
+  const nextCount = getQueuedCount(next);
   const nextDef = workDefs[nextId];
 
   if (!nextDef) {
@@ -658,8 +759,16 @@ function tryStartNextWork() {
     return false;
   }
 
-  state.actionQueue.shift();
-  return startWorkNow(nextId);
+  const ok = startWorkNow(nextId);
+  if (!ok) return false;
+
+  if (nextCount <= 1) {
+    state.actionQueue.shift();
+  } else {
+    state.actionQueue[0] = { id: nextId, count: nextCount - 1 };
+  }
+
+  return true;
 }
 
 function removeQueuedAction(index) {
@@ -668,7 +777,10 @@ function removeQueuedAction(index) {
 
   const [removed] = state.actionQueue.splice(index, 1);
   if (removed) {
-    addLog(`已移除行動列隊：${workDefs[removed]?.name || removed}`, "important");
+    addLog(
+      `已移除行動列隊：${workDefs[getQueuedId(removed)]?.name || getQueuedId(removed)} × ${getQueuedCount(removed)}`,
+      "important"
+    );
     return true;
   }
   return false;
@@ -699,6 +811,65 @@ const researchSystem = createResearchSystem({
   gainResource,
   countBuiltPlots: () => 0
 });
+
+function openWorkActionModal(workId) {
+  const def = workDefs[workId];
+  if (!def) return;
+
+  showActionModal({
+    title: def.name,
+    description: [
+      `單次體力：${getWorkCost(def)}`,
+      `說明：輸入要執行幾次。`,
+      `立即開始會先做 1 次，其餘自動接續。`
+    ].join("\n"),
+    quantity: 1,
+    quantityHint: state.currentAction
+      ? "目前生產線忙碌中，可用加入列隊"
+      : "可直接開始",
+    quickButtons: [1, 10, 50, 100],
+    allowQueue: true,
+    allowStart: !state.currentAction,
+    onQueue: (qty) => {
+      queueWork(workId, qty);
+      renderAll();
+    },
+    onStart: (qty) => {
+      startWorkPlan(workId, qty);
+      renderAll();
+    }
+  });
+}
+
+function openCraftActionModal(craftId) {
+  const def = crafts[craftId];
+  if (!def) return;
+
+  showActionModal({
+    title: def.name,
+    description: [
+      `單次體力：${def.stamina ?? 1}`,
+      `材料：${formatBundleText(def.costs || {})}`,
+      `產出：${formatBundleText(def.yields || {})}`,
+      `製作節奏：${formatSeconds(getCraftDuration(def, craftId))}`
+    ].join("\n"),
+    quantity: 1,
+    quantityHint: state.currentCraft
+      ? "目前製作線忙碌中，可用加入列隊"
+      : "可直接開始",
+    quickButtons: [1, 10, 50, 100],
+    allowQueue: true,
+    allowStart: !state.currentCraft,
+    onQueue: (qty) => {
+      queueCraft(craftId, qty);
+      renderAll();
+    },
+    onStart: (qty) => {
+      startCraftPlan(craftId, qty);
+      renderAll();
+    }
+  });
+}
 
 function saveGame() {
   try {
@@ -835,12 +1006,7 @@ function renderAll() {
       typeof def.duration === "number" ? def.duration : 1,
     formatSeconds,
     onWorkClick: (workId) => {
-      if (state.currentAction) {
-        queueWork(workId);
-      } else {
-        startWorkNow(workId);
-      }
-      renderAll();
+      openWorkActionModal(workId);
     }
   });
 
@@ -851,8 +1017,7 @@ function renderAll() {
     isCraftHidden,
     isCraftUnlocked,
     onCraftClick: (craftId) => {
-      craftItem(craftId);
-      renderAll();
+      openCraftActionModal(craftId);
     },
     getCraftDuration,
     formatSeconds
@@ -968,6 +1133,7 @@ function loop(now) {
     state,
     formatSeconds
   });
+
   requestAnimationFrame(loop);
 }
 
