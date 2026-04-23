@@ -36,10 +36,7 @@ export function renderCraftLane({
     const def = crafts[state.currentCraft.id];
     const total = Math.max(0.01, Number(state.currentCraft.total || 0.01));
     const remaining = Math.max(0, Number(state.currentCraft.remaining || 0));
-    const progress = Math.min(
-      100,
-      Math.max(0, ((total - remaining) / total) * 100)
-    );
+    const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
 
     textEl.textContent = `製作中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
     textEl.title = `${def.name}\n剩餘：${formatSeconds(remaining)}`;
@@ -71,26 +68,9 @@ export function renderCraftLane({
             <div class="queue-row">
               <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${countLabel}</span>
               <div class="queue-row-actions">
-                <button
-                  type="button"
-                  class="tiny-btn"
-                  data-craft-up="${index}"
-                  ${index === 0 ? "disabled" : ""}
-                  title="上移"
-                >↑</button>
-                <button
-                  type="button"
-                  class="tiny-btn"
-                  data-craft-down="${index}"
-                  ${index === arr.length - 1 ? "disabled" : ""}
-                  title="下移"
-                >↓</button>
-                <button
-                  type="button"
-                  class="tiny-btn danger"
-                  data-craft-remove="${index}"
-                  title="移除"
-                >×</button>
+                <button type="button" class="tiny-btn" data-craft-up="${index}" ${index === 0 ? "disabled" : ""} title="上移">↑</button>
+                <button type="button" class="tiny-btn" data-craft-down="${index}" ${index === arr.length - 1 ? "disabled" : ""} title="下移">↓</button>
+                <button type="button" class="tiny-btn danger" data-craft-remove="${index}" title="移除">×</button>
               </div>
             </div>
           `;
@@ -99,20 +79,12 @@ export function renderCraftLane({
     : `<span class="small muted">製作列為空</span>`;
 
   queueEl.querySelectorAll("[data-craft-remove]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove));
-    });
+    btn.addEventListener("click", () => onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove)));
   });
-
   queueEl.querySelectorAll("[data-craft-up]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1);
-    });
+    btn.addEventListener("click", () => onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1));
   });
-
   queueEl.querySelectorAll("[data-craft-down]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1);
-    });
+    btn.addEventListener("click", () => onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1));
   });
 }
