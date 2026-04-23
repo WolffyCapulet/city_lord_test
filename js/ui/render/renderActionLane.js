@@ -7,6 +7,15 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function getQueuedId(item) {
+  return typeof item === "string" ? item : item?.id;
+}
+
+function getQueuedCount(item) {
+  if (typeof item === "string") return 1;
+  return Math.max(1, Math.floor(Number(item?.count || 1)));
+}
+
 export function renderActionLane({
   state,
   workDefs,
@@ -32,28 +41,31 @@ export function renderActionLane({
 
   if (!textEl || !barEl || !queueEl) return;
 
+  const queuedItems = Array.isArray(state.actionQueue) ? state.actionQueue : [];
+
   if (state.currentAction && workDefs[state.currentAction.id]) {
     const def = workDefs[state.currentAction.id];
 
+    const total = Math.max(0.01, Number(state.currentAction.total || 0.01));
+    const remaining = Math.max(0, Number(state.currentAction.remaining || 0));
+
     const progress = Math.min(
       100,
-      Math.max(
-        0,
-        ((state.currentAction.total - state.currentAction.remaining) /
-          state.currentAction.total) *
-          100
-      )
+      Math.max(0, ((total - remaining) / total) * 100)
     );
 
-    textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(state.currentAction.remaining)}`;
+    textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
-  } else if (state.actionQueue?.length > 0) {
-    const nextDef = workDefs[state.actionQueue[0]];
+  } else if (queuedItems.length > 0) {
+    const nextItem = queuedItems[0];
+    const nextId = getQueuedId(nextItem);
+    const nextCount = getQueuedCount(nextItem);
+    const nextDef = workDefs[nextId];
 
     if (nextDef && state.stamina < getWorkCost(nextDef)) {
-      textEl.textContent = `等待中：${nextDef.name}｜體力不足，需要 ${getWorkCost(nextDef)} 體力`;
+      textEl.textContent = `等待中：${nextDef.name} × ${nextCount}｜體力不足，需要 ${getWorkCost(nextDef)} 體力`;
     } else {
-      textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知工作"}`;
+      textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知工作"} × ${nextCount}`;
     }
 
     barEl.style.width = "0%";
@@ -62,13 +74,16 @@ export function renderActionLane({
     barEl.style.width = "0%";
   }
 
-  queueEl.innerHTML = state.actionQueue?.length
-    ? state.actionQueue
-        .map((id, index, arr) => {
+  queueEl.innerHTML = queuedItems.length
+    ? queuedItems
+        .map((item, index, arr) => {
+          const id = getQueuedId(item);
+          const count = getQueuedCount(item);
           const name = workDefs[id]?.name || id;
+
           return `
             <div class="queue-row">
-              <span class="queue-pill">${index + 1}. ${escapeHtml(name)}</span>
+              <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${count}</span>
               <div class="queue-row-actions">
                 <button
                   type="button"
@@ -116,5 +131,5 @@ export function renderActionLane({
   });
 
   if (cancelBtn) cancelBtn.disabled = !state.currentAction;
-  if (clearBtn) clearBtn.disabled = !state.actionQueue?.length;
+  if (clearBtn) clearBtn.disabled = !queuedItems.length;
 }
