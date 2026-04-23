@@ -1,8 +1,6 @@
 import { workDefs } from "../data/works.js";
 import { resourceLabels } from "../data/resources.js";
 
-const WORK_QUEUE_LIMIT = 3;
-
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -13,24 +11,6 @@ function roll(chance) {
 
 function getResourceLabel(id) {
   return resourceLabels[id] || id;
-}
-
-function getQueuedId(item) {
-  return typeof item === "string" ? item : item?.id;
-}
-
-function getQueuedCount(item) {
-  if (typeof item === "string") return 1;
-  if (item?.infinite || Number(item?.count) < 0) return -1;
-  return Math.max(1, Math.floor(Number(item?.count || 1)));
-}
-
-function makeQueueEntry(workId, count = 1, infinite = false) {
-  return {
-    id: workId,
-    count: infinite ? -1 : Math.max(1, Math.floor(Number(count || 1))),
-    infinite: !!infinite
-  };
 }
 
 export function getWorkCost(def) {
@@ -172,25 +152,6 @@ export function createWorkSystem({
   addMainExp,
   gainResource
 }) {
-  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
-
-  function enqueueWork(workId, count = 1, infinite = false) {
-    const def = workDefs[workId];
-    if (!def) return false;
-
-    if (state.actionQueue.length >= WORK_QUEUE_LIMIT) {
-      addLog(`行動列已滿，最多只能排 ${WORK_QUEUE_LIMIT} 個工作`, "important");
-      return false;
-    }
-
-    const entry = makeQueueEntry(workId, count, infinite);
-    const label = entry.count < 0 ? "∞" : entry.count;
-
-    state.actionQueue.push(entry);
-    addLog(`已排入行動列：${def.name} × ${label}`, "important");
-    return true;
-  }
-
   function startWorkAction(workId, { silent = false } = {}) {
     const def = workDefs[workId];
     if (!def) return false;
@@ -200,7 +161,9 @@ export function createWorkSystem({
     const duration = getWorkDuration(def);
 
     if (state.stamina < cost) {
-      if (!silent) addLog(`${def.name}無法開始，體力不足`, "important");
+      if (!silent) {
+        addLog(`${def.name}無法開始，體力不足`, "important");
+      }
       return false;
     }
 
@@ -219,58 +182,20 @@ export function createWorkSystem({
     return true;
   }
 
-  function requestWork(workId, options = {}) {
-    const count = Number(options?.count ?? 1);
-    const infinite = !!options?.infinite;
-
-    if (state.currentAction) {
-      return enqueueWork(workId, count, infinite);
-    }
-
+  function requestWork(workId) {
     return startWorkAction(workId);
-  }
-
-  function tryStartNextQueuedAction() {
-    if (state.currentAction || state.actionQueue.length === 0) return false;
-
-    const next = state.actionQueue[0];
-    const nextId = getQueuedId(next);
-    const nextCount = getQueuedCount(next);
-    const nextDef = workDefs[nextId];
-
-    if (!nextDef) {
-      state.actionQueue.shift();
-      return tryStartNextQueuedAction();
-    }
-
-    if (state.stamina < getWorkCost(nextDef)) return false;
-
-    const started = startWorkAction(nextId, { silent: true });
-    if (!started) return false;
-
-    if (nextCount < 0) {
-      state.actionQueue[0] = makeQueueEntry(nextId, -1, true);
-      return true;
-    }
-
-    if (nextCount <= 1) {
-      state.actionQueue.shift();
-    } else {
-      state.actionQueue[0] = makeQueueEntry(nextId, nextCount - 1, false);
-    }
-
-    return true;
   }
 
   function completeCurrentAction() {
     const action = state.currentAction;
-    if (!action) return;
+    if (!action) return false;
 
     state.currentAction = null;
 
-    if (action.type !== "work") return;
+    if (action.type !== "work") return false;
+
     const def = workDefs[action.id];
-    if (!def) return;
+    if (!def) return false;
 
     const result = getWorkSummaryLoot(action.id);
 
@@ -282,35 +207,34 @@ export function createWorkSystem({
 
     addMainExp(1);
     addLog(result.log, result.type || "loot");
-    tryStartNextQueuedAction();
+    return true;
   }
 
   function cancelCurrentAction() {
     if (!state.currentAction) {
       addLog("目前沒有進行中的工作", "important");
-      return;
+      return false;
     }
 
     const def = workDefs[state.currentAction.id];
     state.currentAction = null;
     addLog(`已取消目前工作：${def ? def.name : "未知工作"}`, "important");
+    return true;
   }
 
   function clearActionQueue() {
-    if (!state.actionQueue.length) {
+    if (!Array.isArray(state.actionQueue) || !state.actionQueue.length) {
       addLog("目前沒有等待中的行動列", "important");
-      return;
+      return false;
     }
 
     state.actionQueue = [];
     addLog("已清空行動列", "important");
+    return true;
   }
 
   function updateAction(deltaSeconds) {
-    if (!state.currentAction) {
-      tryStartNextQueuedAction();
-      return;
-    }
+    if (!state.currentAction) return;
 
     state.currentAction.remaining -= deltaSeconds;
     if (state.currentAction.remaining <= 0) {
@@ -323,7 +247,6 @@ export function createWorkSystem({
     cancelCurrentAction,
     clearActionQueue,
     updateAction,
-    enqueueWork,
     startWorkAction,
     completeCurrentAction
   };
