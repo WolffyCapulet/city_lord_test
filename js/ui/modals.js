@@ -200,33 +200,82 @@ export function showActionModal({
 
   if (!titleEl || !descEl || !qtyInput || !qtyHint || !quickWrap) return;
 
+  const setQuickActive = (activeValue, infinite) => {
+    quickWrap.querySelectorAll("button[data-quick-value]").forEach((btn) => {
+      const isBtnInfinite = btn.dataset.quickInfinite === "1";
+      const isActive = infinite
+        ? isBtnInfinite
+        : !isBtnInfinite && btn.dataset.quickValue === String(activeValue);
+      btn.classList.toggle("active", isActive);
+    });
+  };
+
+  const setQty = (value, infinite = false) => {
+    const safeValue = Math.max(1, Math.floor(Number(value || 1)));
+    qtyInput.dataset.infinite = infinite ? "1" : "0";
+    qtyInput.value = String(safeValue);
+    setQuickActive(safeValue, infinite);
+  };
+
+  const getQtyPayload = () => {
+    const infinite = qtyInput.dataset.infinite === "1";
+    if (infinite) {
+      return { qty: -1, isInfinite: true };
+    }
+
+    return {
+      qty: Math.max(1, Math.floor(Number(qtyInput.value || 1))),
+      isInfinite: false
+    };
+  };
+
   titleEl.textContent = title;
   descEl.textContent = description;
-  qtyInput.value = String(quantity);
   qtyHint.textContent = quantityHint;
   quickWrap.innerHTML = "";
+
+  setQty(quantity, false);
+
+  qtyInput.oninput = () => {
+    qtyInput.dataset.infinite = "0";
+    const current = Math.max(1, Math.floor(Number(qtyInput.value || 1)));
+    qtyInput.value = String(current);
+    setQuickActive(current, false);
+  };
 
   quickButtons.forEach((value) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "tiny-btn";
-    btn.textContent = String(value);
-    btn.addEventListener("click", () => {
-      qtyInput.value = String(value);
-    });
+
+    if (value === "∞") {
+      btn.textContent = "∞";
+      btn.dataset.quickValue = "infinite";
+      btn.dataset.quickInfinite = "1";
+      btn.addEventListener("click", () => setQty(1, true));
+    } else {
+      const safeValue = Math.max(1, Math.floor(Number(value || 1)));
+      btn.textContent = String(value);
+      btn.dataset.quickValue = String(safeValue);
+      btn.dataset.quickInfinite = "0";
+      btn.addEventListener("click", () => setQty(safeValue, false));
+    }
+
     quickWrap.appendChild(btn);
   });
 
-  if (cancelBtn) cancelBtn.onclick = () => {
-    onCancel?.();
-    closeModal("actionModal");
-  };
+  if (cancelBtn) {
+    cancelBtn.onclick = () => {
+      onCancel?.();
+      closeModal("actionModal");
+    };
+  }
 
   if (queueBtn) {
     queueBtn.style.display = allowQueue ? "" : "none";
     queueBtn.onclick = () => {
-      const qty = Math.max(1, Number(qtyInput.value || 1));
-      onQueue?.(qty);
+      const { qty, isInfinite } = getQtyPayload();
+      onQueue?.(qty, isInfinite);
       closeModal("actionModal");
     };
   }
@@ -234,8 +283,8 @@ export function showActionModal({
   if (startBtn) {
     startBtn.style.display = allowStart ? "" : "none";
     startBtn.onclick = () => {
-      const qty = Math.max(1, Number(qtyInput.value || 1));
-      onStart?.(qty);
+      const { qty, isInfinite } = getQtyPayload();
+      onStart?.(qty, isInfinite);
       closeModal("actionModal");
     };
   }
