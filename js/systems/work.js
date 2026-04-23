@@ -15,6 +15,24 @@ function getResourceLabel(id) {
   return resourceLabels[id] || id;
 }
 
+function getQueuedId(item) {
+  return typeof item === "string" ? item : item?.id;
+}
+
+function getQueuedCount(item) {
+  if (typeof item === "string") return 1;
+  if (item?.infinite || Number(item?.count) < 0) return -1;
+  return Math.max(1, Math.floor(Number(item?.count || 1)));
+}
+
+function makeQueueEntry(workId, count = 1, infinite = false) {
+  return {
+    id: workId,
+    count: infinite ? -1 : Math.max(1, Math.floor(Number(count || 1))),
+    infinite: !!infinite
+  };
+}
+
 export function getWorkCost(def) {
   return Math.max(1, Number(def?.staminaCost ?? def?.stamina ?? 1) || 1);
 }
@@ -154,17 +172,23 @@ export function createWorkSystem({
   addMainExp,
   gainResource
 }) {
-  function enqueueWork(workId) {
+  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
+
+  function enqueueWork(workId, count = 1, infinite = false) {
     const def = workDefs[workId];
-    if (!def) return;
+    if (!def) return false;
 
     if (state.actionQueue.length >= WORK_QUEUE_LIMIT) {
       addLog(`行動列已滿，最多只能排 ${WORK_QUEUE_LIMIT} 個工作`, "important");
-      return;
+      return false;
     }
 
-    state.actionQueue.push(workId);
-    addLog(`已排入行動列：${def.name}`, "important");
+    const entry = makeQueueEntry(workId, count, infinite);
+    const label = entry.count < 0 ? "∞" : entry.count;
+
+    state.actionQueue.push(entry);
+    addLog(`已排入行動列：${def.name} × ${label}`, "important");
+    return true;
   }
 
   function startWorkAction(workId, { silent = false } = {}) {
@@ -195,29 +219,47 @@ export function createWorkSystem({
     return true;
   }
 
-  function requestWork(workId) {
+  function requestWork(workId, options = {}) {
+    const count = Number(options?.count ?? 1);
+    const infinite = !!options?.infinite;
+
     if (state.currentAction) {
-      enqueueWork(workId);
-      return;
+      return enqueueWork(workId, count, infinite);
     }
-    startWorkAction(workId);
+
+    return startWorkAction(workId);
   }
 
   function tryStartNextQueuedAction() {
     if (state.currentAction || state.actionQueue.length === 0) return false;
 
-    const nextId = state.actionQueue[0];
+    const next = state.actionQueue[0];
+    const nextId = getQueuedId(next);
+    const nextCount = getQueuedCount(next);
     const nextDef = workDefs[nextId];
 
     if (!nextDef) {
       state.actionQueue.shift();
-      return false;
+      return tryStartNextQueuedAction();
     }
 
     if (state.stamina < getWorkCost(nextDef)) return false;
 
-    state.actionQueue.shift();
-    return startWorkAction(nextId, { silent: true });
+    const started = startWorkAction(nextId, { silent: true });
+    if (!started) return false;
+
+    if (nextCount < 0) {
+      state.actionQueue[0] = makeQueueEntry(nextId, -1, true);
+      return true;
+    }
+
+    if (nextCount <= 1) {
+      state.actionQueue.shift();
+    } else {
+      state.actionQueue[0] = makeQueueEntry(nextId, nextCount - 1, false);
+    }
+
+    return true;
   }
 
   function completeCurrentAction() {
