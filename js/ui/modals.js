@@ -21,7 +21,6 @@ function runCloser(id) {
 export function openModal(id) {
   const modal = getModal(id);
   if (!modal) return;
-
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
 }
@@ -29,7 +28,6 @@ export function openModal(id) {
 export function closeModal(id) {
   const modal = getModal(id);
   if (!modal) return;
-
   modal.classList.remove("show");
   modal.setAttribute("aria-hidden", "true");
   runCloser(id);
@@ -71,7 +69,6 @@ export function enableModalDismissByEscape() {
 export function renderResetModal({ isChecked = false } = {}) {
   const checkbox = document.getElementById("resetAcknowledge");
   const confirmBtn = document.getElementById("resetConfirmBtn");
-
   if (checkbox) checkbox.checked = isChecked;
   if (confirmBtn) confirmBtn.disabled = !isChecked;
 }
@@ -98,18 +95,14 @@ export function showChoiceModal({
     btn.type = "button";
     btn.className = "tiny-btn";
     btn.textContent = option.label || "選項";
-
     btn.addEventListener("click", () => {
       option.onSelect?.(option.value);
       if (option.closeOnSelect !== false) closeModal("choiceModal");
     });
-
     optionsEl.appendChild(btn);
   });
 
-  if (closeBtn) {
-    closeBtn.onclick = () => closeModal("choiceModal");
-  }
+  if (closeBtn) closeBtn.onclick = () => closeModal("choiceModal");
 
   setCloser("choiceModal", onClose);
   enableModalDismissByBackdrop("choiceModal");
@@ -202,11 +195,11 @@ export function showActionModal({
 
   const setQuickActive = (activeValue, infinite) => {
     quickWrap.querySelectorAll("button[data-quick-value]").forEach((btn) => {
-      const isBtnInfinite = btn.dataset.quickInfinite === "1";
-      const isActive = infinite
-        ? isBtnInfinite
-        : !isBtnInfinite && btn.dataset.quickValue === String(activeValue);
-      btn.classList.toggle("active", isActive);
+      const isInfiniteBtn = btn.dataset.quickInfinite === "1";
+      const active = infinite
+        ? isInfiniteBtn
+        : !isInfiniteBtn && btn.dataset.quickValue === String(activeValue);
+      btn.classList.toggle("active", active);
     });
   };
 
@@ -217,12 +210,9 @@ export function showActionModal({
     setQuickActive(safeValue, infinite);
   };
 
-  const getQtyPayload = () => {
-    const infinite = qtyInput.dataset.infinite === "1";
-    if (infinite) {
-      return { qty: -1, isInfinite: true };
-    }
-
+  const getPayload = () => {
+    const isInfinite = qtyInput.dataset.infinite === "1";
+    if (isInfinite) return { qty: -1, isInfinite: true };
     return {
       qty: Math.max(1, Math.floor(Number(qtyInput.value || 1))),
       isInfinite: false
@@ -274,7 +264,7 @@ export function showActionModal({
   if (queueBtn) {
     queueBtn.style.display = allowQueue ? "" : "none";
     queueBtn.onclick = () => {
-      const { qty, isInfinite } = getQtyPayload();
+      const { qty, isInfinite } = getPayload();
       onQueue?.(qty, isInfinite);
       closeModal("actionModal");
     };
@@ -283,7 +273,7 @@ export function showActionModal({
   if (startBtn) {
     startBtn.style.display = allowStart ? "" : "none";
     startBtn.onclick = () => {
-      const { qty, isInfinite } = getQtyPayload();
+      const { qty, isInfinite } = getPayload();
       onStart?.(qty, isInfinite);
       closeModal("actionModal");
     };
