@@ -586,6 +586,37 @@ function craftItem(craftId) {
   return beginCraft(craftId);
 }
 
+function removeQueuedCraft(index) {
+  if (!Array.isArray(state.craftQueue)) return false;
+  if (index < 0 || index >= state.craftQueue.length) return false;
+
+  const [removed] = state.craftQueue.splice(index, 1);
+  if (removed) {
+    addLog(`已移除製作列隊：${crafts[removed]?.name || removed}`, "important");
+    return true;
+  }
+  return false;
+}
+
+function moveQueuedCraft(index, direction) {
+  if (!Array.isArray(state.craftQueue)) return false;
+
+  const targetIndex = index + direction;
+  if (
+    index < 0 ||
+    index >= state.craftQueue.length ||
+    targetIndex < 0 ||
+    targetIndex >= state.craftQueue.length
+  ) {
+    return false;
+  }
+
+  const temp = state.craftQueue[index];
+  state.craftQueue[index] = state.craftQueue[targetIndex];
+  state.craftQueue[targetIndex] = temp;
+  return true;
+}
+
 const workSystem = createWorkSystem({
   state,
   addLog,
@@ -629,6 +660,37 @@ function tryStartNextWork() {
 
   state.actionQueue.shift();
   return startWorkNow(nextId);
+}
+
+function removeQueuedAction(index) {
+  if (!Array.isArray(state.actionQueue)) return false;
+  if (index < 0 || index >= state.actionQueue.length) return false;
+
+  const [removed] = state.actionQueue.splice(index, 1);
+  if (removed) {
+    addLog(`已移除行動列隊：${workDefs[removed]?.name || removed}`, "important");
+    return true;
+  }
+  return false;
+}
+
+function moveQueuedAction(index, direction) {
+  if (!Array.isArray(state.actionQueue)) return false;
+
+  const targetIndex = index + direction;
+  if (
+    index < 0 ||
+    index >= state.actionQueue.length ||
+    targetIndex < 0 ||
+    targetIndex >= state.actionQueue.length
+  ) {
+    return false;
+  }
+
+  const temp = state.actionQueue[index];
+  state.actionQueue[index] = state.actionQueue[targetIndex];
+  state.actionQueue[targetIndex] = temp;
+  return true;
 }
 
 const researchSystem = createResearchSystem({
@@ -818,13 +880,29 @@ function renderAll() {
     state,
     workDefs,
     getWorkCost,
-    formatSeconds
+    formatSeconds,
+    onRemoveQueuedAction: (index) => {
+      removeQueuedAction(index);
+      renderAll();
+    },
+    onMoveQueuedAction: (index, direction) => {
+      moveQueuedAction(index, direction);
+      renderAll();
+    }
   });
 
   renderCraftLane({
     state,
     crafts,
-    formatSeconds
+    formatSeconds,
+    onRemoveQueuedCraft: (index) => {
+      removeQueuedCraft(index);
+      renderAll();
+    },
+    onMoveQueuedCraft: (index, direction) => {
+      moveQueuedCraft(index, direction);
+      renderAll();
+    }
   });
 
   renderResearchLane({
@@ -861,20 +939,35 @@ function loop(now) {
     state,
     workDefs,
     getWorkCost,
-    formatSeconds
+    formatSeconds,
+    onRemoveQueuedAction: (index) => {
+      removeQueuedAction(index);
+      renderAll();
+    },
+    onMoveQueuedAction: (index, direction) => {
+      moveQueuedAction(index, direction);
+      renderAll();
+    }
   });
 
   renderCraftLane({
     state,
     crafts,
-    formatSeconds
+    formatSeconds,
+    onRemoveQueuedCraft: (index) => {
+      removeQueuedCraft(index);
+      renderAll();
+    },
+    onMoveQueuedCraft: (index, direction) => {
+      moveQueuedCraft(index, direction);
+      renderAll();
+    }
   });
 
   renderResearchLane({
     state,
     formatSeconds
   });
-
   requestAnimationFrame(loop);
 }
 
@@ -895,7 +988,6 @@ function init() {
     onResetConfirm: resetGame,
     onCancelAction: () => {
       workSystem.cancelCurrentAction?.();
-      state.actionQueue = [];
       renderAll();
     },
     onClearActionQueue: () => {
