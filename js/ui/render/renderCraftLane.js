@@ -1,7 +1,18 @@
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function renderCraftLane({
   state,
   crafts,
-  formatSeconds
+  formatSeconds,
+  onRemoveQueuedCraft = null,
+  onMoveQueuedCraft = null
 }) {
   const textEl = document.getElementById("craftText");
   const barEl = document.getElementById("craftBar");
@@ -35,10 +46,54 @@ export function renderCraftLane({
 
   queueEl.innerHTML = state.craftQueue?.length
     ? state.craftQueue
-        .map(
-          (id, index) =>
-            `<span class="queue-pill">${index + 1}. ${crafts[id]?.name || id}</span>`
-        )
+        .map((id, index, arr) => {
+          const name = crafts[id]?.name || id;
+          return `
+            <div class="queue-row">
+              <span class="queue-pill">${index + 1}. ${escapeHtml(name)}</span>
+              <div class="queue-row-actions">
+                <button
+                  type="button"
+                  class="tiny-btn"
+                  data-craft-up="${index}"
+                  ${index === 0 ? "disabled" : ""}
+                  title="上移"
+                >↑</button>
+                <button
+                  type="button"
+                  class="tiny-btn"
+                  data-craft-down="${index}"
+                  ${index === arr.length - 1 ? "disabled" : ""}
+                  title="下移"
+                >↓</button>
+                <button
+                  type="button"
+                  class="tiny-btn danger"
+                  data-craft-remove="${index}"
+                  title="移除"
+                >×</button>
+              </div>
+            </div>
+          `;
+        })
         .join("")
     : `<span class="small muted">製作列為空</span>`;
+
+  queueEl.querySelectorAll("[data-craft-remove]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove));
+    });
+  });
+
+  queueEl.querySelectorAll("[data-craft-up]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1);
+    });
+  });
+
+  queueEl.querySelectorAll("[data-craft-down]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1);
+    });
+  });
 }
