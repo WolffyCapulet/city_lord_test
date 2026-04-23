@@ -21,7 +21,7 @@ export function getWorkDuration(def) {
   return Math.max(0.1, Number(def?.base ?? 10) || 10);
 }
 
-export function getWorkSummaryLoot(workId) {
+export function getWorkSummaryLoot(workId, state = null) {
   const loot = {};
   let gold = 0;
   let log = "";
@@ -32,10 +32,15 @@ export function getWorkSummaryLoot(workId) {
   }
 
   switch (workId) {
-    case "labor":
-      gold += randInt(8, 12);
+    case "labor": {
+      const level = Math.max(1, Number(state?.level || 1));
+      const baseGold = 10;
+      const levelMultiplier = 1 + (level - 1) * 0.1;
+      const randomFactor = randInt(95, 105) / 100;
+      gold += Math.max(1, Math.floor(baseGold * levelMultiplier * randomFactor));
       log = `村莊打工完成，獲得金幣 ${gold}`;
       break;
+    }
 
     case "lumber":
       add("wood", randInt(2, 5));
@@ -94,7 +99,7 @@ export function getWorkSummaryLoot(workId) {
       add("fiber", randInt(1, 3));
       if (roll(0.65)) add("herb", randInt(1, 3));
       if (roll(0.55)) add("mushroom", randInt(1, 3));
-      if (roll(0.10)) add("wheatSeed", 1);
+      if (roll(0.1)) add("wheatSeed", 1);
       if (roll(0.08)) add("rareHerb", 1);
       if (roll(0.08)) add("mushroomSpore", 1);
       if (roll(0.05)) add("ginseng", 1);
@@ -105,7 +110,7 @@ export function getWorkSummaryLoot(workId) {
 
     case "shore":
       add("sand", randInt(1, 5));
-      if (roll(0.50)) add("shellfish", 1);
+      if (roll(0.5)) add("shellfish", 1);
       if (roll(0.35)) add("crab", 1);
       if (roll(0.25)) add("branch", randInt(1, 2));
       if (roll(0.15)) add("coral", 1);
@@ -115,7 +120,7 @@ export function getWorkSummaryLoot(workId) {
     case "digging":
       add("dirt", randInt(2, 6));
       add("stone", randInt(1, 4));
-      if (roll(0.50)) add("sand", randInt(0, 3));
+      if (roll(0.5)) add("sand", randInt(0, 3));
       if (roll(0.05)) add("coal", 1);
       if (roll(0.025)) add("copperOre", 1);
       if (roll(0.015)) add("ironOre", 1);
@@ -150,7 +155,8 @@ export function createWorkSystem({
   state,
   addLog,
   addMainExp,
-  gainResource
+  gainResource,
+  addSkillExp
 }) {
   function startWorkAction(workId, { silent = false } = {}) {
     const def = workDefs[workId];
@@ -161,16 +167,14 @@ export function createWorkSystem({
     const duration = getWorkDuration(def);
 
     if (state.stamina < cost) {
-      if (!silent) {
-        addLog(`${def.name}無法開始，體力不足`, "important");
-      }
+      if (!silent) addLog(`${def.name}無法開始，體力不足`, "important");
       return false;
     }
 
-    state.stamina -= cost;
     state.currentAction = {
       type: "work",
       id: workId,
+      staminaCost: cost,
       remaining: duration,
       total: duration
     };
@@ -191,14 +195,9 @@ export function createWorkSystem({
     if (!action) return false;
 
     state.currentAction = null;
-
     if (action.type !== "work") return false;
 
-    const def = workDefs[action.id];
-    if (!def) return false;
-
-    const result = getWorkSummaryLoot(action.id);
-
+    const result = getWorkSummaryLoot(action.id, state);
     state.gold += result.gold || 0;
 
     for (const [resourceId, amount] of Object.entries(result.resources || {})) {
@@ -206,6 +205,10 @@ export function createWorkSystem({
     }
 
     addMainExp(1);
+    if (typeof addSkillExp === "function") {
+      const def = workDefs[action.id];
+      if (def?.skill) addSkillExp(def.skill, 1);
+    }
     addLog(result.log, result.type || "loot");
     return true;
   }
