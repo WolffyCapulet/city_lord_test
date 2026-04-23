@@ -140,12 +140,15 @@ function normalizeQueueEntries(queue = []) {
   return (Array.isArray(queue) ? queue : [])
     .map((item) => {
       if (typeof item === "string") {
-        return { id: item, count: 1 };
+        return { id: item, count: 1, infinite: false };
       }
+
+      const infinite = !!item?.infinite || Number(item?.count) < 0;
 
       return {
         id: item?.id,
-        count: Math.max(1, Math.floor(Number(item?.count || 1)))
+        count: infinite ? -1 : Math.max(1, Math.floor(Number(item?.count || 1))),
+        infinite
       };
     })
     .filter((item) => typeof item.id === "string" && item.id);
@@ -157,6 +160,7 @@ function getQueuedId(item) {
 
 function getQueuedCount(item) {
   if (typeof item === "string") return 1;
+  if (item?.infinite || Number(item?.count) < 0) return -1;
   return Math.max(1, Math.floor(Number(item?.count || 1)));
 }
 
@@ -579,7 +583,7 @@ function updateCraft(deltaSeconds) {
   }
 }
 
-function queueCraft(craftId, count = 1) {
+function queueCraft(craftId, count = 1, infinite = false) {
   if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
 
   if (state.craftQueue.length >= QUEUE_LIMIT) {
@@ -587,9 +591,17 @@ function queueCraft(craftId, count = 1) {
     return false;
   }
 
-  const qty = Math.max(1, Math.floor(Number(count || 1)));
-  state.craftQueue.push({ id: craftId, count: qty });
-  addLog(`已加入製作列隊：${crafts[craftId]?.name || craftId} × ${qty}`, "important");
+  const qty = infinite ? -1 : Math.max(1, Math.floor(Number(count || 1)));
+  state.craftQueue.push({
+    id: craftId,
+    count: qty,
+    infinite: !!infinite
+  });
+
+  addLog(
+    `已加入製作列隊：${crafts[craftId]?.name || craftId} × ${qty < 0 ? "∞" : qty}`,
+    "important"
+  );
   return true;
 }
 
@@ -604,7 +616,11 @@ function tryStartNextCraft() {
   const check = canStartCraft(def);
 
   if (!check.ok) {
-    if (check.reason === "hidden" || check.reason === "locked" || check.reason === "invalid") {
+    if (
+      check.reason === "hidden" ||
+      check.reason === "locked" ||
+      check.reason === "invalid"
+    ) {
       state.craftQueue.shift();
       return tryStartNextCraft();
     }
@@ -614,28 +630,57 @@ function tryStartNextCraft() {
   const ok = beginCraft(nextId, { silent: true });
   if (!ok) return false;
 
+  if (nextCount < 0) {
+    state.craftQueue[0] = {
+      id: nextId,
+      count: -1,
+      infinite: true
+    };
+    return true;
+  }
+
   if (nextCount <= 1) {
     state.craftQueue.shift();
   } else {
-    state.craftQueue[0] = { id: nextId, count: nextCount - 1 };
+    state.craftQueue[0] = {
+      id: nextId,
+      count: nextCount - 1,
+      infinite: false
+    };
   }
 
   return true;
 }
 
-function startCraftPlan(craftId, count = 1) {
-  const qty = Math.max(1, Math.floor(Number(count || 1)));
+function startCraftPlan(craftId, count = 1, infinite = false) {
+  const qty = infinite ? -1 : Math.max(1, Math.floor(Number(count || 1)));
 
   if (state.currentCraft) {
-    return queueCraft(craftId, qty);
+    return queueCraft(craftId, count, infinite);
   }
 
   const ok = beginCraft(craftId);
   if (!ok) return false;
 
+  if (qty < 0) {
+    if (state.craftQueue.length < QUEUE_LIMIT) {
+      state.craftQueue.unshift({
+        id: craftId,
+        count: -1,
+        infinite: true
+      });
+      addLog(`已開始 ${crafts[craftId]?.name || craftId} 的無限製作`, "important");
+    }
+    return true;
+  }
+
   if (qty > 1) {
     if (state.craftQueue.length < QUEUE_LIMIT) {
-      state.craftQueue.unshift({ id: craftId, count: qty - 1 });
+      state.craftQueue.unshift({
+        id: craftId,
+        count: qty - 1,
+        infinite: false
+      });
       addLog(`已安排 ${crafts[craftId]?.name || craftId} 連續製作 ${qty} 次`, "important");
     } else {
       addLog(
@@ -650,7 +695,7 @@ function startCraftPlan(craftId, count = 1) {
 
 function craftItem(craftId) {
   if (state.currentCraft) {
-    return queueCraft(craftId, 1);
+    return queueCraft(craftId, 1, false);
   }
 
   return beginCraft(craftId);
@@ -662,8 +707,9 @@ function removeQueuedCraft(index) {
 
   const [removed] = state.craftQueue.splice(index, 1);
   if (removed) {
+    const count = getQueuedCount(removed);
     addLog(
-      `已移除製作列隊：${crafts[getQueuedId(removed)]?.name || getQueuedId(removed)} × ${getQueuedCount(removed)}`,
+      `已移除製作列隊：${crafts[getQueuedId(removed)]?.name || getQueuedId(removed)} × ${count < 0 ? "∞" : count}`,
       "important"
     );
     return true;
@@ -697,7 +743,7 @@ const workSystem = createWorkSystem({
   gainResource
 });
 
-function queueWork(workId, count = 1) {
+function queueWork(workId, count = 1, infinite = false) {
   if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
 
   if (state.actionQueue.length >= QUEUE_LIMIT) {
@@ -705,30 +751,54 @@ function queueWork(workId, count = 1) {
     return false;
   }
 
-  const qty = Math.max(1, Math.floor(Number(count || 1)));
-  state.actionQueue.push({ id: workId, count: qty });
-  addLog(`已加入行動列隊：${workDefs[workId]?.name || workId} × ${qty}`, "important");
+  const qty = infinite ? -1 : Math.max(1, Math.floor(Number(count || 1)));
+  state.actionQueue.push({
+    id: workId,
+    count: qty,
+    infinite: !!infinite
+  });
+
+  addLog(
+    `已加入行動列隊：${workDefs[workId]?.name || workId} × ${qty < 0 ? "∞" : qty}`,
+    "important"
+  );
   return true;
 }
 
 function startWorkNow(workId) {
   workSystem.requestWork(workId);
-  return true;
+  return !!(state.currentAction && state.currentAction.id === workId);
 }
 
-function startWorkPlan(workId, count = 1) {
-  const qty = Math.max(1, Math.floor(Number(count || 1)));
+function startWorkPlan(workId, count = 1, infinite = false) {
+  const qty = infinite ? -1 : Math.max(1, Math.floor(Number(count || 1)));
 
   if (state.currentAction) {
-    return queueWork(workId, qty);
+    return queueWork(workId, count, infinite);
   }
 
   const ok = startWorkNow(workId);
   if (!ok) return false;
 
+  if (qty < 0) {
+    if (state.actionQueue.length < QUEUE_LIMIT) {
+      state.actionQueue.unshift({
+        id: workId,
+        count: -1,
+        infinite: true
+      });
+      addLog(`已開始 ${workDefs[workId]?.name || workId} 的無限生產`, "important");
+    }
+    return true;
+  }
+
   if (qty > 1) {
     if (state.actionQueue.length < QUEUE_LIMIT) {
-      state.actionQueue.unshift({ id: workId, count: qty - 1 });
+      state.actionQueue.unshift({
+        id: workId,
+        count: qty - 1,
+        infinite: false
+      });
       addLog(`已安排 ${workDefs[workId]?.name || workId} 連續進行 ${qty} 次`, "important");
     } else {
       addLog(
@@ -762,10 +832,23 @@ function tryStartNextWork() {
   const ok = startWorkNow(nextId);
   if (!ok) return false;
 
+  if (nextCount < 0) {
+    state.actionQueue[0] = {
+      id: nextId,
+      count: -1,
+      infinite: true
+    };
+    return true;
+  }
+
   if (nextCount <= 1) {
     state.actionQueue.shift();
   } else {
-    state.actionQueue[0] = { id: nextId, count: nextCount - 1 };
+    state.actionQueue[0] = {
+      id: nextId,
+      count: nextCount - 1,
+      infinite: false
+    };
   }
 
   return true;
@@ -777,8 +860,9 @@ function removeQueuedAction(index) {
 
   const [removed] = state.actionQueue.splice(index, 1);
   if (removed) {
+    const count = getQueuedCount(removed);
     addLog(
-      `已移除行動列隊：${workDefs[getQueuedId(removed)]?.name || getQueuedId(removed)} × ${getQueuedCount(removed)}`,
+      `已移除行動列隊：${workDefs[getQueuedId(removed)]?.name || getQueuedId(removed)} × ${count < 0 ? "∞" : count}`,
       "important"
     );
     return true;
@@ -821,21 +905,21 @@ function openWorkActionModal(workId) {
     description: [
       `單次體力：${getWorkCost(def)}`,
       `說明：輸入要執行幾次。`,
-      `立即開始會先做 1 次，其餘自動接續。`
+      `可選擇無限持續生產。`
     ].join("\n"),
     quantity: 1,
     quantityHint: state.currentAction
-      ? "目前生產線忙碌中，可用加入列隊"
+      ? "目前生產線忙碌中，可加入列隊"
       : "可直接開始",
-    quickButtons: [1, 10, 50, 100],
+    quickButtons: [1, 10, 50, 100, "∞"],
     allowQueue: true,
-    allowStart: !state.currentAction,
-    onQueue: (qty) => {
-      queueWork(workId, qty);
+    allowStart: true,
+    onQueue: (qty, isInfinite) => {
+      queueWork(workId, qty, isInfinite);
       renderAll();
     },
-    onStart: (qty) => {
-      startWorkPlan(workId, qty);
+    onStart: (qty, isInfinite) => {
+      startWorkPlan(workId, qty, isInfinite);
       renderAll();
     }
   });
@@ -851,21 +935,22 @@ function openCraftActionModal(craftId) {
       `單次體力：${def.stamina ?? 1}`,
       `材料：${formatBundleText(def.costs || {})}`,
       `產出：${formatBundleText(def.yields || {})}`,
-      `製作節奏：${formatSeconds(getCraftDuration(def, craftId))}`
+      `製作節奏：${formatSeconds(getCraftDuration(def, craftId))}`,
+      `可選擇無限持續製作。`
     ].join("\n"),
     quantity: 1,
     quantityHint: state.currentCraft
-      ? "目前製作線忙碌中，可用加入列隊"
+      ? "目前製作線忙碌中，可加入列隊"
       : "可直接開始",
-    quickButtons: [1, 10, 50, 100],
+    quickButtons: [1, 10, 50, 100, "∞"],
     allowQueue: true,
-    allowStart: !state.currentCraft,
-    onQueue: (qty) => {
-      queueCraft(craftId, qty);
+    allowStart: true,
+    onQueue: (qty, isInfinite) => {
+      queueCraft(craftId, qty, isInfinite);
       renderAll();
     },
-    onStart: (qty) => {
-      startCraftPlan(craftId, qty);
+    onStart: (qty, isInfinite) => {
+      startCraftPlan(craftId, qty, isInfinite);
       renderAll();
     }
   });
