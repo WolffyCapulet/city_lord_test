@@ -13,6 +13,7 @@ function getQueuedId(item) {
 
 function getQueuedCount(item) {
   if (typeof item === "string") return 1;
+  if (item?.infinite || Number(item?.count) < 0) return -1;
   return Math.max(1, Math.floor(Number(item?.count || 1)));
 }
 
@@ -47,9 +48,10 @@ export function renderCraftLane({
     const nextItem = queuedItems[0];
     const nextId = getQueuedId(nextItem);
     const nextCount = getQueuedCount(nextItem);
+    const nextCountLabel = nextCount < 0 ? "∞" : String(nextCount);
     const nextDef = crafts[nextId];
 
-    textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知配方"} × ${nextCount}`;
+    textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知配方"} × ${nextCountLabel}`;
     textEl.title = textEl.textContent;
     barEl.style.width = "0%";
   } else {
@@ -63,11 +65,11 @@ export function renderCraftLane({
         .map((item, index, arr) => {
           const id = getQueuedId(item);
           const count = getQueuedCount(item);
+          const countLabel = count < 0 ? "∞" : String(count);
           const name = crafts[id]?.name || id;
-
           return `
             <div class="queue-row">
-              <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${count}</span>
+              <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${countLabel}</span>
               <div class="queue-row-actions">
                 <button
                   type="button"
