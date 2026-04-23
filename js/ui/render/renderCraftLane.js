@@ -7,6 +7,15 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function getQueuedId(item) {
+  return typeof item === "string" ? item : item?.id;
+}
+
+function getQueuedCount(item) {
+  if (typeof item === "string") return 1;
+  return Math.max(1, Math.floor(Number(item?.count || 1)));
+}
+
 export function renderCraftLane({
   state,
   crafts,
@@ -20,6 +29,8 @@ export function renderCraftLane({
 
   if (!textEl || !barEl || !queueEl) return;
 
+  const queuedItems = Array.isArray(state.craftQueue) ? state.craftQueue : [];
+
   if (state.currentCraft && crafts[state.currentCraft.id]) {
     const def = crafts[state.currentCraft.id];
     const total = Math.max(0.01, Number(state.currentCraft.total || 0.01));
@@ -32,10 +43,13 @@ export function renderCraftLane({
     textEl.textContent = `製作中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
     textEl.title = `${def.name}\n剩餘：${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
-  } else if (state.craftQueue?.length > 0) {
-    const nextId = state.craftQueue[0];
+  } else if (queuedItems.length > 0) {
+    const nextItem = queuedItems[0];
+    const nextId = getQueuedId(nextItem);
+    const nextCount = getQueuedCount(nextItem);
     const nextDef = crafts[nextId];
-    textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知配方"}`;
+
+    textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知配方"} × ${nextCount}`;
     textEl.title = textEl.textContent;
     barEl.style.width = "0%";
   } else {
@@ -44,13 +58,16 @@ export function renderCraftLane({
     barEl.style.width = "0%";
   }
 
-  queueEl.innerHTML = state.craftQueue?.length
-    ? state.craftQueue
-        .map((id, index, arr) => {
+  queueEl.innerHTML = queuedItems.length
+    ? queuedItems
+        .map((item, index, arr) => {
+          const id = getQueuedId(item);
+          const count = getQueuedCount(item);
           const name = crafts[id]?.name || id;
+
           return `
             <div class="queue-row">
-              <span class="queue-pill">${index + 1}. ${escapeHtml(name)}</span>
+              <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${count}</span>
               <div class="queue-row-actions">
                 <button
                   type="button"
