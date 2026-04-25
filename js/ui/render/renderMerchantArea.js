@@ -79,9 +79,7 @@ export function renderMerchantArea({
         `
     }
 
-    <div class="small muted" style="margin-top:10px;">
-      商店直接買賣下一步再接，這一版先把商人來訪與訂單流程接回來。
-    </div>
+
   `;
 
   root.querySelector("#merchantRefreshBtn")?.addEventListener("click", () => {
