@@ -1,3 +1,24 @@
+export const sellPrices = {
+  wood: 2,
+  stone: 2,
+  fish: 5,
+  shrimp: 6,
+  crab: 8,
+  herb: 4,
+  rareHerb: 16,
+  mushroom: 5,
+  leather: 14,
+  softLeather: 26,
+  cottonCloth: 14,
+  clothes: 28,
+  staminaPotion: 30,
+  stoneBrick: 12,
+  brick: 10,
+  glassBottle: 16,
+  boneMeal: 10,
+  compost: 9
+};
+
 export const orderTierMeta = {
   common: {
     id: "common",
@@ -79,3 +100,11 @@ export const merchantRules = {
   baseOrderLimit: 3,
   orderLimitEveryTradeLevels: 5
 };
+
+export function getSellPrice(resourceId) {
+  return Number(sellPrices[resourceId] || 0);
+}
+
+export function getOrderTierMeta(tier) {
+  return orderTierMeta[tier] || orderTierMeta.common;
+}
