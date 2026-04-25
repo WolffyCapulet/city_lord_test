@@ -22,7 +22,7 @@ import {
 } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 import { createMerchantRuntime } from "../systems/merchantRuntime.js";
-import { createWorkersRuntime } from "../systems/workersRuntime.js";
+import { createCraftRuntime } from "../systems/craftRuntime.js";
 
 import { renderResearchArea } from "../ui/render/renderResearchArea.js";
 import { renderActionLane } from "../ui/render/renderActionLane.js";
@@ -34,7 +34,6 @@ import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
 import { renderCraftList } from "../ui/render/renderCraftList.js";
 import { renderSkillPills } from "../ui/render/renderSkillPills.js";
-import { renderWorkersArea } from "../ui/render/renderWorkersArea.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
@@ -188,10 +187,6 @@ function ensureStateShape(s = {}) {
   if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
   if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
   if (!Array.isArray(state.researchQueue)) state.researchQueue = [];
-
-  if (!Number.isFinite(state.nextWorkerId)) state.nextWorkerId = 1;
-  if (!Number.isFinite(state.salaryDebt)) state.salaryDebt = 0;
-  if (!Number.isFinite(state.salaryTimer)) state.salaryTimer = 300;
 
   if (!state.research || typeof state.research !== "object") state.research = {};
   if (!state.housing || typeof state.housing !== "object") state.housing = {};
@@ -487,179 +482,6 @@ function handleWarehouseResourceClick(resourceId) {
   }
 }
 
-function isCraftHidden(def) {
-  return !!def.hidden;
-}
-
-function isCraftUnlocked(def) {
-  if (!def.unlock) return true;
-  return !!state.research?.[def.unlock];
-}
-
-function getCraftDuration(def, id) {
-  return Math.max(0.2, Number(def?.duration ?? 1));
-}
-
-function canStartCraft(def) {
-  if (!def) return { ok: false, reason: "invalid" };
-  if (isCraftHidden(def)) return { ok: false, reason: "hidden" };
-  if (!isCraftUnlocked(def)) return { ok: false, reason: "locked" };
-
-  const staminaCost = Math.max(1, Number(def.stamina ?? 1));
-  if (state.stamina < staminaCost) return { ok: false, reason: "stamina" };
-  if (!canAfford(def.costs || {})) return { ok: false, reason: "materials" };
-
-  return { ok: true, reason: "" };
-}
-
-function beginCraft(craftId, { silent = false } = {}) {
-  const def = crafts[craftId];
-  const check = canStartCraft(def);
-
-  if (!check.ok) {
-    if (!silent) {
-      if (check.reason === "hidden") {
-        addLog(`${def?.name || craftId}目前不可見`, "important");
-      } else if (check.reason === "locked") {
-        addLog(`${def?.name || craftId}尚未解鎖，需要研究：${def?.unlock}`, "important");
-      } else if (check.reason === "stamina") {
-        addLog(`${def?.name || craftId}製作失敗，體力不足`, "important");
-      } else if (check.reason === "materials") {
-        addLog(`${def?.name || craftId}製作失敗，材料不足`, "important");
-      }
-    }
-    return false;
-  }
-
-  const staminaCost = Math.max(1, Number(def.stamina ?? 1));
-  spendCosts(def.costs || {});
-  state.stamina -= staminaCost;
-
-  const duration = getCraftDuration(def, craftId);
-  state.currentCraft = {
-    id: craftId,
-    total: duration,
-    remaining: duration
-  };
-
-  if (!silent) {
-    addLog(`開始製作：${def.name}`, "important");
-  }
-
-  return true;
-}
-
-function finishCurrentCraft() {
-  if (!state.currentCraft) return;
-
-  const craftId = state.currentCraft.id;
-  const def = crafts[craftId];
-  state.currentCraft = null;
-
-  if (!def) return;
-
-  for (const [resourceId, amount] of Object.entries(def.yields || {})) {
-    gainResource(resourceId, amount);
-  }
-
-  addMainExp(1);
-
-  if (def.skill) {
-    addSkillExp(def.skill, 1);
-  }
-
-  const gainText = Object.entries(def.yields || {})
-    .map(([id, amount]) => `${getResourceLabel(id)} +${amount}`)
-    .join("、");
-
-  addLog(`你製作了 ${def.name}，獲得 ${gainText}，經驗 +1`, "loot");
-}
-
-function updateCraft(deltaSeconds) {
-  if (!state.currentCraft) return;
-
-  state.currentCraft.remaining = Math.max(
-    0,
-    Number(state.currentCraft.remaining || 0) - deltaSeconds
-  );
-
-  if (state.currentCraft.remaining <= 0) {
-    finishCurrentCraft();
-  }
-}
-
-function queueCraft(craftId) {
-  if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
-
-  if (state.craftQueue.length >= QUEUE_LIMIT) {
-    addLog(`製作列隊已滿，最多等待 ${QUEUE_LIMIT} 項`, "important");
-    return false;
-  }
-
-  state.craftQueue.push(craftId);
-  addLog(`已加入製作列隊：${crafts[craftId]?.name || craftId}`, "important");
-  return true;
-}
-
-function tryStartNextCraft() {
-  if (state.currentCraft) return false;
-  if (!Array.isArray(state.craftQueue) || state.craftQueue.length === 0) return false;
-
-  const nextId = state.craftQueue[0];
-  const def = crafts[nextId];
-  const check = canStartCraft(def);
-
-  if (!check.ok) {
-    if (check.reason === "hidden" || check.reason === "locked" || check.reason === "invalid") {
-      state.craftQueue.shift();
-      return tryStartNextCraft();
-    }
-    return false;
-  }
-
-  state.craftQueue.shift();
-  return beginCraft(nextId, { silent: true });
-}
-
-function craftItem(craftId) {
-  if (state.currentCraft) {
-    return queueCraft(craftId);
-  }
-
-  return beginCraft(craftId);
-}
-
-function removeQueuedCraft(index) {
-  if (!Array.isArray(state.craftQueue)) return false;
-  if (index < 0 || index >= state.craftQueue.length) return false;
-
-  const [removed] = state.craftQueue.splice(index, 1);
-  if (removed) {
-    addLog(`已移除製作列隊：${crafts[removed]?.name || removed}`, "important");
-    return true;
-  }
-  return false;
-}
-
-function moveQueuedCraft(index, direction) {
-  if (!Array.isArray(state.craftQueue)) return false;
-
-  const targetIndex = index + direction;
-  if (
-    index < 0 ||
-    index >= state.craftQueue.length ||
-    targetIndex < 0 ||
-    targetIndex >= state.craftQueue.length
-  ) {
-    return false;
-  }
-
-  const temp = state.craftQueue[index];
-  state.craftQueue[index] = state.craftQueue[targetIndex];
-  state.craftQueue[targetIndex] = temp;
-  return true;
-}
-
 const workSystem = createWorkSystem({
   state,
   addLog,
@@ -751,17 +573,31 @@ const merchantRuntime = createMerchantRuntime({
   getResourceLabel
 });
 
-const workersRuntime = createWorkersRuntime({
+const craftRuntime = createCraftRuntime({
   state,
   addLog,
-  gainResource,
-  spendResource,
-  spendCosts,
-  canAfford,
   addMainExp,
   addSkillExp,
-  getResourceLabel
+  gainResource,
+  canAfford,
+  spendCosts,
+  getResourceLabel,
+  queueLimit: QUEUE_LIMIT,
+  crafts
 });
+
+const isCraftHidden = craftRuntime.isCraftHidden;
+const isCraftUnlocked = craftRuntime.isCraftUnlocked;
+const getCraftDuration = craftRuntime.getCraftDuration;
+const updateCraft = craftRuntime.updateCraft;
+const tryStartNextCraft = craftRuntime.tryStartNextCraft;
+const removeQueuedCraft = craftRuntime.removeQueuedCraft;
+const moveQueuedCraft = craftRuntime.moveQueuedCraft;
+const startCraftPlan = craftRuntime.startCraftPlan;
+
+function craftItem(craftId) {
+  return startCraftPlan(craftId, 1, false);
+}
 
 function saveGame() {
   try {
@@ -854,6 +690,7 @@ function renderPlaceholders() {
   setPlaceholder("buildingButtons", "建築系統尚未接回 main.js");
   setPlaceholder("plots", "農田系統尚未接回 main.js");
   setPlaceholder("pastureArea", "牧場系統尚未接回 main.js");
+  setPlaceholder("workers", "工人系統尚未接回 main.js");
 }
 
 function renderHeaderStats() {
@@ -941,27 +778,6 @@ function renderAll() {
     onAfterChange: renderAll
   });
 
-  renderWorkersArea({
-    state,
-    workersRuntime,
-    onRecruitWorker: () => {
-      workersRuntime.recruitWorker();
-      renderAll();
-    },
-    onPayDebt: () => {
-      workersRuntime.payDebt();
-      renderAll();
-    },
-    onSetWorkerJob: (workerId, job) => {
-      workersRuntime.setWorkerJob(workerId, job);
-      renderAll();
-    },
-    onAdjustWorkersForJob: (job, delta) => {
-      workersRuntime.adjustWorkersForJob(job, delta);
-      renderAll();
-    }
-  });
-
   renderActionLane({
     state,
     workDefs,
@@ -1011,7 +827,6 @@ function loop(now) {
   updateCraft(deltaSeconds);
   researchSystem.updateResearch(deltaSeconds);
   merchantRuntime.update(deltaSeconds);
-  workersRuntime.update(deltaSeconds);
 
   if (!state.currentAction && state.actionQueue?.length > 0) {
     tryStartNextWork();
@@ -1061,27 +876,6 @@ function loop(now) {
     onAfterChange: renderAll
   });
 
-  renderWorkersArea({
-    state,
-    workersRuntime,
-    onRecruitWorker: () => {
-      workersRuntime.recruitWorker();
-      renderAll();
-    },
-    onPayDebt: () => {
-      workersRuntime.payDebt();
-      renderAll();
-    },
-    onSetWorkerJob: (workerId, job) => {
-      workersRuntime.setWorkerJob(workerId, job);
-      renderAll();
-    },
-    onAdjustWorkersForJob: (job, delta) => {
-      workersRuntime.adjustWorkersForJob(job, delta);
-      renderAll();
-    }
-  });
-
   requestAnimationFrame(loop);
 }
 
@@ -1118,14 +912,8 @@ function init() {
       setMainPage(pageName);
     },
     onClaimTax: () => showFeatureStub("稅收"),
-    onPayDebt: () => {
-      workersRuntime.payDebt();
-      renderAll();
-    },
-    onRecruitWorker: () => {
-      workersRuntime.recruitWorker();
-      renderAll();
-    },
+    onPayDebt: () => showFeatureStub("支付欠薪"),
+    onRecruitWorker: () => showFeatureStub("招募工人"),
     onOpenSeedSelect: () => showFeatureStub("種子選擇"),
     onPlant: () => showFeatureStub("種植"),
     onToggleFarmerSeedMode: () => showFeatureStub("農夫種植模式"),
