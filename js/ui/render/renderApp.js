@@ -126,7 +126,6 @@ export function createAppRenderer({
     });
 
     renderCraftList({
-      state,
       crafts,
       getResourceLabel,
       isCraftHidden,
