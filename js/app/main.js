@@ -21,7 +21,7 @@ import {
   getWorkCost
 } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
-import { createMerchantSystem } from "../systems/merchant.js";
+import { createMerchantRuntime } from "../systems/merchantRuntime.js";
 
 import { renderResearchArea } from "../ui/render/renderResearchArea.js";
 import { renderActionLane } from "../ui/render/renderActionLane.js";
@@ -33,32 +33,10 @@ import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
 import { renderCraftList } from "../ui/render/renderCraftList.js";
 import { renderSkillPills } from "../ui/render/renderSkillPills.js";
-import { renderMerchantArea } from "../ui/render/renderMerchantArea.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
 const QUEUE_LIMIT = 3;
-
-const SELL_PRICES = {
-  wood: 2,
-  stone: 2,
-  fish: 5,
-  shrimp: 6,
-  crab: 8,
-  herb: 4,
-  rareHerb: 16,
-  mushroom: 5,
-  leather: 14,
-  softLeather: 26,
-  cottonCloth: 14,
-  clothes: 28,
-  staminaPotion: 30,
-  stoneBrick: 12,
-  brick: 10,
-  glassBottle: 16,
-  boneMeal: 10,
-  compost: 9
-};
 
 const skillLabels = {
   labor: "打工",
@@ -759,12 +737,12 @@ const researchSystem = createResearchSystem({
   countBuiltPlots: () => 0
 });
 
-const merchantSystem = createMerchantSystem({
+const merchantRuntime = createMerchantRuntime({
   state,
   addLog,
   addTradeExp,
   addReputation,
-  sellPrices: SELL_PRICES
+  getResourceLabel
 });
 
 function saveGame() {
@@ -942,22 +920,8 @@ function renderAll() {
     }
   });
 
-  renderMerchantArea({
-    state,
-    getResourceLabel,
-    merchantSystem,
-    onFulfillOrder: (orderId) => {
-      merchantSystem.fulfillMerchantOrder(orderId);
-      renderAll();
-    },
-    onCancelOrder: (orderId) => {
-      merchantSystem.cancelMerchantOrder(orderId);
-      renderAll();
-    },
-    onRefreshMerchant: () => {
-      merchantSystem.refreshMerchantVisit();
-      renderAll();
-    }
+  merchantRuntime.render({
+    onAfterChange: renderAll
   });
 
   renderActionLane({
@@ -1008,7 +972,7 @@ function loop(now) {
   workSystem.updateAction(deltaSeconds);
   updateCraft(deltaSeconds);
   researchSystem.updateResearch(deltaSeconds);
-  merchantSystem.updateMerchant(deltaSeconds);
+  merchantRuntime.update(deltaSeconds);
 
   if (!state.currentAction && state.actionQueue?.length > 0) {
     tryStartNextWork();
@@ -1054,22 +1018,8 @@ function loop(now) {
     formatSeconds
   });
 
-  renderMerchantArea({
-    state,
-    getResourceLabel,
-    merchantSystem,
-    onFulfillOrder: (orderId) => {
-      merchantSystem.fulfillMerchantOrder(orderId);
-      renderAll();
-    },
-    onCancelOrder: (orderId) => {
-      merchantSystem.cancelMerchantOrder(orderId);
-      renderAll();
-    },
-    onRefreshMerchant: () => {
-      merchantSystem.refreshMerchantVisit();
-      renderAll();
-    }
+  merchantRuntime.render({
+    onAfterChange: renderAll
   });
 
   requestAnimationFrame(loop);
