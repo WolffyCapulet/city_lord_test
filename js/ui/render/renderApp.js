@@ -1,14 +1,14 @@
-import { renderResearchArea } from "../ui/render/renderResearchArea.js";
-import { renderActionLane } from "../ui/render/renderActionLane.js";
-import { renderCraftLane } from "../ui/render/renderCraftLane.js";
-import { renderResearchLane } from "../ui/render/renderResearchLane.js";
-import { renderLog } from "../ui/render/renderLog.js";
-import { renderTopStats } from "../ui/render/renderTopStats.js";
-import { renderResources } from "../ui/render/renderResources.js";
-import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
-import { renderCraftList } from "../ui/render/renderCraftList.js";
-import { renderSkillPills } from "../ui/render/renderSkillPills.js";
-import { renderWorkersArea } from "../ui/render/renderWorkersArea.js";
+import { renderResearchArea } from "./renderResearchArea.js";
+import { renderActionLane } from "./renderActionLane.js";
+import { renderCraftLane } from "./renderCraftLane.js";
+import { renderResearchLane } from "./renderResearchLane.js";
+import { renderLog } from "./renderLog.js";
+import { renderTopStats } from "./renderTopStats.js";
+import { renderResources } from "./renderResources.js";
+import { renderWorkButtons } from "./renderWorkButtons.js";
+import { renderCraftList } from "./renderCraftList.js";
+import { renderSkillPills } from "./renderSkillPills.js";
+import { renderWorkersArea } from "./renderWorkersArea.js";
 
 export function createAppRenderer({
   state,
