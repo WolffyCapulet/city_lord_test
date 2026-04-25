@@ -47,6 +47,7 @@ function buildDefaultUiState() {
         smithy: false,
         alchemy: false,
         tailoring: false,
+        processing: false,
         other: false
       },
       research: {
@@ -85,10 +86,16 @@ function buildDefaultHousing() {
 
 function buildDefaultMerchantState() {
   return {
+    minuteCounter: 0,
     present: false,
+    presentSec: 0,
     cash: 0,
+    maxCash: 0,
     orders: [],
-    storeFunds: 0
+    storeFunds: 0,
+    lastStoreInjection: 0,
+    keep: {},
+    nextOrderId: 1
   };
 }
 
@@ -126,6 +133,9 @@ function buildDefaultState({
 
     workers: [],
     housingCap: 0,
+    nextWorkerId: 1,
+    salaryDebt: 0,
+    salaryTimer: 300,
 
     currentAction: null,
     actionQueue: [],
@@ -188,6 +198,10 @@ export function normalizeState(state, options = {}) {
   normalized.campfireSec = Math.max(0, toNumber(normalized.campfireSec, 0));
   normalized.housingCap = Math.max(0, toNumber(normalized.housingCap, 0));
 
+  normalized.nextWorkerId = Math.max(1, toNumber(normalized.nextWorkerId, 1));
+  normalized.salaryDebt = Math.max(0, toNumber(normalized.salaryDebt, 0));
+  normalized.salaryTimer = Math.max(0, toNumber(normalized.salaryTimer, 300));
+
   normalized.resources = {
     ...defaultResources,
     ...(normalized.resources || {})
@@ -217,6 +231,23 @@ export function normalizeState(state, options = {}) {
   normalized.buildings = deepMerge(buildDefaultBuildings(), normalized.buildings);
   normalized.merchant = deepMerge(buildDefaultMerchantState(), normalized.merchant);
   normalized.ui = deepMerge(buildDefaultUiState(), normalized.ui);
+
+  normalized.merchant.minuteCounter = Math.max(0, toNumber(normalized.merchant.minuteCounter, 0));
+  normalized.merchant.present = !!normalized.merchant.present;
+  normalized.merchant.presentSec = Math.max(0, toNumber(normalized.merchant.presentSec, 0));
+  normalized.merchant.cash = Math.max(0, toNumber(normalized.merchant.cash, 0));
+  normalized.merchant.maxCash = Math.max(
+    normalized.merchant.cash,
+    toNumber(normalized.merchant.maxCash, normalized.merchant.cash)
+  );
+  normalized.merchant.storeFunds = Math.max(0, toNumber(normalized.merchant.storeFunds, 0));
+  normalized.merchant.lastStoreInjection = Math.max(
+    0,
+    toNumber(normalized.merchant.lastStoreInjection, 0)
+  );
+  if (!isPlainObject(normalized.merchant.keep)) normalized.merchant.keep = {};
+  if (!Array.isArray(normalized.merchant.orders)) normalized.merchant.orders = [];
+  normalized.merchant.nextOrderId = Math.max(1, toNumber(normalized.merchant.nextOrderId, 1));
 
   if (!normalized.currentAction || typeof normalized.currentAction !== "object") {
     normalized.currentAction = null;
@@ -256,6 +287,10 @@ export function normalizeState(state, options = {}) {
 
   if (!isPlainObject(normalized.ui.openSections.crafts)) {
     normalized.ui.openSections.crafts = buildDefaultUiState().openSections.crafts;
+  }
+
+  if (typeof normalized.ui.openSections.crafts.processing !== "boolean") {
+    normalized.ui.openSections.crafts.processing = false;
   }
 
   if (!isPlainObject(normalized.ui.openSections.research)) {
