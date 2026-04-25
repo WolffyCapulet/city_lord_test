@@ -22,6 +22,7 @@ import {
 } from "../systems/work.js";
 import { createResearchSystem } from "../systems/research.js";
 import { createMerchantRuntime } from "../systems/merchantRuntime.js";
+import { createWorkersRuntime } from "../systems/workersRuntime.js";
 
 import { renderResearchArea } from "../ui/render/renderResearchArea.js";
 import { renderActionLane } from "../ui/render/renderActionLane.js";
@@ -33,6 +34,7 @@ import { renderResources } from "../ui/render/renderResources.js";
 import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
 import { renderCraftList } from "../ui/render/renderCraftList.js";
 import { renderSkillPills } from "../ui/render/renderSkillPills.js";
+import { renderWorkersArea } from "../ui/render/renderWorkersArea.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
@@ -186,6 +188,10 @@ function ensureStateShape(s = {}) {
   if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
   if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
   if (!Array.isArray(state.researchQueue)) state.researchQueue = [];
+
+  if (!Number.isFinite(state.nextWorkerId)) state.nextWorkerId = 1;
+  if (!Number.isFinite(state.salaryDebt)) state.salaryDebt = 0;
+  if (!Number.isFinite(state.salaryTimer)) state.salaryTimer = 300;
 
   if (!state.research || typeof state.research !== "object") state.research = {};
   if (!state.housing || typeof state.housing !== "object") state.housing = {};
@@ -745,6 +751,18 @@ const merchantRuntime = createMerchantRuntime({
   getResourceLabel
 });
 
+const workersRuntime = createWorkersRuntime({
+  state,
+  addLog,
+  gainResource,
+  spendResource,
+  spendCosts,
+  canAfford,
+  addMainExp,
+  addSkillExp,
+  getResourceLabel
+});
+
 function saveGame() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -836,7 +854,6 @@ function renderPlaceholders() {
   setPlaceholder("buildingButtons", "建築系統尚未接回 main.js");
   setPlaceholder("plots", "農田系統尚未接回 main.js");
   setPlaceholder("pastureArea", "牧場系統尚未接回 main.js");
-  setPlaceholder("workers", "工人系統尚未接回 main.js");
 }
 
 function renderHeaderStats() {
@@ -924,6 +941,27 @@ function renderAll() {
     onAfterChange: renderAll
   });
 
+  renderWorkersArea({
+    state,
+    workersRuntime,
+    onRecruitWorker: () => {
+      workersRuntime.recruitWorker();
+      renderAll();
+    },
+    onPayDebt: () => {
+      workersRuntime.payDebt();
+      renderAll();
+    },
+    onSetWorkerJob: (workerId, job) => {
+      workersRuntime.setWorkerJob(workerId, job);
+      renderAll();
+    },
+    onAdjustWorkersForJob: (job, delta) => {
+      workersRuntime.adjustWorkersForJob(job, delta);
+      renderAll();
+    }
+  });
+
   renderActionLane({
     state,
     workDefs,
@@ -973,6 +1011,7 @@ function loop(now) {
   updateCraft(deltaSeconds);
   researchSystem.updateResearch(deltaSeconds);
   merchantRuntime.update(deltaSeconds);
+  workersRuntime.update(deltaSeconds);
 
   if (!state.currentAction && state.actionQueue?.length > 0) {
     tryStartNextWork();
@@ -1022,6 +1061,27 @@ function loop(now) {
     onAfterChange: renderAll
   });
 
+  renderWorkersArea({
+    state,
+    workersRuntime,
+    onRecruitWorker: () => {
+      workersRuntime.recruitWorker();
+      renderAll();
+    },
+    onPayDebt: () => {
+      workersRuntime.payDebt();
+      renderAll();
+    },
+    onSetWorkerJob: (workerId, job) => {
+      workersRuntime.setWorkerJob(workerId, job);
+      renderAll();
+    },
+    onAdjustWorkersForJob: (job, delta) => {
+      workersRuntime.adjustWorkersForJob(job, delta);
+      renderAll();
+    }
+  });
+
   requestAnimationFrame(loop);
 }
 
@@ -1058,8 +1118,14 @@ function init() {
       setMainPage(pageName);
     },
     onClaimTax: () => showFeatureStub("稅收"),
-    onPayDebt: () => showFeatureStub("支付欠薪"),
-    onRecruitWorker: () => showFeatureStub("招募工人"),
+    onPayDebt: () => {
+      workersRuntime.payDebt();
+      renderAll();
+    },
+    onRecruitWorker: () => {
+      workersRuntime.recruitWorker();
+      renderAll();
+    },
     onOpenSeedSelect: () => showFeatureStub("種子選擇"),
     onPlant: () => showFeatureStub("種植"),
     onToggleFarmerSeedMode: () => showFeatureStub("農夫種植模式"),
