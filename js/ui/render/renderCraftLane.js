@@ -79,12 +79,18 @@ export function renderCraftLane({
     : `<span class="small muted">製作列為空</span>`;
 
   queueEl.querySelectorAll("[data-craft-remove]").forEach((btn) => {
-    btn.addEventListener("click", () => onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove)));
+    btn.addEventListener("click", () => {
+      onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove));
+    });
   });
   queueEl.querySelectorAll("[data-craft-up]").forEach((btn) => {
-    btn.addEventListener("click", () => onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1));
+    btn.addEventListener("click", () => {
+      onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1);
+    });
   });
   queueEl.querySelectorAll("[data-craft-down]").forEach((btn) => {
-    btn.addEventListener("click", () => onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1));
+    btn.addEventListener("click", () => {
+      onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1);
+    });
   });
 }
