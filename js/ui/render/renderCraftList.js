@@ -1,3 +1,46 @@
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function makeTooltipLines({
+  def,
+  craftId,
+  getResourceLabel,
+  getCraftDuration,
+  formatSeconds,
+  isUnlocked
+}) {
+  const costText = Object.entries(def.costs || {})
+    .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
+    .join("、");
+
+  const yieldText = Object.entries(def.yields || {})
+    .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
+    .join("、");
+
+  const lines = [
+    def.name,
+    `體力：${def.stamina ?? 1}`,
+    `材料：${costText || "無"}`,
+    `產出：${yieldText || "無"}`
+  ];
+
+  if (typeof getCraftDuration === "function" && typeof formatSeconds === "function") {
+    lines.push(`製作節奏：${formatSeconds(getCraftDuration(def, craftId))}`);
+  }
+
+  if (def.unlock) {
+    lines.push(isUnlocked ? "已解鎖" : `需研究：${def.unlock}`);
+  }
+
+  return lines.join("\n");
+}
+
 export function renderCraftList({
   crafts,
   getResourceLabel,
@@ -13,40 +56,25 @@ export function renderCraftList({
   const entries = Object.entries(crafts || {}).filter(([, def]) => !isCraftHidden(def));
 
   root.innerHTML = entries
-    .map(([id, def]) => {
+    .map(([craftId, def]) => {
       const unlocked = isCraftUnlocked(def);
-
-      const costText = Object.entries(def.costs || {})
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
-        .join("、");
-
-      const yieldText = Object.entries(def.yields || {})
-        .map(([resId, amount]) => `${getResourceLabel(resId)} ${amount}`)
-        .join("、");
-
-      const titleLines = [
-        def.name,
-        `體力：${def.stamina ?? 1}`,
-        `材料：${costText || "無"}`,
-        `產出：${yieldText || "無"}`
-      ];
-
-      if (typeof getCraftDuration === "function" && typeof formatSeconds === "function") {
-        titleLines.push(`製作節奏：${formatSeconds(getCraftDuration(def, id))}`);
-      }
-
-      if (def.unlock) {
-        titleLines.push(unlocked ? "已解鎖" : `需研究：${def.unlock}`);
-      }
+      const tooltip = makeTooltipLines({
+        def,
+        craftId,
+        getResourceLabel,
+        getCraftDuration,
+        formatSeconds,
+        isUnlocked: unlocked
+      });
 
       return `
         <button
           type="button"
-          data-craft="${id}"
-          title="${titleLines.join("\n").replace(/"/g, "&quot;")}"
+          data-craft="${escapeHtml(craftId)}"
+          title="${escapeHtml(tooltip)}"
           ${unlocked ? "" : "disabled"}
         >
-          ${def.name}
+          ${escapeHtml(def.name)}
         </button>
       `;
     })
@@ -54,7 +82,7 @@ export function renderCraftList({
 
   root.querySelectorAll("[data-craft]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      onCraftClick(btn.dataset.craft);
+      onCraftClick?.(btn.dataset.craft);
     });
   });
 }
