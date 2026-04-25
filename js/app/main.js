@@ -1,7 +1,6 @@
 import {
   resourceLabels,
   edibleValues,
-  foodOrder,
   fuelDurations
 } from "../data/resources.js";
 import { workDefs } from "../data/works.js";
@@ -9,12 +8,15 @@ import { crafts } from "../data/crafts.js";
 import { books, researchDefs } from "../data/research.js";
 
 import { bindEvents } from "./bindEvents.js";
+import { createAppRenderer } from "./renderApp.js";
+import { createAppLoop } from "./appLoop.js";
 
 import {
   createInitialState,
   normalizeState,
   resetState
 } from "../core/state.js";
+import { createStateBootstrap } from "../core/stateBootstrap.js";
 
 import {
   createWorkSystem,
@@ -23,17 +25,10 @@ import {
 import { createResearchSystem } from "../systems/research.js";
 import { createMerchantRuntime } from "../systems/merchantRuntime.js";
 import { createCraftRuntime } from "../systems/craftRuntime.js";
-
-import { renderResearchArea } from "../ui/render/renderResearchArea.js";
-import { renderActionLane } from "../ui/render/renderActionLane.js";
-import { renderCraftLane } from "../ui/render/renderCraftLane.js";
-import { renderResearchLane } from "../ui/render/renderResearchLane.js";
-import { renderLog } from "../ui/render/renderLog.js";
-import { renderTopStats } from "../ui/render/renderTopStats.js";
-import { renderResources } from "../ui/render/renderResources.js";
-import { renderWorkButtons } from "../ui/render/renderWorkButtons.js";
-import { renderCraftList } from "../ui/render/renderCraftList.js";
-import { renderSkillPills } from "../ui/render/renderSkillPills.js";
+import { createWorkersRuntime } from "../systems/workersRuntime.js";
+import { createPlayerRuntime } from "../systems/playerRuntime.js";
+import { createStaminaRuntime } from "../systems/staminaRuntime.js";
+import { createWorkQueueRuntime } from "../systems/workQueueRuntime.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
@@ -55,12 +50,6 @@ const skillLabels = {
   alchemy: "煉金",
   tanning: "裁縫"
 };
-
-function createDefaultSkills() {
-  return Object.fromEntries(
-    Object.keys(skillLabels).map((id) => [id, { level: 1, exp: 0 }])
-  );
-}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -98,389 +87,53 @@ function getResourceLabel(id) {
   return resourceLabels[id] || id;
 }
 
-function createDefaultResources() {
-  const ids = new Set();
-
-  Object.keys(resourceLabels).forEach((id) => ids.add(id));
-
-  Object.values(crafts).forEach((craft) => {
-    Object.keys(craft.costs || {}).forEach((id) => ids.add(id));
-    Object.keys(craft.yields || {}).forEach((id) => ids.add(id));
-  });
-
-  Object.keys(books).forEach((id) => ids.add(id));
-
-  return Object.fromEntries([...ids].sort().map((id) => [id, 0]));
-}
-
-function normalizeLogs(logs) {
-  if (!Array.isArray(logs)) return [];
-
-  return logs
-    .map((item) => {
-      if (typeof item === "string") {
-        return { time: "", text: item, type: "important" };
-      }
-
-      return {
-        time: item?.time || "",
-        text: item?.text || "",
-        type: item?.type || "important"
-      };
-    })
-    .filter((item) => item.text)
-    .slice(0, LOG_LIMIT);
-}
-
-const stateOptions = {
-  createDefaultResources,
-  createDefaultSkills
-};
-
-function ensureStateShape(s = {}) {
-  const state = s;
-
-  state.gold = Number(state.gold || 0);
-  state.level = Math.max(1, Number(state.level || 1));
-  state.exp = Math.max(0, Number(state.exp || 0));
-  state.intelligence = Math.max(0, Number(state.intelligence || 0));
-
-  state.stamina = Math.max(0, Number(state.stamina || 100));
-  state.staminaLevel = Math.max(1, Number(state.staminaLevel || 1));
-  state.staminaExp = Math.max(0, Number(state.staminaExp || 0));
-
-  state.managementLevel = Math.max(1, Number(state.managementLevel || 1));
-  state.managementExp = Math.max(0, Number(state.managementExp || 0));
-
-  state.tradeLevel = Math.max(1, Number(state.tradeLevel || 1));
-  state.tradeExp = Math.max(0, Number(state.tradeExp || 0));
-  state.reputation = Math.max(0, Number(state.reputation || 0));
-
-  state.castleLevel = Math.max(1, Number(state.castleLevel || 1));
-  state.castleExp = Math.max(0, Number(state.castleExp || 0));
-  state.safetyValue = Math.max(0, Number(state.safetyValue || 0));
-
-  state.pendingTax = Math.max(0, Number(state.pendingTax || 0));
-  state.campfireSec = Math.max(0, Number(state.campfireSec || 0));
-  state.housingCap = Math.max(0, Number(state.housingCap || 0));
-
-  state.resources = {
-    ...createDefaultResources(),
-    ...(state.resources || {})
-  };
-
-  state.skills = {
-    ...createDefaultSkills(),
-    ...(state.skills || {})
-  };
-
-  Object.keys(skillLabels).forEach((id) => {
-    state.skills[id] = {
-      level: Math.max(1, Number(state.skills[id]?.level || 1)),
-      exp: Math.max(0, Number(state.skills[id]?.exp || 0))
-    };
-  });
-
-  state.logs = normalizeLogs(state.logs);
-
-  if (!Array.isArray(state.workers)) state.workers = [];
-  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
-  if (!Array.isArray(state.craftQueue)) state.craftQueue = [];
-  if (!Array.isArray(state.researchQueue)) state.researchQueue = [];
-
-  if (!state.research || typeof state.research !== "object") state.research = {};
-  if (!state.housing || typeof state.housing !== "object") state.housing = {};
-  if (!state.buildings || typeof state.buildings !== "object") state.buildings = {};
-
-  if (!state.merchant || typeof state.merchant !== "object") {
-    state.merchant = {};
-  }
-
-  state.merchant.minuteCounter = Math.max(0, Number(state.merchant.minuteCounter || 0));
-  state.merchant.present = !!state.merchant.present;
-  state.merchant.presentSec = Math.max(0, Number(state.merchant.presentSec || 0));
-  state.merchant.cash = Math.max(0, Math.floor(Number(state.merchant.cash || 0)));
-  state.merchant.maxCash = Math.max(
-    state.merchant.cash,
-    Math.floor(Number(state.merchant.maxCash || state.merchant.cash || 0))
-  );
-  state.merchant.storeFunds = Math.max(0, Math.floor(Number(state.merchant.storeFunds || 0)));
-  state.merchant.lastStoreInjection = Math.max(
-    0,
-    Math.floor(Number(state.merchant.lastStoreInjection || 0))
-  );
-  state.merchant.keep =
-    state.merchant.keep && typeof state.merchant.keep === "object"
-      ? state.merchant.keep
-      : {};
-  state.merchant.orders = Array.isArray(state.merchant.orders) ? state.merchant.orders : [];
-  state.merchant.nextOrderId = Math.max(1, Math.floor(Number(state.merchant.nextOrderId || 1)));
-
-  if (!state.ui || typeof state.ui !== "object") state.ui = {};
-  if (typeof state.ui.mainPage !== "string") state.ui.mainPage = "production";
-  if (typeof state.ui.logFilter !== "string") state.ui.logFilter = "all";
-  if (typeof state.ui.craftSmithyTab !== "string") state.ui.craftSmithyTab = "ingot";
-
-  if (!state.ui.openSections || typeof state.ui.openSections !== "object") {
-    state.ui.openSections = {};
-  }
-  if (!state.ui.openSections.resources || typeof state.ui.openSections.resources !== "object") {
-    state.ui.openSections.resources = {};
-  }
-  if (!state.ui.openSections.crafts || typeof state.ui.openSections.crafts !== "object") {
-    state.ui.openSections.crafts = {
-      basic: true,
-      cooking: false,
-      grinding: false,
-      smithy: false,
-      alchemy: false,
-      tailoring: false,
-      processing: false,
-      other: false
-    };
-  }
-  if (typeof state.ui.openSections.crafts.processing !== "boolean") {
-    state.ui.openSections.crafts.processing = false;
-  }
-  if (!state.ui.openSections.research || typeof state.ui.openSections.research !== "object") {
-    state.ui.openSections.research = {
-      books: true
-    };
-  }
-  if (!state.ui.openSections.workers || typeof state.ui.openSections.workers !== "object") {
-    state.ui.openSections.workers = {};
-  }
-
-  if (!state.currentAction || typeof state.currentAction !== "object") state.currentAction = null;
-  if (!state.currentCraft || typeof state.currentCraft !== "object") state.currentCraft = null;
-  if (!state.currentResearch || typeof state.currentResearch !== "object") state.currentResearch = null;
-
-  if (typeof state.logFilter !== "string") state.logFilter = state.ui.logFilter || "all";
-  state.ui.logFilter = state.logFilter;
-
-  return state;
-}
-
-function safeCreateInitialState() {
-  try {
-    return ensureStateShape(createInitialState(stateOptions));
-  } catch {
-    return ensureStateShape({});
-  }
-}
-
-function safeNormalizeState(raw) {
-  try {
-    return ensureStateShape(normalizeState(raw, stateOptions));
-  } catch {
-    return ensureStateShape(raw || {});
-  }
-}
-
-function safeResetState(target) {
-  try {
-    resetState(target, stateOptions);
-    return ensureStateShape(target);
-  } catch {
-    const fresh = safeCreateInitialState();
-    Object.keys(target).forEach((key) => delete target[key]);
-    Object.assign(target, fresh);
-    return target;
-  }
-}
-
-const state = safeCreateInitialState();
-let lastFrameTime = performance.now();
-
-function addLog(text, type = "important") {
-  state.logs.unshift({
-    time: nowTime(),
-    text,
-    type
-  });
-
-  state.logs = normalizeLogs(state.logs).slice(0, LOG_LIMIT);
-}
-
-function gainResource(id, amount) {
-  if (!id) return;
-  state.resources[id] = (state.resources[id] || 0) + amount;
-}
-
-function spendResource(id, amount) {
-  if ((state.resources[id] || 0) < amount) return false;
-  state.resources[id] -= amount;
-  return true;
-}
-
-function canAfford(costs = {}) {
-  return Object.entries(costs).every(([id, amount]) => {
-    return (state.resources[id] || 0) >= amount;
-  });
-}
-
-function spendCosts(costs = {}) {
-  if (!canAfford(costs)) return false;
-
-  Object.entries(costs).forEach(([id, amount]) => {
-    state.resources[id] -= amount;
-  });
-
-  return true;
-}
-
-function addMainExp(amount) {
-  state.exp += amount;
-
-  while (state.exp >= getExpToNext(state.level)) {
-    state.exp -= getExpToNext(state.level);
-    state.level += 1;
-    addLog(`主等級提升到 Lv.${state.level}`, "important");
-  }
-}
-
-function addSkillExp(skillId, amount = 1) {
-  if (!state.skills?.[skillId]) return;
-
-  state.skills[skillId].exp += amount;
-
-  while (state.skills[skillId].exp >= getExpToNext(state.skills[skillId].level)) {
-    state.skills[skillId].exp -= getExpToNext(state.skills[skillId].level);
-    state.skills[skillId].level += 1;
-    addLog(
-      `${skillLabels[skillId] || skillId} 等級提升到 Lv.${state.skills[skillId].level}`,
-      "important"
-    );
-  }
-}
-
-function addTradeExp(amount) {
-  const value = Math.max(0, Number(amount || 0));
-  if (value <= 0) return;
-
-  state.tradeExp = Math.max(0, Number(state.tradeExp || 0) + value);
-
-  while (state.tradeExp >= getExpToNext(state.tradeLevel || 1)) {
-    state.tradeExp -= getExpToNext(state.tradeLevel || 1);
-    state.tradeLevel = Math.max(1, Number(state.tradeLevel || 1) + 1);
-    addLog(`貿易等級提升到 Lv.${state.tradeLevel}`, "important");
-  }
-}
-
-function addReputation(amount) {
-  state.reputation = Math.max(
-    0,
-    +(Number(state.reputation || 0) + Number(amount || 0)).toFixed(1)
-  );
-}
-
-function getBestFoodId() {
-  for (const id of foodOrder) {
-    if ((state.resources[id] || 0) > 0 && typeof edibleValues[id] === "number") {
-      return id;
-    }
-  }
-  return "";
-}
-
-function rest() {
-  const before = state.stamina;
-  state.stamina = Math.min(getMaxStamina(state), state.stamina + 5);
-  const actual = state.stamina - before;
-
-  if (actual <= 0) {
-    addLog("體力已滿，不需要休息", "important");
-    return;
-  }
-
-  addLog(`你休息恢復 ${actual} 體力`, "important");
-}
-
-function eatResource(resourceId) {
-  const value = edibleValues[resourceId];
-  const label = getResourceLabel(resourceId);
-
-  if (typeof value !== "number") return false;
-
-  if ((state.resources[resourceId] || 0) <= 0) {
-    addLog(`沒有${label}可以使用`, "important");
-    return false;
-  }
-
-  if (state.stamina >= getMaxStamina(state) && value >= 0) {
-    addLog("體力已滿，不需要吃食物", "important");
-    return false;
-  }
-
-  spendResource(resourceId, 1);
-
-  const before = state.stamina;
-  state.stamina = clamp(state.stamina + value, 0, getMaxStamina(state));
-  const actual = state.stamina - before;
-
-  addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
-  return true;
-}
-
-function eatBestFood() {
-  const best = getBestFoodId();
-  if (!best) {
-    addLog("目前沒有可吃的食物", "important");
-    return;
-  }
-
-  eatResource(best);
-}
-
-function addCampfireFuel(resourceId) {
-  const duration = Number(fuelDurations[resourceId] || 0);
-  const label = getResourceLabel(resourceId);
-
-  if (duration <= 0) return false;
-
-  if ((state.resources[resourceId] || 0) <= 0) {
-    addLog(`沒有${label}可以投入篝火`, "important");
-    return false;
-  }
-
-  spendResource(resourceId, 1);
-  state.campfireSec = Math.max(0, Number(state.campfireSec || 0)) + duration;
-
-  addLog(`你投入了 1 個${label}，篝火延長 ${duration} 秒`, "important");
-  return true;
-}
-
-function isWarehouseResourceClickable(resourceId) {
-  return (
-    typeof edibleValues[resourceId] === "number" ||
-    typeof fuelDurations[resourceId] === "number"
-  );
-}
-
-function getWarehouseResourceHint(resourceId) {
-  const isFood = typeof edibleValues[resourceId] === "number";
-  const isFuel = typeof fuelDurations[resourceId] === "number";
-
-  if (isFood && isFuel) return "點擊使用 / 投入篝火";
-  if (isFood) return "點擊使用";
-  if (isFuel) return "點擊投入篝火";
-  return "";
-}
-
-function handleWarehouseResourceClick(resourceId) {
-  if (typeof edibleValues[resourceId] === "number") {
-    if (eatResource(resourceId)) {
-      renderAll();
-    }
-    return;
-  }
-
-  if (typeof fuelDurations[resourceId] === "number") {
-    if (addCampfireFuel(resourceId)) {
-      renderAll();
-    }
-  }
-}
+const stateBootstrap = createStateBootstrap({
+  createInitialState,
+  normalizeState,
+  resetState,
+  resourceLabels,
+  crafts,
+  books,
+  skillLabels,
+  logLimit: LOG_LIMIT
+});
+
+const state = stateBootstrap.safeCreateInitialState();
+
+const playerRuntime = createPlayerRuntime({
+  state,
+  getExpToNext,
+  skillLabels,
+  logLimit: LOG_LIMIT,
+  nowTime
+});
+
+const {
+  addLog,
+  gainResource,
+  spendResource,
+  canAfford,
+  spendCosts,
+  addMainExp,
+  addSkillExp,
+  addTradeExp,
+  addReputation
+} = playerRuntime;
+
+const staminaRuntime = createStaminaRuntime({
+  state,
+  addLog,
+  spendResource,
+  getMaxStamina
+});
+
+const {
+  rest,
+  eatBestFood,
+  isWarehouseResourceClickable,
+  getWarehouseResourceHint,
+  handleWarehouseResourceClick
+} = staminaRuntime;
 
 const workSystem = createWorkSystem({
   state,
@@ -489,74 +142,22 @@ const workSystem = createWorkSystem({
   gainResource
 });
 
-function queueWork(workId) {
-  if (!Array.isArray(state.actionQueue)) state.actionQueue = [];
+const workQueueRuntime = createWorkQueueRuntime({
+  state,
+  addLog,
+  workDefs,
+  getWorkCost,
+  workSystem,
+  queueLimit: QUEUE_LIMIT
+});
 
-  if (state.actionQueue.length >= QUEUE_LIMIT) {
-    addLog(`行動列隊已滿，最多等待 ${QUEUE_LIMIT} 項`, "important");
-    return false;
-  }
-
-  state.actionQueue.push(workId);
-  addLog(`已加入行動列隊：${workDefs[workId]?.name || workId}`, "important");
-  return true;
-}
-
-function startWorkNow(workId) {
-  workSystem.requestWork(workId);
-  return true;
-}
-
-function tryStartNextWork() {
-  if (state.currentAction) return false;
-  if (!Array.isArray(state.actionQueue) || state.actionQueue.length === 0) return false;
-
-  const nextId = state.actionQueue[0];
-  const nextDef = workDefs[nextId];
-
-  if (!nextDef) {
-    state.actionQueue.shift();
-    return tryStartNextWork();
-  }
-
-  if (state.stamina < getWorkCost(nextDef)) {
-    return false;
-  }
-
-  state.actionQueue.shift();
-  return startWorkNow(nextId);
-}
-
-function removeQueuedAction(index) {
-  if (!Array.isArray(state.actionQueue)) return false;
-  if (index < 0 || index >= state.actionQueue.length) return false;
-
-  const [removed] = state.actionQueue.splice(index, 1);
-  if (removed) {
-    addLog(`已移除行動列隊：${workDefs[removed]?.name || removed}`, "important");
-    return true;
-  }
-  return false;
-}
-
-function moveQueuedAction(index, direction) {
-  if (!Array.isArray(state.actionQueue)) return false;
-
-  const targetIndex = index + direction;
-  if (
-    index < 0 ||
-    index >= state.actionQueue.length ||
-    targetIndex < 0 ||
-    targetIndex >= state.actionQueue.length
-  ) {
-    return false;
-  }
-
-  const temp = state.actionQueue[index];
-  state.actionQueue[index] = state.actionQueue[targetIndex];
-  state.actionQueue[targetIndex] = temp;
-  return true;
-}
+const {
+  handleWorkClick,
+  tryStartNextWork,
+  removeQueuedAction,
+  moveQueuedAction,
+  clearQueuedActions
+} = workQueueRuntime;
 
 const researchSystem = createResearchSystem({
   state,
@@ -586,14 +187,28 @@ const craftRuntime = createCraftRuntime({
   crafts
 });
 
-const isCraftHidden = craftRuntime.isCraftHidden;
-const isCraftUnlocked = craftRuntime.isCraftUnlocked;
-const getCraftDuration = craftRuntime.getCraftDuration;
-const updateCraft = craftRuntime.updateCraft;
-const tryStartNextCraft = craftRuntime.tryStartNextCraft;
-const removeQueuedCraft = craftRuntime.removeQueuedCraft;
-const moveQueuedCraft = craftRuntime.moveQueuedCraft;
-const startCraftPlan = craftRuntime.startCraftPlan;
+const {
+  isCraftHidden,
+  isCraftUnlocked,
+  getCraftDuration,
+  updateCraft,
+  tryStartNextCraft,
+  removeQueuedCraft,
+  moveQueuedCraft,
+  startCraftPlan
+} = craftRuntime;
+
+const workersRuntime = createWorkersRuntime({
+  state,
+  addLog,
+  gainResource,
+  spendResource,
+  spendCosts,
+  canAfford,
+  addMainExp,
+  addSkillExp,
+  getResourceLabel
+});
 
 function craftItem(craftId) {
   return startCraftPlan(craftId, 1, false);
@@ -622,7 +237,7 @@ function loadGame({ silent = false } = {}) {
       return false;
     }
 
-    const data = safeNormalizeState(JSON.parse(raw));
+    const data = stateBootstrap.safeNormalizeState(JSON.parse(raw));
 
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, data);
@@ -647,7 +262,7 @@ function loadGame({ silent = false } = {}) {
 
 function resetGame() {
   localStorage.removeItem(STORAGE_KEY);
-  safeResetState(state);
+  stateBootstrap.safeResetState(state);
   addLog("已重置存檔", "important");
   renderAll();
 }
@@ -679,205 +294,115 @@ function showFeatureStub(featureName) {
   renderAll();
 }
 
-function renderPlaceholders() {
-  const setPlaceholder = (id, text) => {
-    const el = document.getElementById(id);
-    if (el && !el.innerHTML.trim()) {
-      el.innerHTML = `<div class="small muted">${text}</div>`;
-    }
-  };
+let renderAll = () => {};
 
-  setPlaceholder("buildingButtons", "建築系統尚未接回 main.js");
-  setPlaceholder("plots", "農田系統尚未接回 main.js");
-  setPlaceholder("pastureArea", "牧場系統尚未接回 main.js");
-  setPlaceholder("workers", "工人系統尚未接回 main.js");
-}
+const appRenderer = createAppRenderer({
+  state,
+  workDefs,
+  crafts,
+  books,
+  researchDefs,
+  merchantRuntime,
+  workersRuntime,
 
-function renderHeaderStats() {
-  renderTopStats({
-    state,
-    getExpToNext,
-    getMaxStamina,
-    formatReadableDuration,
-    getCycleTimeText: () => "",
-    getCampfireBarPercent: (s) =>
-      Math.min(100, Math.max(0, (Number(s.campfireSec || 0) / 180) * 100))
-  });
+  getExpToNext,
+  getMaxStamina,
+  formatReadableDuration,
+  formatSeconds,
+  getResourceLabel,
+  edibleValues,
+  fuelDurations,
+  getWorkCost,
 
-  renderSkillPills({
-    state,
-    skillLabels,
-    expToNext: getExpToNext
-  });
-}
+  isResourceClickable: isWarehouseResourceClickable,
+  getResourceHint: getWarehouseResourceHint,
+  onResourceClick: (resourceId) => {
+    handleWarehouseResourceClick(resourceId, renderAll);
+  },
 
-function renderAll() {
+  isCraftHidden,
+  isCraftUnlocked,
+  getCraftDuration,
+
+  onWorkClick: (workId) => {
+    handleWorkClick(workId);
+    renderAll();
+  },
+  onCraftClick: (craftId) => {
+    craftItem(craftId);
+    renderAll();
+  },
+  onStartResearch: (researchId) => {
+    researchSystem.startResearch(researchId);
+    renderAll();
+  },
+  onReadBook: (bookId) => {
+    researchSystem.startReading(bookId);
+    renderAll();
+  },
+
+  onRemoveQueuedAction: (index) => {
+    removeQueuedAction(index);
+    renderAll();
+  },
+  onMoveQueuedAction: (index, direction) => {
+    moveQueuedAction(index, direction);
+    renderAll();
+  },
+  onRemoveQueuedCraft: (index) => {
+    removeQueuedCraft(index);
+    renderAll();
+  },
+  onMoveQueuedCraft: (index, direction) => {
+    moveQueuedCraft(index, direction);
+    renderAll();
+  },
+
+  getMissingRequirementText: researchSystem.getMissingRequirementText,
+  isResearchCompleted: researchSystem.isResearchCompleted,
+  meetsResearchRequirements: researchSystem.meetsResearchRequirements,
+
+  onRecruitWorker: () => {
+    workersRuntime.recruitWorker();
+    renderAll();
+  },
+  onPayDebt: () => {
+    workersRuntime.payDebt();
+    renderAll();
+  },
+  onSetWorkerJob: (workerId, job) => {
+    workersRuntime.setWorkerJob(workerId, job);
+    renderAll();
+  },
+  onAdjustWorkersForJob: (job, delta) => {
+    workersRuntime.adjustWorkersForJob(job, delta);
+    renderAll();
+  }
+});
+
+const {
+  renderHeaderStats,
+  renderLivePanels
+} = appRenderer;
+
+const rawRenderAll = appRenderer.renderAll;
+renderAll = () => {
   syncDerivedResearchUnlocks();
+  rawRenderAll();
+};
 
-  renderHeaderStats();
-
-  renderResources({
-    state,
-    getResourceLabel,
-    edibleValues,
-    fuelDurations,
-    isResourceClickable: isWarehouseResourceClickable,
-    getResourceHint: getWarehouseResourceHint,
-    onResourceClick: handleWarehouseResourceClick
-  });
-
-  renderWorkButtons({
-    workDefs,
-    getWorkCost,
-    getWorkDuration: (def, id) =>
-      typeof def.duration === "number" ? def.duration : 1,
-    formatSeconds,
-    onWorkClick: (workId) => {
-      if (state.currentAction) {
-        queueWork(workId);
-      } else {
-        startWorkNow(workId);
-      }
-      renderAll();
-    }
-  });
-
-  renderCraftList({
-    state,
-    crafts,
-    getResourceLabel,
-    isCraftHidden,
-    isCraftUnlocked,
-    onCraftClick: (craftId) => {
-      craftItem(craftId);
-      renderAll();
-    },
-    getCraftDuration,
-    formatSeconds
-  });
-
-  renderResearchArea({
-    state,
-    books,
-    researchDefs,
-    formatSeconds,
-    getMissingRequirementText: researchSystem.getMissingRequirementText,
-    isResearchCompleted: researchSystem.isResearchCompleted,
-    meetsResearchRequirements: researchSystem.meetsResearchRequirements,
-    onStartResearch: (researchId) => {
-      researchSystem.startResearch(researchId);
-      renderAll();
-    },
-    onReadBook: (bookId) => {
-      researchSystem.startReading(bookId);
-      renderAll();
-    }
-  });
-
-  merchantRuntime.render({
-    onAfterChange: renderAll
-  });
-
-  renderActionLane({
-    state,
-    workDefs,
-    getWorkCost,
-    formatSeconds,
-    onRemoveQueuedAction: (index) => {
-      removeQueuedAction(index);
-      renderAll();
-    },
-    onMoveQueuedAction: (index, direction) => {
-      moveQueuedAction(index, direction);
-      renderAll();
-    }
-  });
-
-  renderCraftLane({
-    state,
-    crafts,
-    formatSeconds,
-    onRemoveQueuedCraft: (index) => {
-      removeQueuedCraft(index);
-      renderAll();
-    },
-    onMoveQueuedCraft: (index, direction) => {
-      moveQueuedCraft(index, direction);
-      renderAll();
-    }
-  });
-
-  renderResearchLane({
-    state,
-    formatSeconds
-  });
-
-  renderLog({ state });
-
-  renderPlaceholders();
-}
-
-function loop(now) {
-  const deltaSeconds = Math.min(0.2, (now - lastFrameTime) / 1000);
-  lastFrameTime = now;
-
-  state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
-
-  workSystem.updateAction(deltaSeconds);
-  updateCraft(deltaSeconds);
-  researchSystem.updateResearch(deltaSeconds);
-  merchantRuntime.update(deltaSeconds);
-
-  if (!state.currentAction && state.actionQueue?.length > 0) {
-    tryStartNextWork();
-  }
-
-  if (!state.currentCraft && state.craftQueue?.length > 0) {
-    tryStartNextCraft();
-  }
-
-  renderHeaderStats();
-
-  renderActionLane({
-    state,
-    workDefs,
-    getWorkCost,
-    formatSeconds,
-    onRemoveQueuedAction: (index) => {
-      removeQueuedAction(index);
-      renderAll();
-    },
-    onMoveQueuedAction: (index, direction) => {
-      moveQueuedAction(index, direction);
-      renderAll();
-    }
-  });
-
-  renderCraftLane({
-    state,
-    crafts,
-    formatSeconds,
-    onRemoveQueuedCraft: (index) => {
-      removeQueuedCraft(index);
-      renderAll();
-    },
-    onMoveQueuedCraft: (index, direction) => {
-      moveQueuedCraft(index, direction);
-      renderAll();
-    }
-  });
-
-  renderResearchLane({
-    state,
-    formatSeconds
-  });
-
-  merchantRuntime.render({
-    onAfterChange: renderAll
-  });
-
-  requestAnimationFrame(loop);
-}
+const appLoop = createAppLoop({
+  state,
+  workSystem,
+  updateCraft,
+  researchSystem,
+  merchantRuntime,
+  workersRuntime,
+  tryStartNextWork,
+  tryStartNextCraft,
+  renderHeaderStats,
+  renderLivePanels
+});
 
 function init() {
   loadGame({ silent: true });
@@ -899,21 +424,27 @@ function init() {
       renderAll();
     },
     onClearActionQueue: () => {
-      state.actionQueue = [];
+      clearQueuedActions();
       renderAll();
     },
     onSetLogFilter: (filter) => {
       state.logFilter = filter;
       if (!state.ui) state.ui = {};
       state.ui.logFilter = filter;
-      renderLog({ state });
+      renderAll();
     },
     onSetMainPage: (pageName) => {
       setMainPage(pageName);
     },
     onClaimTax: () => showFeatureStub("稅收"),
-    onPayDebt: () => showFeatureStub("支付欠薪"),
-    onRecruitWorker: () => showFeatureStub("招募工人"),
+    onPayDebt: () => {
+      workersRuntime.payDebt();
+      renderAll();
+    },
+    onRecruitWorker: () => {
+      workersRuntime.recruitWorker();
+      renderAll();
+    },
     onOpenSeedSelect: () => showFeatureStub("種子選擇"),
     onPlant: () => showFeatureStub("種植"),
     onToggleFarmerSeedMode: () => showFeatureStub("農夫種植模式"),
@@ -922,7 +453,7 @@ function init() {
 
   setMainPage(state.ui.mainPage || "production");
   renderAll();
-  requestAnimationFrame(loop);
+  appLoop.start();
 }
 
 init();
