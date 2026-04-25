@@ -1,26 +1,6 @@
 import { createMerchantSystem } from "./merchant.js";
 import { renderMerchantArea } from "../ui/render/renderMerchantArea.js";
-
-const DEFAULT_SELL_PRICES = {
-  wood: 2,
-  stone: 2,
-  fish: 5,
-  shrimp: 6,
-  crab: 8,
-  herb: 4,
-  rareHerb: 16,
-  mushroom: 5,
-  leather: 14,
-  softLeather: 26,
-  cottonCloth: 14,
-  clothes: 28,
-  staminaPotion: 30,
-  stoneBrick: 12,
-  brick: 10,
-  glassBottle: 16,
-  boneMeal: 10,
-  compost: 9
-};
+import { sellPrices } from "../data/trade.js";
 
 export function createMerchantRuntime({
   state,
@@ -28,14 +8,14 @@ export function createMerchantRuntime({
   addTradeExp,
   addReputation,
   getResourceLabel,
-  sellPrices = DEFAULT_SELL_PRICES
+  merchantSellPrices = sellPrices
 }) {
   const merchantSystem = createMerchantSystem({
     state,
     addLog,
     addTradeExp,
     addReputation,
-    sellPrices
+    sellPrices: merchantSellPrices
   });
 
   function fulfillOrder(orderId) {
@@ -54,26 +34,29 @@ export function createMerchantRuntime({
     merchantSystem.updateMerchant(deltaSeconds);
   }
 
-  function render() {
+  function render({ onAfterChange } = {}) {
     renderMerchantArea({
       state,
       getResourceLabel,
       merchantSystem,
       onFulfillOrder: (orderId) => {
         fulfillOrder(orderId);
+        onAfterChange?.();
       },
       onCancelOrder: (orderId) => {
         cancelOrder(orderId);
+        onAfterChange?.();
       },
       onRefreshMerchant: () => {
         refreshMerchant();
+        onAfterChange?.();
       }
     });
   }
 
   return {
     merchantSystem,
-    sellPrices,
+    sellPrices: merchantSellPrices,
     update,
     render,
     fulfillOrder,
