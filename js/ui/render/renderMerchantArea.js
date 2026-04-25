@@ -7,94 +7,203 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function toInt(value) {
+  return Math.floor(Number(value || 0));
+}
+
+function formatSeconds(seconds) {
+  return `${Math.max(0, Math.ceil(Number(seconds || 0)))} 秒`;
+}
+
+function getTierMeta(merchantSystem, tier) {
+  if (merchantSystem?.getOrderTierMeta) {
+    return merchantSystem.getOrderTierMeta(tier);
+  }
+
+  return {
+    id: tier || "common",
+    label: tier || "common",
+    multiplier: 1,
+    bonusTrade: 0,
+    rep: 0
+  };
+}
+
+function buildOrderCard({
+  order,
+  state,
+  getResourceLabel,
+  merchantSystem
+}) {
+  const have = toInt(state.resources?.[order.resource] || 0);
+  const need = toInt(order.qty || 0);
+  const enough = have >= need;
+  const tierMeta = getTierMeta(merchantSystem, order.tier || "common");
+  const tierLabel = order.tierLabel || tierMeta.label || "普通";
+
+  return `
+    <div
+      class="merchant-order-card"
+      style="
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:12px;
+        padding:10px;
+        background:rgba(255,255,255,.03);
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+      "
+    >
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+        <strong>${escapeHtml(order.from || "行腳商人")}</strong>
+        <span class="pill">${escapeHtml(tierLabel)}</span>
+      </div>
+
+      <div>${escapeHtml(getResourceLabel(order.resource))}</div>
+
+      <div class="small muted">
+        需求：${need}｜持有：${have}
+      </div>
+
+      <div class="small muted">
+        報酬：${toInt(order.rewardGold)} 金｜貿易 EXP ${toInt(order.rewardTrade)}｜聲望 ${Number(order.rewardRep || 0)}
+      </div>
+
+      <div class="row">
+        <button
+          type="button"
+          class="tiny-btn"
+          data-merchant-fulfill="${escapeHtml(order.id)}"
+          ${enough ? "" : "disabled"}
+          title="${enough ? "繳交這張訂單" : "物資不足，無法繳交"}"
+        >
+          繳交訂單
+        </button>
+
+        <button
+          type="button"
+          class="tiny-btn"
+          data-merchant-cancel="${escapeHtml(order.id)}"
+          title="取消這張訂單"
+        >
+          取消訂單
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 export function renderMerchantArea({
   state,
   getResourceLabel,
   merchantSystem,
-  onFulfillOrder,
-  onCancelOrder,
-  onRefreshMerchant
+  onFulfillOrder = null,
+  onCancelOrder = null,
+  onRefreshMerchant = null
 }) {
   const root = document.getElementById("merchantArea");
   if (!root) return;
 
   const merchant = state.merchant || {};
-  const orders = Array.isArray(merchant.orders) ? merchant.orders : [];
   const present = !!merchant.present;
-  const presentSec = Math.max(0, Math.ceil(Number(merchant.presentSec || 0)));
-  const cash = Math.floor(Number(merchant.cash || 0));
-  const chancePct = Math.round(merchantSystem.merchantChancePerMinute() * 100);
-  const limit = merchantSystem.getMerchantOrderLimit();
-  const highCount = orders.filter((o) => (o.tier || "common") !== "common").length;
+  const presentSec = Math.max(0, Number(merchant.presentSec || 0));
+  const cash = toInt(merchant.cash || 0);
+  const maxCash = Math.max(cash, toInt(merchant.maxCash || cash));
+  const orders = Array.isArray(merchant.orders) ? merchant.orders : [];
+
+  const chancePct = merchantSystem?.merchantChancePerMinute
+    ? Math.round(Number(merchantSystem.merchantChancePerMinute() || 0) * 1000) / 10
+    : 0;
+
+  const orderLimit = merchantSystem?.getMerchantOrderLimit
+    ? toInt(merchantSystem.getMerchantOrderLimit())
+    : orders.length;
+
+  const rareCount = orders.filter((o) => (o.tier || "common") === "rare").length;
+  const epicCount = orders.filter((o) => (o.tier || "common") === "epic").length;
 
   root.innerHTML = `
-    <div class="row" style="margin-bottom:8px;align-items:center;">
+    <div class="row" style="margin-bottom:10px;align-items:center;gap:8px;flex-wrap:wrap;">
       <span class="pill">
         ${
           present
-            ? `商人到訪中（${presentSec} 秒）`
-            : `商人未到訪（每分鐘約 ${chancePct}% 機率）`
+            ? `商人到訪中｜剩餘 ${escapeHtml(formatSeconds(presentSec))}`
+            : `商人未到訪｜每分鐘約 ${chancePct}% 機率出現`
         }
       </span>
-      <span class="pill">攜帶金額：${cash}</span>
-      <span class="pill">訂單：${orders.length}/${limit}</span>
-      <span class="pill">高階訂單：${highCount}</span>
-      <button id="merchantRefreshBtn" class="tiny-btn" type="button">手動召喚商人</button>
+
+      <span class="pill">攜帶金額：${cash} / ${maxCash}</span>
+      <span class="pill">訂單：${orders.length} / ${orderLimit}</span>
+      <span class="pill">進階：${rareCount}</span>
+      <span class="pill">高級：${epicCount}</span>
+
+      <button
+        id="merchantRefreshBtn"
+        type="button"
+        class="tiny-btn"
+        title="手動召喚商人，方便測試"
+      >
+        手動召喚商人
+      </button>
     </div>
 
-    <div class="small muted" style="margin-bottom:8px;">
-      商人會依據貿易等級、城池等級與安全值提高到訪率與攜帶金額。這一版先接回布告欄訂單功能。
+    <div class="small muted" style="margin-bottom:10px;">
+      這一版先接回商人來訪與布告欄訂單功能。商店直接買賣可下一步再補。
     </div>
 
-    <div style="font-weight:700;margin:8px 0 6px;">布告欄</div>
+    <div style="font-weight:700;margin:8px 0 6px;">布告欄訂單</div>
 
     ${
       orders.length === 0
-        ? `<div class="small muted">目前沒有待完成的商人訂單。</div>`
+        ? `
+          <div
+            style="
+              border:1px dashed rgba(255,255,255,.14);
+              border-radius:12px;
+              padding:12px;
+            "
+            class="small muted"
+          >
+            目前沒有待完成的訂單。
+          </div>
+        `
         : `
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;">
+          <div
+            class="merchant-order-grid"
+            style="
+              display:grid;
+              grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+              gap:10px;
+            "
+          >
             ${orders
-              .map((order) => {
-                const have = Math.floor(Number(state.resources?.[order.resource] || 0));
-                const disabled = have < order.qty ? "disabled" : "";
-                const tierLabel =
-                  order.tierLabel ||
-                  merchantSystem.getOrderTierMeta(order.tier || "common").label;
-
-                return `
-                  <div style="border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px;">
-                    <strong>${escapeHtml(order.from || "行腳商人")}【${escapeHtml(tierLabel)}】</strong>
-                    <div>${escapeHtml(getResourceLabel(order.resource))}</div>
-                    <div class="small muted">需求：${order.qty}｜現有：${have}</div>
-                    <div class="small muted">報酬：${order.rewardGold} 金｜貿易 EXP ${order.rewardTrade}｜聲望 ${order.rewardRep}</div>
-                    <div class="row">
-                      <button class="tiny-btn" data-fulfill-order="${escapeHtml(order.id)}" type="button" ${disabled}>繳交訂單</button>
-                      <button class="tiny-btn" data-cancel-order="${escapeHtml(order.id)}" type="button">取消訂單</button>
-                    </div>
-                  </div>
-                `;
-              })
+              .map((order) =>
+                buildOrderCard({
+                  order,
+                  state,
+                  getResourceLabel,
+                  merchantSystem
+                })
+              )
               .join("")}
           </div>
         `
     }
-
-
   `;
 
   root.querySelector("#merchantRefreshBtn")?.addEventListener("click", () => {
     onRefreshMerchant?.();
   });
 
-  root.querySelectorAll("[data-fulfill-order]").forEach((btn) => {
+  root.querySelectorAll("[data-merchant-fulfill]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      onFulfillOrder?.(btn.dataset.fulfillOrder);
+      onFulfillOrder?.(btn.dataset.merchantFulfill);
     });
   });
 
-  root.querySelectorAll("[data-cancel-order]").forEach((btn) => {
+  root.querySelectorAll("[data-merchant-cancel]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      onCancelOrder?.(btn.dataset.cancelOrder);
+      onCancelOrder?.(btn.dataset.merchantCancel);
     });
   });
 }
