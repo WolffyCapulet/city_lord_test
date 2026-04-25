@@ -8,7 +8,7 @@ import { crafts } from "../data/crafts.js";
 import { books, researchDefs } from "../data/research.js";
 
 import { bindEvents } from "./bindEvents.js";
-import { createAppRenderer } from "./renderApp.js";
+import { createAppRenderer } from "../ui/render/renderApp.js";
 import { createAppLoop } from "./appLoop.js";
 
 import {
