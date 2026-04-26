@@ -30,6 +30,7 @@ import { createPlayerRuntime } from "../systems/playerRuntime.js";
 import { createStaminaRuntime } from "../systems/staminaRuntime.js";
 import { createWorkQueueRuntime } from "../systems/workQueueRuntime.js";
 import { showActionModal } from "../ui/modals.js";
+import { renderSkillPills } from "../ui/render/renderSkillPills.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
@@ -220,6 +221,14 @@ const workersRuntime = createWorkersRuntime({
   addSkillExp,
   getResourceLabel
 });
+
+function forceRenderSkillPills() {
+  renderSkillPills({
+    state,
+    skillLabels,
+    expToNext: getExpToNext
+  });
+}
 
 function craftItem(craftId) {
   return startCraftPlan(craftId, 1, false);
@@ -450,14 +459,20 @@ const appRenderer = createAppRenderer({
 });
 
 const {
-  renderHeaderStats,
+  renderHeaderStats: baseRenderHeaderStats,
   renderLivePanels
 } = appRenderer;
+
+function renderHeaderStats() {
+  baseRenderHeaderStats();
+  forceRenderSkillPills();
+}
 
 const rawRenderAll = appRenderer.renderAll;
 renderAll = () => {
   syncDerivedResearchUnlocks();
   rawRenderAll();
+  forceRenderSkillPills();
 };
 
 const appLoop = createAppLoop({
