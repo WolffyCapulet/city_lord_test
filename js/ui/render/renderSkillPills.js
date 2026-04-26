@@ -57,16 +57,24 @@ export function renderSkillPills({
   Object.entries(skillLabels || {}).forEach(([id, label]) => {
     const skill = state?.skills?.[id] || { level: 1, exp: 0 };
 
-    const div = document.createElement("div");
-    div.className = "pill";
-    div.textContent = `${label} Lv.${skill.level}`;
-    div.title = `${label}\n${getSkillLevelEffectText({
+    const text = `${label}\n${getSkillLevelEffectText({
       id,
       state,
       expToNext,
       format
     })}`;
 
-    root.appendChild(div);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pill";
+    btn.dataset.skill = id;
+    btn.textContent = `${label} Lv.${skill.level}`;
+    btn.title = text;
+
+    btn.addEventListener("click", () => {
+      alert(text);
+    });
+
+    root.appendChild(btn);
   });
 }
