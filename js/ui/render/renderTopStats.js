@@ -2,10 +2,9 @@ export function renderTopStats({
   state,
   getExpToNext,
   getMaxStamina,
-  formatReadableDuration = (seconds) =>
-    `${Math.max(0, Math.ceil(Number(seconds || 0)))}s`,
+  formatReadableDuration = (seconds) => `${Math.max(0, Math.ceil(Number(seconds || 0)))}s`,
   getCycleTimeText = () => "",
-  getHousingUsed = (s) => (Array.isArray(s.workers) ? s.workers.length : 0),
+  getHousingUsed = (s) => Array.isArray(s.workers) ? s.workers.length : 0,
   getHousingCap = (s) => Number(s.housingCap || 0),
   getSafetyValue = (s) => Number(s.safetyValue || 0),
   getTownStageName = (s) => s.townStageName || s.researchUnlockText || "荒地",
