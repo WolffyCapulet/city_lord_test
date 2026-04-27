@@ -29,8 +29,6 @@ import { createWorkersRuntime } from "../systems/workersRuntime.js";
 import { createPlayerRuntime } from "../systems/playerRuntime.js";
 import { createStaminaRuntime } from "../systems/staminaRuntime.js";
 import { createWorkQueueRuntime } from "../systems/workQueueRuntime.js";
-import { showActionModal } from "../ui/modals.js";
-import { renderSkillPills } from "../ui/render/renderSkillPills.js";
 
 const STORAGE_KEY = "city_lord_modular_min_v0.0.0.1";
 const LOG_LIMIT = 100;
@@ -87,15 +85,6 @@ function getMaxStamina() {
 
 function getResourceLabel(id) {
   return resourceLabels[id] || id;
-}
-
-function formatBundleText(bundle = {}) {
-  const entries = Object.entries(bundle);
-  if (!entries.length) return "無";
-
-  return entries
-    .map(([id, amount]) => `${getResourceLabel(id)} ${amount}`)
-    .join("、");
 }
 
 const stateBootstrap = createStateBootstrap({
@@ -163,7 +152,7 @@ const workQueueRuntime = createWorkQueueRuntime({
 });
 
 const {
-  startWorkPlan,
+  handleWorkClick,
   tryStartNextWork,
   removeQueuedAction,
   moveQueuedAction,
@@ -202,7 +191,6 @@ const {
   isCraftHidden,
   isCraftUnlocked,
   getCraftDuration,
-  queueCraft,
   updateCraft,
   tryStartNextCraft,
   removeQueuedCraft,
@@ -222,76 +210,8 @@ const workersRuntime = createWorkersRuntime({
   getResourceLabel
 });
 
-function forceRenderSkillPills() {
-  renderSkillPills({
-    state,
-    skillLabels,
-    expToNext: getExpToNext
-  });
-}
-
 function craftItem(craftId) {
   return startCraftPlan(craftId, 1, false);
-}
-
-function openWorkActionModal(workId) {
-  const def = workDefs[workId];
-  if (!def) return;
-
-  showActionModal({
-    title: def.name,
-    description: [
-      `單次體力：${getWorkCost(def)}`,
-      `說明：輸入要執行幾次。`,
-      `可選擇無限持續生產。`
-    ].join("\n"),
-    quantity: 1,
-    quantityHint: state.currentAction
-      ? "目前生產線忙碌中，可加入列隊"
-      : "可直接開始",
-    quickButtons: [1, 10, 50, 100, "∞"],
-    allowQueue: true,
-    allowStart: true,
-    onQueue: (qty, isInfinite) => {
-      workQueueRuntime.queueWork(workId, qty, isInfinite);
-      renderAll();
-    },
-    onStart: (qty, isInfinite) => {
-      startWorkPlan(workId, qty, isInfinite);
-      renderAll();
-    }
-  });
-}
-
-function openCraftActionModal(craftId) {
-  const def = crafts[craftId];
-  if (!def) return;
-
-  showActionModal({
-    title: def.name,
-    description: [
-      `單次體力：${def.stamina ?? 1}`,
-      `材料：${formatBundleText(def.costs || {})}`,
-      `產出：${formatBundleText(def.yields || {})}`,
-      `製作節奏：${formatSeconds(getCraftDuration(def, craftId))}`,
-      `可選擇無限持續製作。`
-    ].join("\n"),
-    quantity: 1,
-    quantityHint: state.currentCraft
-      ? "目前製作線忙碌中，可加入列隊"
-      : "可直接開始",
-    quickButtons: [1, 10, 50, 100, "∞"],
-    allowQueue: true,
-    allowStart: true,
-    onQueue: (qty, isInfinite) => {
-      queueCraft(craftId, qty, isInfinite);
-      renderAll();
-    },
-    onStart: (qty, isInfinite) => {
-      startCraftPlan(craftId, qty, isInfinite);
-      renderAll();
-    }
-  });
 }
 
 function saveGame() {
@@ -405,10 +325,12 @@ const appRenderer = createAppRenderer({
   getCraftDuration,
 
   onWorkClick: (workId) => {
-    openWorkActionModal(workId);
+    handleWorkClick(workId);
+    renderAll();
   },
   onCraftClick: (craftId) => {
-    openCraftActionModal(craftId);
+    craftItem(craftId);
+    renderAll();
   },
   onStartResearch: (researchId) => {
     researchSystem.startResearch(researchId);
@@ -459,20 +381,14 @@ const appRenderer = createAppRenderer({
 });
 
 const {
-  renderHeaderStats: baseRenderHeaderStats,
+  renderHeaderStats,
   renderLivePanels
 } = appRenderer;
-
-function renderHeaderStats() {
-  baseRenderHeaderStats();
-  forceRenderSkillPills();
-}
 
 const rawRenderAll = appRenderer.renderAll;
 renderAll = () => {
   syncDerivedResearchUnlocks();
   rawRenderAll();
-  forceRenderSkillPills();
 };
 
 const appLoop = createAppLoop({
