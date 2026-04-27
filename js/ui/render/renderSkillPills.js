@@ -68,7 +68,6 @@ function getSkillDetailText({
   };
 
   const detail = detailMap[id] || ["效果：記錄此技能熟練度。"];
-
   return [...common, "", ...detail].join("\n");
 }
 
