@@ -20,11 +20,7 @@ export function renderWorkButtons({
   root.innerHTML = Object.entries(workDefs)
     .map(([id, def]) => {
       const cost = Number(getWorkCost(def) || 0);
-      const duration = Number(
-        typeof getWorkDuration === "function"
-          ? getWorkDuration(def, id)
-          : def?.duration || 0
-      );
+      const duration = Number(getWorkDuration(def) || 0);
 
       const title = [
         def.name,
