@@ -17,11 +17,16 @@ import {
   resetState
 } from "../core/state.js";
 import { createStateBootstrap } from "../core/stateBootstrap.js";
+import { saveState, clearSave } from "../core/save.js";
+import {
+  clamp,
+  nowTime,
+  formatSeconds
+} from "../core/utils.js";
 
 import {
   createWorkSystem,
-  getWorkCost,
-  getWorkDuration
+  getWorkCost
 } from "../systems/work.js";
 import { createResearchSystem } from "../systems/systemsResearch.js";
 import { createMerchantRuntime } from "../systems/merchantRuntime.js";
@@ -52,22 +57,6 @@ const skillLabels = {
   alchemy: "煉金",
   tanning: "裁縫"
 };
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function nowTime() {
-  const d = new Date();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `[${hh}:${mm}:${ss}]`;
-}
-
-function formatSeconds(seconds) {
-  return `${Math.max(0, Number(seconds || 0)).toFixed(1)} 秒`;
-}
 
 function formatReadableDuration(seconds) {
   const total = Math.max(0, Math.ceil(Number(seconds || 0)));
@@ -175,8 +164,7 @@ const researchSystem = createResearchSystem({
   state,
   addLog,
   gainResource,
-  addMainExp,
-  countBuiltPlots: () => (Array.isArray(state.plots) ? state.plots.length : 0)
+  countBuiltPlots: () => 0
 });
 
 const merchantRuntime = createMerchantRuntime({
@@ -224,10 +212,6 @@ const workersRuntime = createWorkersRuntime({
   getResourceLabel
 });
 
-function craftItem(craftId) {
-  return startCraftPlan(craftId, 1, false);
-}
-
 function openWorkActionModal(workId) {
   const def = workDefs[workId];
   if (!def) return;
@@ -236,8 +220,8 @@ function openWorkActionModal(workId) {
     title: def.name,
     description: [
       `單次體力：${getWorkCost(def)}`,
-      `說明：輸入要執行幾次。`,
-      `可選擇無限持續生產。`
+      "說明：輸入要執行幾次。",
+      "可選擇無限持續生產。"
     ].join("\n"),
     quantity: 1,
     quantityHint: state.currentAction
@@ -268,7 +252,7 @@ function openCraftActionModal(craftId) {
       `材料：${formatBundleText(def.costs || {})}`,
       `產出：${formatBundleText(def.yields || {})}`,
       `製作節奏：${formatSeconds(getCraftDuration(def, craftId))}`,
-      `可選擇無限持續製作。`
+      "可選擇無限持續製作。"
     ].join("\n"),
     quantity: 1,
     quantityHint: state.currentCraft
@@ -289,20 +273,24 @@ function openCraftActionModal(craftId) {
 }
 
 function saveGame() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const result = saveState({
+    state,
+    storageKey: STORAGE_KEY
+  });
+
+  if (result.ok) {
     addLog("已存檔", "important");
-    renderAll();
-  } catch (error) {
-    console.error(error);
+  } else {
     addLog("存檔失敗", "important");
-    renderAll();
   }
+
+  renderAll();
 }
 
 function loadGame({ silent = false } = {}) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+
     if (!raw) {
       if (!silent) {
         addLog("沒有存檔", "important");
@@ -326,22 +314,32 @@ function loadGame({ silent = false } = {}) {
     return true;
   } catch (error) {
     console.error(error);
+
     if (!silent) {
       addLog("讀檔失敗", "important");
       renderAll();
     }
+
     return false;
   }
 }
 
 function resetGame() {
-  localStorage.removeItem(STORAGE_KEY);
+  const result = clearSave(STORAGE_KEY);
+
   stateBootstrap.safeResetState(state);
-  addLog("已重置存檔", "important");
+
+  if (result.ok) {
+    addLog("已重置存檔", "important");
+  } else {
+    addLog("清除存檔時發生錯誤，但目前狀態已重置", "important");
+  }
+
   renderAll();
 }
 
 function setMainPage(pageName) {
+  if (!state.ui) state.ui = {};
   state.ui.mainPage = pageName;
 
   document.querySelectorAll("[data-main-page]").forEach((panel) => {
@@ -355,7 +353,7 @@ function setMainPage(pageName) {
 
 function syncDerivedResearchUnlocks() {
   Object.entries(researchDefs).forEach(([researchId, def]) => {
-    if (!state.research[researchId]) return;
+    if (!state.research?.[researchId]) return;
 
     if (def.unlockCraft) state.research[def.unlockCraft] = true;
     if (def.unlockBuild) state.research[def.unlockBuild] = true;
@@ -387,7 +385,6 @@ const appRenderer = createAppRenderer({
   edibleValues,
   fuelDurations,
   getWorkCost,
-  getWorkDuration,
 
   isResourceClickable: isWarehouseResourceClickable,
   getResourceHint: getWarehouseResourceHint,
@@ -402,13 +399,16 @@ const appRenderer = createAppRenderer({
   onWorkClick: (workId) => {
     openWorkActionModal(workId);
   },
+
   onCraftClick: (craftId) => {
     openCraftActionModal(craftId);
   },
+
   onStartResearch: (researchId) => {
     researchSystem.startResearch(researchId);
     renderAll();
   },
+
   onReadBook: (bookId) => {
     researchSystem.startReading(bookId);
     renderAll();
@@ -418,14 +418,17 @@ const appRenderer = createAppRenderer({
     removeQueuedAction(index);
     renderAll();
   },
+
   onMoveQueuedAction: (index, direction) => {
     moveQueuedAction(index, direction);
     renderAll();
   },
+
   onRemoveQueuedCraft: (index) => {
     removeQueuedCraft(index);
     renderAll();
   },
+
   onMoveQueuedCraft: (index, direction) => {
     moveQueuedCraft(index, direction);
     renderAll();
@@ -439,14 +442,17 @@ const appRenderer = createAppRenderer({
     workersRuntime.recruitWorker();
     renderAll();
   },
+
   onPayDebt: () => {
     workersRuntime.payDebt();
     renderAll();
   },
+
   onSetWorkerJob: (workerId, job) => {
     workersRuntime.setWorkerJob(workerId, job);
     renderAll();
   },
+
   onAdjustWorkersForJob: (job, delta) => {
     workersRuntime.adjustWorkersForJob(job, delta);
     renderAll();
@@ -459,6 +465,7 @@ const {
 } = appRenderer;
 
 const rawRenderAll = appRenderer.renderAll;
+
 renderAll = () => {
   syncDerivedResearchUnlocks();
   rawRenderAll();
@@ -485,46 +492,65 @@ function init() {
       rest();
       renderAll();
     },
+
     onEatBest: () => {
       eatBestFood();
       renderAll();
     },
+
     onSave: saveGame,
-    onLoad: () => loadGame(),
+
+    onLoad: () => {
+      loadGame();
+    },
+
     onResetConfirm: resetGame,
+
     onCancelAction: () => {
       workSystem.cancelCurrentAction?.();
       renderAll();
     },
+
     onClearActionQueue: () => {
       clearQueuedActions();
       renderAll();
     },
+
     onSetLogFilter: (filter) => {
       state.logFilter = filter;
+
       if (!state.ui) state.ui = {};
       state.ui.logFilter = filter;
+
       renderAll();
     },
+
     onSetMainPage: (pageName) => {
       setMainPage(pageName);
     },
+
     onClaimTax: () => showFeatureStub("稅收"),
+
     onPayDebt: () => {
       workersRuntime.payDebt();
       renderAll();
     },
+
     onRecruitWorker: () => {
       workersRuntime.recruitWorker();
       renderAll();
     },
+
     onOpenSeedSelect: () => showFeatureStub("種子選擇"),
+
     onPlant: () => showFeatureStub("種植"),
+
     onToggleFarmerSeedMode: () => showFeatureStub("農夫種植模式"),
+
     onToggleFarmerAutoFertilize: () => showFeatureStub("自動施肥")
   });
 
-  setMainPage(state.ui.mainPage || "production");
+  setMainPage(state.ui?.mainPage || "production");
   renderAll();
   appLoop.start();
 }
