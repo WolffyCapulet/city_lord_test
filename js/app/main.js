@@ -2,10 +2,10 @@ import {
   resourceLabels,
   edibleValues,
   fuelDurations
-} from "../data/resources.js";
-import { workDefs } from "../data/works.js";
-import { crafts } from "../data/crafts.js";
-import { books, researchDefs } from "../data/research.js";
+} from "../data/dataResources.js";
+import { workDefs } from "../data/dataWorks.js";
+import { crafts } from "../data/dataCrafts.js";
+import { books, researchDefs } from "../data/dataResearch.js";
 
 import { bindEvents } from "./bindEvents.js";
 import { createAppRenderer } from "../ui/render/renderApp.js";
@@ -20,9 +20,10 @@ import { createStateBootstrap } from "../core/stateBootstrap.js";
 
 import {
   createWorkSystem,
-  getWorkCost
+  getWorkCost,
+  getWorkDuration
 } from "../systems/work.js";
-import { createResearchSystem } from "../systems/research.js";
+import { createResearchSystem } from "../systems/systemsResearch.js";
 import { createMerchantRuntime } from "../systems/merchantRuntime.js";
 import { createCraftRuntime } from "../systems/craftRuntime.js";
 import { createWorkersRuntime } from "../systems/workersRuntime.js";
@@ -149,7 +150,8 @@ const workSystem = createWorkSystem({
   state,
   addLog,
   addMainExp,
-  gainResource
+  gainResource,
+  addSkillExp
 });
 
 const workQueueRuntime = createWorkQueueRuntime({
@@ -173,7 +175,8 @@ const researchSystem = createResearchSystem({
   state,
   addLog,
   gainResource,
-  countBuiltPlots: () => 0
+  addMainExp,
+  countBuiltPlots: () => (Array.isArray(state.plots) ? state.plots.length : 0)
 });
 
 const merchantRuntime = createMerchantRuntime({
@@ -384,6 +387,7 @@ const appRenderer = createAppRenderer({
   edibleValues,
   fuelDurations,
   getWorkCost,
+  getWorkDuration,
 
   isResourceClickable: isWarehouseResourceClickable,
   getResourceHint: getWarehouseResourceHint,
