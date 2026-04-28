@@ -1,3 +1,47 @@
+const modalClosers = new Map();
+let escapeBound = false;
+
+export function openModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+export function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+  const closer = modalClosers.get(id);
+  closer?.();
+}
+
+export function setCloser(id, closer) {
+  if (typeof closer === "function") modalClosers.set(id, closer);
+  else modalClosers.delete(id);
+}
+
+export function enableModalDismissByBackdrop(id) {
+  const modal = document.getElementById(id);
+  if (!modal || modal.dataset.backdropDismissBound === "1") return;
+  modal.dataset.backdropDismissBound = "1";
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeModal(id);
+  });
+}
+
+export function enableModalDismissByEscape() {
+  if (escapeBound) return;
+  escapeBound = true;
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    document.querySelectorAll(".modal-backdrop.show").forEach((modal) => {
+      if (modal.id) closeModal(modal.id);
+    });
+  });
+}
+
 export function showActionModal({
   title = "操作",
   description = "",
@@ -30,9 +74,7 @@ export function showActionModal({
       raw.toLowerCase() === "inf" ||
       Number(raw) < 0;
 
-    if (infinite) {
-      return { qty: -1, isInfinite: true };
-    }
+    if (infinite) return { qty: -1, isInfinite: true };
 
     const qty = Math.max(1, Math.floor(Number(raw || 1)));
     return { qty, isInfinite: false };
@@ -45,11 +87,11 @@ export function showActionModal({
   qtyHint.textContent = quantityHint;
   quickWrap.innerHTML = "";
 
-  qtyInput.addEventListener("input", () => {
+  qtyInput.oninput = () => {
     const raw = String(qtyInput.value || "").trim();
     qtyInput.dataset.infinite =
       raw === "∞" || raw.toLowerCase() === "inf" || Number(raw) < 0 ? "1" : "0";
-  });
+  };
 
   quickButtons.forEach((value) => {
     const btn = document.createElement("button");
