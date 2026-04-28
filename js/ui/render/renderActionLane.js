@@ -3,7 +3,7 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -17,43 +17,56 @@ function getQueuedCount(item) {
   return Math.max(1, Math.floor(Number(item?.count || 1)));
 }
 
-export function renderCraftLane({
+export function renderActionLane({
   state,
-  crafts,
+  workDefs,
+  getWorkCost,
   formatSeconds,
-  onRemoveQueuedCraft = null,
-  onMoveQueuedCraft = null
+  onRemoveQueuedAction = null,
+  onMoveQueuedAction = null
 }) {
-  const textEl = document.getElementById("craftText");
-  const barEl = document.getElementById("craftBar");
-  const queueEl = document.getElementById("craftQueueTop");
+  const textEl =
+    document.getElementById("productionText") ||
+    document.getElementById("actionStatus");
+  const barEl =
+    document.getElementById("productionBar") ||
+    document.getElementById("actionProgressBar");
+  const queueEl =
+    document.getElementById("productionQueue") ||
+    document.getElementById("actionQueue");
+  const cancelBtn = document.getElementById("cancelActionBtn");
+  const clearBtn = document.getElementById("clearActionQueueBtn");
 
   if (!textEl || !barEl || !queueEl) return;
 
-  const queuedItems = Array.isArray(state.craftQueue) ? state.craftQueue : [];
+  const queuedItems = Array.isArray(state.actionQueue) ? state.actionQueue : [];
 
-  if (state.currentCraft && crafts[state.currentCraft.id]) {
-    const def = crafts[state.currentCraft.id];
-    const total = Math.max(0.01, Number(state.currentCraft.total || 0.01));
-    const remaining = Math.max(0, Number(state.currentCraft.remaining || 0));
+  if (state.currentAction && workDefs[state.currentAction.id]) {
+    const def = workDefs[state.currentAction.id];
+    const total = Math.max(0.01, Number(state.currentAction.total || 0.01));
+    const remaining = Math.max(0, Number(state.currentAction.remaining || 0));
     const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
 
-    textEl.textContent = `製作中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
+    textEl.textContent = `進行中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
     textEl.title = `${def.name}\n剩餘：${formatSeconds(remaining)}`;
     barEl.style.width = `${progress}%`;
   } else if (queuedItems.length > 0) {
     const nextItem = queuedItems[0];
     const nextId = getQueuedId(nextItem);
     const nextCount = getQueuedCount(nextItem);
-    const nextCountLabel = nextCount < 0 ? "∞" : String(nextCount);
-    const nextDef = crafts[nextId];
+    const nextDef = workDefs[nextId];
+    const countLabel = nextCount < 0 ? "∞" : String(nextCount);
 
-    textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知配方"} × ${nextCountLabel}`;
+    if (nextDef && Number(state.stamina || 0) < getWorkCost(nextDef)) {
+      textEl.textContent = `等待中：${nextDef.name} × ${countLabel}｜體力不足，需要 ${getWorkCost(nextDef)} 體力`;
+    } else {
+      textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知工作"} × ${countLabel}`;
+    }
     textEl.title = textEl.textContent;
     barEl.style.width = "0%";
   } else {
-    textEl.textContent = "目前沒有進行中的製作";
-    textEl.title = "目前沒有進行中的製作";
+    textEl.textContent = "目前沒有進行中的工作";
+    textEl.title = "目前沒有進行中的工作";
     barEl.style.width = "0%";
   }
 
@@ -63,34 +76,31 @@ export function renderCraftLane({
           const id = getQueuedId(item);
           const count = getQueuedCount(item);
           const countLabel = count < 0 ? "∞" : String(count);
-          const name = crafts[id]?.name || id;
+          const name = workDefs[id]?.name || id;
           return `
             <div class="queue-row">
               <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${countLabel}</span>
               <div class="queue-row-actions">
-                <button type="button" class="tiny-btn" data-craft-up="${index}" ${index === 0 ? "disabled" : ""} title="上移">↑</button>
-                <button type="button" class="tiny-btn" data-craft-down="${index}" ${index === arr.length - 1 ? "disabled" : ""} title="下移">↓</button>
-                <button type="button" class="tiny-btn danger" data-craft-remove="${index}" title="移除">×</button>
+                <button type="button" class="tiny-btn" data-action-up="${index}" ${index === 0 ? "disabled" : ""} title="上移">↑</button>
+                <button type="button" class="tiny-btn" data-action-down="${index}" ${index === arr.length - 1 ? "disabled" : ""} title="下移">↓</button>
+                <button type="button" class="tiny-btn danger" data-action-remove="${index}" title="移除">×</button>
               </div>
             </div>
           `;
         })
         .join("")
-    : `<span class="small muted">製作列為空</span>`;
+    : `<span class="small muted">行動列為空</span>`;
 
-  queueEl.querySelectorAll("[data-craft-remove]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove));
-    });
+  queueEl.querySelectorAll("[data-action-remove]").forEach((btn) => {
+    btn.addEventListener("click", () => onRemoveQueuedAction?.(Number(btn.dataset.actionRemove)));
   });
-  queueEl.querySelectorAll("[data-craft-up]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1);
-    });
+  queueEl.querySelectorAll("[data-action-up]").forEach((btn) => {
+    btn.addEventListener("click", () => onMoveQueuedAction?.(Number(btn.dataset.actionUp), -1));
   });
-  queueEl.querySelectorAll("[data-craft-down]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1);
-    });
+  queueEl.querySelectorAll("[data-action-down]").forEach((btn) => {
+    btn.addEventListener("click", () => onMoveQueuedAction?.(Number(btn.dataset.actionDown), 1));
   });
+
+  if (cancelBtn) cancelBtn.disabled = !state.currentAction;
+  if (clearBtn) clearBtn.disabled = queuedItems.length === 0;
 }
