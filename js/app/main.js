@@ -3,10 +3,10 @@ import {
   edibleValues,
   foodOrder,
   fuelDurations
-} from "../data/resources.js";
-import { workDefs } from "../data/works.js";
-import { crafts } from "../data/crafts.js";
-import { books, researchDefs } from "../data/research.js";
+} from "../data/dataResources.js";
+import { workDefs } from "../data/dataWorks.js";
+import { crafts } from "../data/dataCrafts.js";
+import { books, researchDefs } from "../data/dataResearch.js";
 
 import { bindEvents } from "./bindEvents.js";
 
