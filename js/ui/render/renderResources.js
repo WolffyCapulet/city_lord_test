@@ -4,7 +4,7 @@ import {
   resourceGroupDefs,
   resourceUiText,
   fuelDurations as defaultFuelDurations
-} from "../../data/resources.js";
+} from "../../data/dataResources.js";
 
 function escapeHtml(value) {
   return String(value ?? "")

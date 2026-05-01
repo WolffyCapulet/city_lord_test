@@ -1,5 +1,5 @@
-import { crafts } from "../data/crafts.js";
-import { resourceLabels } from "../data/resources.js";
+import { crafts } from "../data/dataCrafts.js";
+import { resourceLabels } from "../data/dataResources.js";
 
 function getResourceLabel(id) {
   return resourceLabels[id] || id;
