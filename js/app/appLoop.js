@@ -15,35 +15,35 @@ export function createAppLoop({
   let rafId = 0;
 
   function tick(now) {
-    const deltaSeconds = Math.min(
-      maxDeltaSeconds,
-      Math.max(0, (now - lastFrameTime) / 1000)
-    );
-    lastFrameTime = now;
-
-    state.campfireSec = Math.max(
-      0,
-      Number(state.campfireSec || 0) - deltaSeconds
-    );
-
-    workSystem.updateAction(deltaSeconds);
-    updateCraft(deltaSeconds);
-    researchSystem.updateResearch(deltaSeconds);
-    merchantRuntime?.update?.(deltaSeconds);
-    workersRuntime?.update?.(deltaSeconds);
-
-    if (!state.currentAction && state.actionQueue?.length > 0) {
-      tryStartNextWork();
-    }
-
-    if (!state.currentCraft && state.craftQueue?.length > 0) {
-      tryStartNextCraft();
-    }
-
-    renderHeaderStats();
-    renderLivePanels();
-
     rafId = requestAnimationFrame(tick);
+
+    try {
+      const deltaSeconds = Math.min(
+        maxDeltaSeconds,
+        Math.max(0, (now - lastFrameTime) / 1000)
+      );
+      lastFrameTime = now;
+
+      state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
+
+      workSystem.updateAction(deltaSeconds);
+      updateCraft(deltaSeconds);
+      researchSystem.updateResearch(deltaSeconds);
+      merchantRuntime?.update?.(deltaSeconds);
+      workersRuntime?.update?.(deltaSeconds);
+
+      if (!state.currentAction && state.actionQueue?.length > 0) {
+        tryStartNextWork();
+      }
+      if (!state.currentCraft && state.craftQueue?.length > 0) {
+        tryStartNextCraft();
+      }
+
+      renderHeaderStats();
+      renderLivePanels();
+    } catch (err) {
+      console.error("[appLoop tick error]", err);
+    }
   }
 
   function start() {
@@ -59,9 +59,5 @@ export function createAppLoop({
     }
   }
 
-  return {
-    start,
-    stop,
-    tick
-  };
+  return { start, stop, tick };
 }

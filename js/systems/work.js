@@ -171,6 +171,7 @@ export function createWorkSystem({
       return false;
     }
 
+    state.stamina = Math.max(0, state.stamina - cost);
     state.currentAction = {
       type: "work",
       id: workId,

@@ -57,14 +57,14 @@ export function showActionModal({
   onCancel,
   onClose
 } = {}) {
-  const titleEl = document.getElementById("actionModalTitle");
-  const descEl = document.getElementById("actionModalDesc");
-  const qtyInput = document.getElementById("actionQtyInput");
-  const qtyHint = document.getElementById("actionQtyHint");
-  const quickWrap = document.getElementById("actionQuickBtns");
-  const cancelBtn = document.getElementById("actionCancelBtn");
-  const queueBtn = document.getElementById("actionQueueBtn");
-  const startBtn = document.getElementById("actionStartBtn");
+  const titleEl    = document.getElementById("actionModalTitle");
+  const descEl     = document.getElementById("actionModalDesc");
+  const qtyInput   = document.getElementById("actionQtyInput");
+  const qtyHint    = document.getElementById("actionQtyHint");
+  const quickWrap  = document.getElementById("actionQuickBtns");
+  const cancelBtn  = document.getElementById("actionCancelBtn");
+  const queueBtn   = document.getElementById("actionQueueBtn");
+  const startBtn   = document.getElementById("actionStartBtn");
 
   if (!titleEl || !descEl || !qtyInput || !qtyHint || !quickWrap) return;
 
@@ -75,62 +75,69 @@ export function showActionModal({
       raw === "∞" ||
       raw.toLowerCase() === "inf" ||
       Number(raw) < 0;
-
     if (infinite) return { qty: -1, isInfinite: true };
-    const qty = Math.max(1, Math.floor(Number(raw || 1)));
-    return { qty, isInfinite: false };
+    return { qty: Math.max(1, Math.floor(Number(raw || 1))), isInfinite: false };
   }
 
-  titleEl.textContent = title;
-  descEl.textContent = description;
-  qtyInput.value = String(quantity);
-  qtyInput.dataset.infinite = quantity < 0 ? "1" : "0";
-  qtyHint.textContent = quantityHint;
-  quickWrap.innerHTML = "";
+  titleEl.textContent  = title;
+  descEl.textContent   = description;
+  qtyHint.textContent  = quantityHint;
 
-  qtyInput.addEventListener("input", () => {
-    const raw = String(qtyInput.value || "").trim();
-    qtyInput.dataset.infinite =
+  // Reset input cleanly (cloneNode to remove stale listeners)
+  const newInput = qtyInput.cloneNode(true);
+  newInput.value = String(quantity >= 0 ? quantity : 1);
+  newInput.dataset.infinite = quantity < 0 ? "1" : "0";
+  qtyInput.parentNode.replaceChild(newInput, qtyInput);
+  const freshInput = document.getElementById("actionQtyInput");
+
+  freshInput.addEventListener("input", () => {
+    const raw = String(freshInput.value || "").trim();
+    freshInput.dataset.infinite =
       raw === "∞" || raw.toLowerCase() === "inf" || Number(raw) < 0 ? "1" : "0";
   });
 
+  // Quick-pick buttons
+  quickWrap.innerHTML = "";
   quickButtons.forEach((value) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "tiny-btn";
     btn.textContent = String(value);
     btn.addEventListener("click", () => {
+      const fi = document.getElementById("actionQtyInput");
       if (String(value) === "∞") {
-        qtyInput.value = "∞";
-        qtyInput.dataset.infinite = "1";
+        fi.value = "∞";
+        fi.dataset.infinite = "1";
       } else {
-        qtyInput.value = String(value);
-        qtyInput.dataset.infinite = "0";
+        fi.value = String(value);
+        fi.dataset.infinite = "0";
       }
     });
     quickWrap.appendChild(btn);
   });
 
+  // Wire action buttons with fresh onclick (replaces previous)
   if (cancelBtn) {
-    cancelBtn.onclick = () => {
-      onCancel?.();
-      closeModal("actionModal");
-    };
+    cancelBtn.onclick = () => { onCancel?.(); closeModal("actionModal"); };
   }
-
   if (queueBtn) {
     queueBtn.style.display = allowQueue ? "" : "none";
     queueBtn.onclick = () => {
-      const { qty, isInfinite } = readQty();
+      const fi = document.getElementById("actionQtyInput");
+      const raw = String(fi.value || "").trim();
+      const isInfinite = fi.dataset.infinite === "1" || raw === "∞";
+      const qty = isInfinite ? -1 : Math.max(1, Math.floor(Number(raw || 1)));
       onQueue?.(qty, isInfinite);
       closeModal("actionModal");
     };
   }
-
   if (startBtn) {
     startBtn.style.display = allowStart ? "" : "none";
     startBtn.onclick = () => {
-      const { qty, isInfinite } = readQty();
+      const fi = document.getElementById("actionQtyInput");
+      const raw = String(fi.value || "").trim();
+      const isInfinite = fi.dataset.infinite === "1" || raw === "∞";
+      const qty = isInfinite ? -1 : Math.max(1, Math.floor(Number(raw || 1)));
       onStart?.(qty, isInfinite);
       closeModal("actionModal");
     };
