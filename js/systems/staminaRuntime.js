@@ -3,7 +3,7 @@ import {
   edibleValues,
   foodOrder,
   fuelDurations
-} from "../data/resources.js";
+} from "../data/dataResources.js";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

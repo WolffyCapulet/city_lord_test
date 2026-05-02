@@ -3,7 +3,7 @@ import {
   animalRarity,
   ranchRarityCaps,
   createInitialRanchData
-} from "../data/animals.js";
+} from "../data/dataAnimals.js";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

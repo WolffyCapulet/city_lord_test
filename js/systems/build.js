@@ -1,4 +1,4 @@
-import { housingDefs, buildingDefs } from "../data/buildings.js";
+import { housingDefs, buildingDefs } from "../data/dataBuildings.js";
 
 function scaleCosts(costs, scale, level) {
   const factor = Math.pow(scale, Math.max(0, level - 1));

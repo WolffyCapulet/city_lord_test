@@ -1,5 +1,5 @@
-import { workDefs } from "../data/works.js";
-import { resourceLabels } from "../data/resources.js";
+import { workDefs } from "../data/dataWorks.js";
+import { resourceLabels } from "../data/dataResources.js";
 
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;

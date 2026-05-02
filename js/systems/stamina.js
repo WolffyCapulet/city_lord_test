@@ -1,4 +1,4 @@
-import { resourceLabels, edibleValues, foodOrder } from "../data/resources.js";
+import { resourceLabels, edibleValues, foodOrder } from "../data/dataResources.js";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

@@ -1,4 +1,4 @@
-import { books, researchDefs } from "../data/research.js";
+import { books, researchDefs } from "../data/dataResearch.js";
 
 export function createResearchSystem({
   state,

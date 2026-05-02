@@ -1,4 +1,4 @@
-import { farmingDefs, farmPlotRules } from "../data/farming.js";
+import { farmingDefs, farmPlotRules } from "../data/dataFarming.js";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

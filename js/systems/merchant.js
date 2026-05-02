@@ -3,7 +3,7 @@ import {
   merchantOrderPool,
   merchantDefaults,
   merchantRules
-} from "../data/trade.js";
+} from "../data/dataTrade.js";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

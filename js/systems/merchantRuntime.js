@@ -1,5 +1,5 @@
 import { createMerchantSystem } from "./merchant.js";
-import { sellPrices } from "../data/trade.js";
+import { sellPrices } from "../data/dataTrade.js";
 
 export function createMerchantRuntime({
   state,

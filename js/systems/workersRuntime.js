@@ -1,7 +1,7 @@
-import { workerJobs, workDefs } from "../data/works.js";
-import { foodOrder, edibleValues } from "../data/resources.js";
-import { crafts } from "../data/crafts.js";
-import { housingDefs } from "../data/buildings.js";
+import { workerJobs, workDefs } from "../data/dataWorks.js";
+import { foodOrder, edibleValues } from "../data/dataResources.js";
+import { crafts } from "../data/dataCrafts.js";
+import { housingDefs } from "../data/dataBuildings.js";
 
 import { getWorkSummaryLoot } from "./work.js";
 import { createFarmSystem } from "./farm.js";

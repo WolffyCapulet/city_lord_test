@@ -1,4 +1,4 @@
-import { crafts as craftDefs } from "../data/crafts.js";
+import { crafts as craftDefs } from "../data/dataCrafts.js";
 
 function normalizeQueueEntries(queue = []) {
   return (Array.isArray(queue) ? queue : [])
