@@ -160,7 +160,7 @@ button,select{font:inherit}
   height:100%;
   width:0%;
   background:linear-gradient(90deg,#22c55e,#10b981);
-  transition:width .12s linear;
+  transition:none;
 }
 
 .fill.exp{background:linear-gradient(90deg,#f59e0b,#fbbf24)}

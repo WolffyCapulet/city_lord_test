@@ -171,7 +171,6 @@ export function createWorkSystem({
       return false;
     }
 
-    state.stamina = Math.max(0, state.stamina - cost);
     state.currentAction = {
       type: "work",
       id: workId,
@@ -197,6 +196,9 @@ export function createWorkSystem({
 
     state.currentAction = null;
     if (action.type !== "work") return false;
+
+    // Deduct stamina at completion
+    state.stamina = Math.max(0, Number(state.stamina || 0) - Number(action.staminaCost || 0));
 
     const result = getWorkSummaryLoot(action.id, state);
     state.gold += result.gold || 0;

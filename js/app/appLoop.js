@@ -26,10 +26,15 @@ export function createAppLoop({
 
       state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
 
-      // Passive stamina regen: 0.1/sec idle, extra from campfire
+      // Passive stamina regen
+      // Idle (no current action): 2/sec; working: 0.5/sec; campfire adds +3/sec
       const maxStamina = 100 + ((state.level || 1) - 1) * 10;
       if (Number(state.stamina || 0) < maxStamina) {
-        const regenRate = 0.1 + (Number(state.campfireSec || 0) > 0 ? 0.5 : 0);
+        const isWorking = !!state.currentAction;
+        const baseRegen = isWorking ? 0.5 : 2.0;
+        const campfireBonus = Number(state.campfireSec || 0) > 0 ? 3.0 : 0;
+        const wellBonus = Number(state.buildings?.well || 0) * 0.2;
+        const regenRate = baseRegen + campfireBonus + wellBonus;
         state.stamina = Math.min(maxStamina, Number(state.stamina || 0) + regenRate * deltaSeconds);
       }
 
