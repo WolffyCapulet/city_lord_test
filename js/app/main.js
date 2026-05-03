@@ -205,7 +205,7 @@ function openWorkActionModal(workId) {
     quantityHint: state.currentAction ? "目前生產線忙碌中，可加入列隊" : "可直接開始",
     quickButtons: [1, 10, 50, 100, "∞"],
     allowQueue: true, allowStart: true,
-    onQueue: (qty, isInfinite) => { workQueueRuntime.queueWork(workId, qty, isInfinite); renderAll(); },
+    onQueue: (qty, isInfinite) => { startWorkPlan(workId, qty, isInfinite); renderAll(); },
     onStart: (qty, isInfinite) => { startWorkPlan(workId, qty, isInfinite); renderAll(); }
   });
 }
@@ -225,7 +225,7 @@ function openCraftActionModal(craftId) {
     quantityHint: state.currentCraft ? "目前製作線忙碌中，可加入列隊" : "可直接開始",
     quickButtons: [1, 10, 50, 100, "∞"],
     allowQueue: true, allowStart: true,
-    onQueue: (qty, isInfinite) => { queueCraft(craftId, qty, isInfinite); renderAll(); },
+    onQueue: (qty, isInfinite) => { startCraftPlan(craftId, qty, isInfinite); renderAll(); },
     onStart: (qty, isInfinite) => { startCraftPlan(craftId, qty, isInfinite); renderAll(); }
   });
 }
