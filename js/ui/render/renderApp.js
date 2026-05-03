@@ -161,16 +161,15 @@ export function createAppRenderer({
   }
 
   function renderLivePanels() {
+    // Rebuild queue list HTML (called on user actions, not every tick)
     renderActionLane({
-      state, workDefs, getWorkCost, formatSeconds,
+      state, workDefs, formatSeconds,
       onRemoveQueuedAction, onMoveQueuedAction
     });
-
     renderCraftLane({
       state, crafts, formatSeconds,
       onRemoveQueuedCraft, onMoveQueuedCraft
     });
-
     renderResearchLane({ state, formatSeconds });
   }
 

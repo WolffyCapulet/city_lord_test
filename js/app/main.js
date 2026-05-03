@@ -292,15 +292,12 @@ renderAll = () => {
 const { renderHeaderStats, renderLivePanels } = appRenderer;
 
 const appLoop = createAppLoop({
-  state, workSystem, updateCraft, researchSystem,
+  state, workDefs, crafts, formatSeconds,
+  workSystem, updateCraft, researchSystem,
   merchantRuntime, workersRuntime,
   tryStartNextWork, tryStartNextCraft,
   renderHeaderStats,
-  renderLivePanels: () => {
-    syncHousingCap();
-    syncSafetyValue();
-    renderLivePanels();
-  }
+  renderLivePanels
 });
 
 // Wire housing build buttons

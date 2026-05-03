@@ -1,96 +1,51 @@
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function escapeHtml(v) {
+  return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
-
-function getQueuedId(item) {
-  return typeof item === "string" ? item : item?.id;
-}
-
+function getQueuedId(item)    { return typeof item === "string" ? item : item?.id; }
 function getQueuedCount(item) {
   if (typeof item === "string") return 1;
   if (item?.infinite || Number(item?.count) < 0) return -1;
   return Math.max(1, Math.floor(Number(item?.count || 1)));
 }
 
+const _bound = new WeakSet();
+
 export function renderCraftLane({
-  state,
-  crafts,
-  formatSeconds,
+  state, crafts, formatSeconds,
   onRemoveQueuedCraft = null,
-  onMoveQueuedCraft = null
+  onMoveQueuedCraft   = null
 }) {
-  const textEl = document.getElementById("craftText");
-  const barEl = document.getElementById("craftBar");
   const queueEl = document.getElementById("craftQueueTop");
+  if (!queueEl) return;
 
-  if (!textEl || !barEl || !queueEl) return;
+  const items = Array.isArray(state.craftQueue) ? state.craftQueue : [];
 
-  const queuedItems = Array.isArray(state.craftQueue) ? state.craftQueue : [];
-
-  if (state.currentCraft && crafts[state.currentCraft.id]) {
-    const def = crafts[state.currentCraft.id];
-    const total = Math.max(0.01, Number(state.currentCraft.total || 0.01));
-    const remaining = Math.max(0, Number(state.currentCraft.remaining || 0));
-    const progress = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
-
-    textEl.textContent = `製作中：${def.name}｜剩餘 ${formatSeconds(remaining)}`;
-    textEl.title = `${def.name}\n剩餘：${formatSeconds(remaining)}`;
-    barEl.style.width = `${progress}%`;
-  } else if (queuedItems.length > 0) {
-    const nextItem = queuedItems[0];
-    const nextId = getQueuedId(nextItem);
-    const nextCount = getQueuedCount(nextItem);
-    const nextCountLabel = nextCount < 0 ? "∞" : String(nextCount);
-    const nextDef = crafts[nextId];
-
-    textEl.textContent = `等待中：下一項 ${nextDef ? nextDef.name : "未知配方"} × ${nextCountLabel}`;
-    textEl.title = textEl.textContent;
-    barEl.style.width = "0%";
-  } else {
-    textEl.textContent = "目前沒有進行中的製作";
-    textEl.title = "目前沒有進行中的製作";
-    barEl.style.width = "0%";
-  }
-
-  queueEl.innerHTML = queuedItems.length
-    ? queuedItems
-        .map((item, index, arr) => {
-          const id = getQueuedId(item);
-          const count = getQueuedCount(item);
-          const countLabel = count < 0 ? "∞" : String(count);
-          const name = crafts[id]?.name || id;
-          return `
-            <div class="queue-row">
-              <span class="queue-pill">${index + 1}. ${escapeHtml(name)} × ${countLabel}</span>
-              <div class="queue-row-actions">
-                <button type="button" class="tiny-btn" data-craft-up="${index}" ${index === 0 ? "disabled" : ""} title="上移">↑</button>
-                <button type="button" class="tiny-btn" data-craft-down="${index}" ${index === arr.length - 1 ? "disabled" : ""} title="下移">↓</button>
-                <button type="button" class="tiny-btn danger" data-craft-remove="${index}" title="移除">×</button>
-              </div>
-            </div>
-          `;
-        })
-        .join("")
+  queueEl.innerHTML = items.length
+    ? items.map((item, i, arr) => {
+        const id    = getQueuedId(item);
+        const count = getQueuedCount(item);
+        const label = count < 0 ? "∞" : String(count);
+        const name  = crafts[id]?.name || id;
+        return `<div class="queue-row">
+          <span class="queue-pill">${i+1}. ${escapeHtml(name)} × ${label}</span>
+          <div class="ops">
+            <button class="tiny-btn" data-up="${i}"   ${i===0            ? "disabled":""}>↑</button>
+            <button class="tiny-btn" data-dn="${i}"   ${i===arr.length-1 ? "disabled":""}>↓</button>
+            <button class="tiny-btn" data-rm="${i}">×</button>
+          </div>
+        </div>`;
+      }).join("")
     : `<span class="small muted">製作列為空</span>`;
 
-  queueEl.querySelectorAll("[data-craft-remove]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onRemoveQueuedCraft?.(Number(btn.dataset.craftRemove));
+  if (!_bound.has(queueEl)) {
+    _bound.add(queueEl);
+    queueEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-rm], button[data-up], button[data-dn]");
+      if (!btn) return;
+      if (btn.dataset.rm !== undefined) onRemoveQueuedCraft?.(Number(btn.dataset.rm));
+      if (btn.dataset.up !== undefined) onMoveQueuedCraft?.(Number(btn.dataset.up), -1);
+      if (btn.dataset.dn !== undefined) onMoveQueuedCraft?.(Number(btn.dataset.dn),  1);
     });
-  });
-  queueEl.querySelectorAll("[data-craft-up]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onMoveQueuedCraft?.(Number(btn.dataset.craftUp), -1);
-    });
-  });
-  queueEl.querySelectorAll("[data-craft-down]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      onMoveQueuedCraft?.(Number(btn.dataset.craftDown), 1);
-    });
-  });
+  }
 }

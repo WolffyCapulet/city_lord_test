@@ -1,5 +1,9 @@
+import { renderBars } from "../ui/render/renderBars.js";
+
 export function createAppLoop({
   state,
+  workDefs,
+  crafts,
   workSystem,
   updateCraft,
   researchSystem,
@@ -7,6 +11,7 @@ export function createAppLoop({
   workersRuntime = null,
   tryStartNextWork,
   tryStartNextCraft,
+  formatSeconds,
   renderHeaderStats,
   renderLivePanels,
   maxDeltaSeconds = 0.2
@@ -18,32 +23,34 @@ export function createAppLoop({
     rafId = requestAnimationFrame(tick);
 
     try {
-      const deltaSeconds = Math.min(
-        maxDeltaSeconds,
-        Math.max(0, (now - lastFrameTime) / 1000)
-      );
+      const raw = (now - lastFrameTime) / 1000;
+      const deltaSeconds = Math.min(maxDeltaSeconds, Math.max(0, raw));
       lastFrameTime = now;
 
+      // Campfire countdown
       state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
 
       // Passive stamina regen
-      // Idle (no current action): 2/sec; working: 0.5/sec; campfire adds +3/sec
       const maxStamina = 100 + ((state.level || 1) - 1) * 10;
       if (Number(state.stamina || 0) < maxStamina) {
         const isWorking = !!state.currentAction;
         const baseRegen = isWorking ? 0.5 : 2.0;
         const campfireBonus = Number(state.campfireSec || 0) > 0 ? 3.0 : 0;
         const wellBonus = Number(state.buildings?.well || 0) * 0.2;
-        const regenRate = baseRegen + campfireBonus + wellBonus;
-        state.stamina = Math.min(maxStamina, Number(state.stamina || 0) + regenRate * deltaSeconds);
+        state.stamina = Math.min(
+          maxStamina,
+          Number(state.stamina || 0) + (baseRegen + campfireBonus + wellBonus) * deltaSeconds
+        );
       }
 
+      // Update game systems
       workSystem.updateAction(deltaSeconds);
       updateCraft(deltaSeconds);
       researchSystem.updateResearch(deltaSeconds);
       merchantRuntime?.update?.(deltaSeconds);
       workersRuntime?.update?.(deltaSeconds);
 
+      // Auto-start queued items
       if (!state.currentAction && state.actionQueue?.length > 0) {
         tryStartNextWork();
       }
@@ -51,10 +58,11 @@ export function createAppLoop({
         tryStartNextCraft();
       }
 
-      renderHeaderStats();
-      renderLivePanels();
+      // ★ Only update bars/numbers - NO innerHTML rebuild
+      renderBars({ state, workDefs, crafts, formatSeconds });
+
     } catch (err) {
-      console.error("[appLoop tick error]", err);
+      console.error("[tick error]", err);
     }
   }
 
@@ -65,11 +73,8 @@ export function createAppLoop({
   }
 
   function stop() {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = 0;
-    }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
   }
 
-  return { start, stop, tick };
+  return { start, stop };
 }
