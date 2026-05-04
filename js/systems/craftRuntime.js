@@ -65,7 +65,11 @@ export function createCraftRuntime({
   }
 
   function getCraftDuration(def, craftId) {
-    return Math.max(0.2, Number(def?.duration ?? 1));
+    // Use explicit duration if defined, otherwise default to 10s (matching work cycles)
+    if (typeof def?.duration === "number") return Math.max(0.2, def.duration);
+    // Fallback: stamina cost * 3 seconds, min 5s, max 30s
+    const stamina = Number(def?.stamina ?? 1);
+    return Math.max(5, Math.min(30, stamina * 3 + 7));
   }
 
   function canStartCraft(def) {

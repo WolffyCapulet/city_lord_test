@@ -313,6 +313,25 @@ function wireHousingButtons() {
   });
 }
 
+function wireModalButtons() {
+  // Queue modal
+  document.getElementById("queueModalCloseBtn")?.addEventListener("click", () => {
+    document.getElementById("queueModal")?.classList.remove("show");
+  });
+  document.getElementById("queueModalClearBtn")?.addEventListener("click", () => {
+    clearQueuedActions();
+    renderAll();
+    document.getElementById("queueModal")?.classList.remove("show");
+  });
+
+  // Choice modal
+  document.getElementById("choiceModalCloseBtn")?.addEventListener("click", () => {
+    document.getElementById("choiceModal")?.classList.remove("show");
+  });
+
+
+}
+
 function init() {
   loadGame({ silent: true });
 
