@@ -1,46 +1,29 @@
-function openModal(modalId) {
-  const el = document.getElementById(modalId);
-  if (!el) return;
-  el.classList.add("show");
-  el.setAttribute("aria-hidden", "false");
+let _escBound = false;
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.add("show"); el.setAttribute("aria-hidden","false"); }
 }
 
-function closeModal(modalId) {
-  const el = document.getElementById(modalId);
-  if (!el) return;
-  el.classList.remove("show");
-  el.setAttribute("aria-hidden", "true");
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.remove("show"); el.setAttribute("aria-hidden","true"); }
 }
 
-function setCloser(modalId, onClose) {
-  const el = document.getElementById(modalId);
-  if (!el) return;
-  el._onClose = onClose;
+function bindBackdrop(id) {
+  const el = document.getElementById(id);
+  if (!el || el._bd) return;
+  el._bd = true;
+  el.addEventListener("click", e => { if (e.target === el) closeModal(id); });
 }
 
-function enableModalDismissByBackdrop(modalId) {
-  const el = document.getElementById(modalId);
-  if (!el || el._backdropBound) return;
-  el._backdropBound = true;
-  el.addEventListener("click", (event) => {
-    if (event.target === el) {
-      el._onClose?.();
-      closeModal(modalId);
-    }
-  });
-}
-
-let _escapeBound = false;
-function enableModalDismissByEscape() {
-  if (_escapeBound) return;
-  _escapeBound = true;
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape") return;
-    document.querySelectorAll(".modal-backdrop.show").forEach((el) => {
-      el._onClose?.();
-      el.classList.remove("show");
-      el.setAttribute("aria-hidden", "true");
-    });
+function bindEscape() {
+  if (_escBound) return;
+  _escBound = true;
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    document.querySelectorAll(".modal-backdrop.show")
+      .forEach(el => closeModal(el.id));
   });
 }
 
@@ -49,102 +32,81 @@ export function showActionModal({
   description = "",
   quantity = 1,
   quantityHint = "",
-  quickButtons = [1, 5, 10, 50],
+  quickButtons = [1, 10, 50, 100, "∞"],
   allowQueue = true,
   allowStart = true,
   onQueue,
   onStart,
-  onCancel,
-  onClose
+  onCancel
 } = {}) {
-  const titleEl    = document.getElementById("actionModalTitle");
-  const descEl     = document.getElementById("actionModalDesc");
-  const qtyInput   = document.getElementById("actionQtyInput");
-  const qtyHint    = document.getElementById("actionQtyHint");
-  const quickWrap  = document.getElementById("actionQuickBtns");
-  const cancelBtn  = document.getElementById("actionCancelBtn");
-  const queueBtn   = document.getElementById("actionQueueBtn");
-  const startBtn   = document.getElementById("actionStartBtn");
+  // Get elements
+  const modal     = document.getElementById("actionModal");
+  const titleEl   = document.getElementById("actionModalTitle");
+  const descEl    = document.getElementById("actionModalDesc");
+  const qtyInput  = document.getElementById("actionQtyInput");
+  const qtyHint   = document.getElementById("actionQtyHint");
+  const quickWrap = document.getElementById("actionQuickBtns");
+  const cancelBtn = document.getElementById("actionCancelBtn");
+  const queueBtn  = document.getElementById("actionQueueBtn");
+  const startBtn  = document.getElementById("actionStartBtn");
 
-  if (!titleEl || !descEl || !qtyInput || !qtyHint || !quickWrap) return;
+  if (!modal || !titleEl || !qtyInput) return;
 
-  function readQty() {
-    const raw = String(qtyInput.value || "").trim();
-    const infinite =
-      qtyInput.dataset.infinite === "1" ||
-      raw === "∞" ||
-      raw.toLowerCase() === "inf" ||
-      Number(raw) < 0;
-    if (infinite) return { qty: -1, isInfinite: true };
-    return { qty: Math.max(1, Math.floor(Number(raw || 1))), isInfinite: false };
+  // Set content
+  titleEl.textContent  = title;
+  if (descEl)  descEl.textContent  = description;
+  if (qtyHint) qtyHint.textContent = quantityHint;
+
+  // Reset qty input
+  qtyInput.value = quantity < 0 ? "∞" : String(quantity);
+  qtyInput.dataset.inf = quantity < 0 ? "1" : "0";
+
+  // Quick buttons
+  if (quickWrap) {
+    quickWrap.innerHTML = "";
+    quickButtons.forEach(v => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tiny-btn"; b.textContent = String(v);
+      b.onclick = () => {
+        qtyInput.value = String(v);
+        qtyInput.dataset.inf = (String(v) === "∞") ? "1" : "0";
+      };
+      quickWrap.appendChild(b);
+    });
   }
 
-  titleEl.textContent  = title;
-  descEl.textContent   = description;
-  qtyHint.textContent  = quantityHint;
+  // Helper: read current qty from input
+  function readQty() {
+    const raw = String(qtyInput.value).trim();
+    if (raw === "∞" || qtyInput.dataset.inf === "1") return { qty: -1, inf: true };
+    const n = Math.floor(Number(raw));
+    return { qty: Math.max(1, isNaN(n) ? 1 : n), inf: false };
+  }
 
-  // Reset input cleanly (cloneNode to remove stale listeners)
-  const newInput = qtyInput.cloneNode(true);
-  newInput.value = String(quantity >= 0 ? quantity : 1);
-  newInput.dataset.infinite = quantity < 0 ? "1" : "0";
-  qtyInput.parentNode.replaceChild(newInput, qtyInput);
-  const freshInput = document.getElementById("actionQtyInput");
-
-  freshInput.addEventListener("input", () => {
-    const raw = String(freshInput.value || "").trim();
-    freshInput.dataset.infinite =
-      raw === "∞" || raw.toLowerCase() === "inf" || Number(raw) < 0 ? "1" : "0";
-  });
-
-  // Quick-pick buttons
-  quickWrap.innerHTML = "";
-  quickButtons.forEach((value) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "tiny-btn";
-    btn.textContent = String(value);
-    btn.addEventListener("click", () => {
-      const fi = document.getElementById("actionQtyInput");
-      if (String(value) === "∞") {
-        fi.value = "∞";
-        fi.dataset.infinite = "1";
-      } else {
-        fi.value = String(value);
-        fi.dataset.infinite = "0";
-      }
-    });
-    quickWrap.appendChild(btn);
-  });
-
-  // Wire action buttons with fresh onclick (replaces previous)
+  // Wire buttons (direct assignment = no stacking)
   if (cancelBtn) {
     cancelBtn.onclick = () => { onCancel?.(); closeModal("actionModal"); };
   }
+
   if (queueBtn) {
     queueBtn.style.display = allowQueue ? "" : "none";
     queueBtn.onclick = () => {
-      const fi = document.getElementById("actionQtyInput");
-      const raw = String(fi.value || "").trim();
-      const isInfinite = fi.dataset.infinite === "1" || raw === "∞";
-      const qty = isInfinite ? -1 : Math.max(1, Math.floor(Number(raw || 1)));
-      onQueue?.(qty, isInfinite);
+      const { qty, inf } = readQty();
       closeModal("actionModal");
-    };
-  }
-  if (startBtn) {
-    startBtn.style.display = allowStart ? "" : "none";
-    startBtn.onclick = () => {
-      const fi = document.getElementById("actionQtyInput");
-      const raw = String(fi.value || "").trim();
-      const isInfinite = fi.dataset.infinite === "1" || raw === "∞";
-      const qty = isInfinite ? -1 : Math.max(1, Math.floor(Number(raw || 1)));
-      onStart?.(qty, isInfinite);
-      closeModal("actionModal");
+      onQueue?.(qty, inf);
     };
   }
 
-  setCloser("actionModal", onClose);
-  enableModalDismissByBackdrop("actionModal");
-  enableModalDismissByEscape();
+  if (startBtn) {
+    startBtn.style.display = allowStart ? "" : "none";
+    startBtn.onclick = () => {
+      const { qty, inf } = readQty();
+      closeModal("actionModal");
+      onStart?.(qty, inf);
+    };
+  }
+
+  bindBackdrop("actionModal");
+  bindEscape();
   openModal("actionModal");
 }
