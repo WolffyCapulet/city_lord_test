@@ -155,6 +155,8 @@ function setMainPage(pageName) {
   document.querySelectorAll("[data-main-nav]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mainNav === pageName);
   });
+  // Re-render so newly visible panels get populated
+  renderAll();
 }
 
 function saveGame() {
