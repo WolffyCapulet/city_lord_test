@@ -43,6 +43,30 @@ export function createAppLoop({
         );
       }
 
+      // Salary timer countdown
+      if (typeof state.salaryTimer === "number") {
+        state.salaryTimer = Math.max(0, state.salaryTimer - deltaSeconds);
+        if (state.salaryTimer <= 0) {
+          // Pay salary cycle
+          const workers = Array.isArray(state.workers) ? state.workers : [];
+          if (workers.length > 0) {
+            const mgDiscount = Math.min(0.5, (Number(state.managementLevel || 1) - 1) * 0.02);
+            const baseWage = 8;
+            const wage = Math.max(1, Math.round(baseWage * (1 - mgDiscount)));
+            const total = workers.length * wage;
+            if (Number(state.gold || 0) >= total) {
+              state.gold -= total;
+              state.managementExp = (state.managementExp || 0) + Math.max(1, Math.floor(total * 0.5));
+            } else {
+              state.salaryDebt = (state.salaryDebt || 0) + total;
+            }
+          }
+          state.salaryTimer = 300;
+        }
+      } else {
+        state.salaryTimer = 300;
+      }
+
       // Update game systems
       workSystem.updateAction(deltaSeconds);
       updateCraft(deltaSeconds);

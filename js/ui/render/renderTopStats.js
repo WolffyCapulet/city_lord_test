@@ -74,8 +74,32 @@ export function renderTopStats({
   setText("wageDebt", Math.floor(state.salaryDebt || 0));
   setText("campfireSec", formatReadableDuration(state.campfireSec || 0));
   setText("campfireTimer", formatReadableDuration(state.campfireSec || 0));
-  setText("townStageLabel", townStageName);
-  setText("researchUnlockText", townStageName);
+
+  // Cycle time based on intelligence
+  const intel = Number(state.intelligence || 0);
+  const raw = (1 + 0.02 * intel) / 10;
+  const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
+  const cycleSec = Math.max(5, 1 / capped);
+  setText("cycleTime", cycleSec.toFixed(2));
+
+  // Town stage
+  const townStageDefs = [
+    {name:"荒地", minLevel:1, reqHouses:{}, reqBuildings:{}},
+    {name:"小村落", minLevel:2, reqHouses:{cabin:2, wall:1}, reqBuildings:{well:1}},
+    {name:"村落", minLevel:4, reqHouses:{cabin:3, wall:3}, reqBuildings:{well:1}},
+    {name:"大村落", minLevel:6, reqHouses:{cabin:4, wall:6}, reqBuildings:{well:2}},
+    {name:"城鎮", minLevel:10, reqHouses:{stoneHouse:3, wall:12}, reqBuildings:{townCenter:1, smithy:1, library:1}}
+  ];
+  let stage = townStageDefs[0];
+  for (const s of townStageDefs) {
+    const ok = state.level >= s.minLevel &&
+      Object.entries(s.reqHouses || {}).every(([k,v]) => (state.housing?.[k]||0) >= v) &&
+      Object.entries(s.reqBuildings || {}).every(([k,v]) => (state.buildings?.[k]||0) >= v);
+    if (ok) stage = s;
+  }
+  const stageEl = document.getElementById("researchUnlockText");
+  if (stageEl) stageEl.textContent = stage.name;
+  setText("townStageLabel", stage.name);
 
   setWidth(
     "expBar",

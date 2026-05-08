@@ -50,6 +50,17 @@ export function createBuildSystem({
     }
 
     state.housing[buildingId] = getHousingCount(state, buildingId) + 1;
+    // Castle EXP from building
+    const cityExp = def.cityExpGain || 0;
+    if (cityExp > 0) {
+      state.castleExp = (state.castleExp || 0) + cityExp;
+      const expNeeded = Math.round(5 + 2.5 * (state.castleLevel||1) * ((state.castleLevel||1) - 1));
+      while ((state.castleExp || 0) >= expNeeded) {
+        state.castleExp -= expNeeded;
+        state.castleLevel = (state.castleLevel || 1) + 1;
+        addLog(`城池等級提升到 Lv.${state.castleLevel}！`, "important");
+      }
+    }
     addLog(`已建造：${def.name}`, "important");
     return true;
   }
@@ -95,6 +106,17 @@ export function createBuildSystem({
     }
 
     state.buildings[buildingId] = nextLevel;
+    // Castle EXP from upgrading
+    const cityExp2 = (def.cityExpGain || 0) + (def.levelExpGain || 0) * nextLevel;
+    if (cityExp2 > 0) {
+      state.castleExp = (state.castleExp || 0) + cityExp2;
+      const expNeeded2 = Math.round(5 + 2.5 * (state.castleLevel||1) * ((state.castleLevel||1) - 1));
+      while ((state.castleExp || 0) >= expNeeded2) {
+        state.castleExp -= expNeeded2;
+        state.castleLevel = (state.castleLevel || 1) + 1;
+        addLog(`城池等級提升到 Lv.${state.castleLevel}！`, "important");
+      }
+    }
     addLog(`${def.name}升到 Lv.${nextLevel}`, "important");
     return true;
   }

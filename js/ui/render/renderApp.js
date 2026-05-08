@@ -125,7 +125,13 @@ export function createAppRenderer({
 
     renderWorkButtons({
       workDefs, getWorkCost,
-      getWorkDuration: (def) => typeof def.base === "number" ? def.base : 10,
+      getWorkDuration: (def) => {
+        // Intelligence-based cycle time
+        const intel = Number(state?.intelligence || 0);
+        const raw = (1 + 0.02 * intel) / 10;
+        const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
+        return Math.max(5, 1 / capped);
+      },
       formatSeconds, onWorkClick
     });
 

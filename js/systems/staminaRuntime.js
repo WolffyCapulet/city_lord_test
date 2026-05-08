@@ -38,6 +38,17 @@ export function createStaminaRuntime({
       return;
     }
 
+    // Stamina EXP from restoring stamina
+    if (actual > 0) {
+      state.staminaExp = (state.staminaExp || 0) + actual;
+      const expNeeded = Math.round(5 + 2.5 * (state.staminaLevel||1) * ((state.staminaLevel||1) - 1));
+      while ((state.staminaExp || 0) >= expNeeded) {
+        state.staminaExp -= expNeeded;
+        state.staminaLevel = (state.staminaLevel || 1) + 1;
+        addLog(`體力等級提升到 Lv.${state.staminaLevel}，最大體力增加。`, "important");
+      }
+    }
+
     addLog(`你休息恢復 ${actual} 體力`, "important");
   }
 
@@ -62,6 +73,17 @@ export function createStaminaRuntime({
     const before = state.stamina;
     state.stamina = clamp(state.stamina + value, 0, getMaxStamina(state));
     const actual = state.stamina - before;
+
+    // Stamina EXP from food (only positive gains)
+    if (actual > 0) {
+      state.staminaExp = (state.staminaExp || 0) + actual;
+      const expNeeded = Math.round(5 + 2.5 * (state.staminaLevel||1) * ((state.staminaLevel||1) - 1));
+      while ((state.staminaExp || 0) >= expNeeded) {
+        state.staminaExp -= expNeeded;
+        state.staminaLevel = (state.staminaLevel || 1) + 1;
+        addLog(`體力等級提升到 Lv.${state.staminaLevel}，最大體力增加。`, "important");
+      }
+    }
 
     addLog(`你使用了 1 個${label}，體力變化 ${actual >= 0 ? "+" : ""}${actual}`, "important");
     return true;

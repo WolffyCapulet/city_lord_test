@@ -65,11 +65,19 @@ export function createCraftRuntime({
   }
 
   function getCraftDuration(def, craftId) {
-    // Use explicit duration if defined, otherwise default to 10s (matching work cycles)
     if (typeof def?.duration === "number") return Math.max(0.2, def.duration);
-    // Fallback: stamina cost * 3 seconds, min 5s, max 30s
-    const stamina = Number(def?.stamina ?? 1);
-    return Math.max(5, Math.min(30, stamina * 3 + 7));
+    // Use same intelligence-based cycle as work system
+    const intel = Number(state?.intelligence || 0);
+    const raw = (1 + 0.02 * intel) / 10;
+    const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
+    const base = Math.max(5, 1 / capped);
+    // Building bonuses
+    let bonus = Number(state?.campfireSec || 0) > 0 ? 0.10 : 0;
+    if (def?.skill === "alchemy") bonus += Number(state?.buildings?.alchemyHut || 0) * 0.20;
+    if (def?.skill === "tanning") bonus += Number(state?.buildings?.tannery || 0) * 0.20;
+    const grindIds = ["flour","boneMeal","compost","wheatSeedBundle","coalPowder","copperPowder","ironPowder","silverPowder","goldPowder","magnetitePowder","crystalPowder","gemPowder"];
+    if (grindIds.includes(craftId)) bonus += Number(state?.buildings?.mill || 0) * 0.20 + Number(state?.buildings?.windmill || 0) * 0.15;
+    return Math.max(5, base / (1 + bonus));
   }
 
   function canStartCraft(def) {
