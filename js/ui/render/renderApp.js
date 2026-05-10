@@ -93,9 +93,12 @@ export function createAppRenderer({
       const maxed = level >= def.maxLevel;
       const unlocked = !def.unlockResearch || state.research?.[def.unlockResearch];
       if (!unlocked) return "";
-      const costs = buildSystem.getUpgradeCost(id);
-      const costText = Object.entries(costs).map(([r, a]) => `${getResourceLabel(r)}×${a}`).join(" ");
-      return `<button type="button" data-upgrade-building="${id}" ${maxed ? "disabled" : ""} title="${def.name} Lv.${level}/${def.maxLevel}\n${def.effectText}\n費用：${costText}">${def.name} Lv.${level}</button>`;
+      const fullCost = buildSystem.getUpgradeCost(id);
+      const goldPart = fullCost.gold ? `${fullCost.gold} 金` : "";
+      const resPart = Object.entries(fullCost.resources || {}).map(([r, a]) => `${getResourceLabel(r)}×${a}`).join(" ");
+      const costText = [goldPart, resPart].filter(Boolean).join(" ");
+      const tooltip = `${def.name} Lv.${level}/${def.maxLevel}\n${def.effectText}\n費用：${costText || "無"}`;
+      return `<button type="button" data-upgrade-building="${id}" ${maxed ? "disabled" : ""} title="${tooltip}">${def.name} Lv.${level}</button>`;
     }).join("");
 
     root.querySelectorAll("[data-upgrade-building]").forEach((btn) => {

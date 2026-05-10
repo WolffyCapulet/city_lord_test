@@ -1,4 +1,4 @@
-import { sellPrices } from "../../data/dataTrade.js";
+import { sellPrices, shopPrices } from "../../data/dataTrade.js";
 
 function escapeHtml(v) {
   return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")

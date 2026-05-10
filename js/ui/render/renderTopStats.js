@@ -82,13 +82,15 @@ export function renderTopStats({
   const cycleSec = Math.max(5, 1 / capped);
   setText("cycleTime", cycleSec.toFixed(2));
 
-  // Town stage
+  // Town stage (matches old game)
   const townStageDefs = [
-    {name:"荒地", minLevel:1, reqHouses:{}, reqBuildings:{}},
-    {name:"小村落", minLevel:2, reqHouses:{cabin:2, wall:1}, reqBuildings:{well:1}},
-    {name:"村落", minLevel:4, reqHouses:{cabin:3, wall:3}, reqBuildings:{well:1}},
-    {name:"大村落", minLevel:6, reqHouses:{cabin:4, wall:6}, reqBuildings:{well:2}},
-    {name:"城鎮", minLevel:10, reqHouses:{stoneHouse:3, wall:12}, reqBuildings:{townCenter:1, smithy:1, library:1}}
+    {name:"荒地",     minLevel:1,  reqHouses:{}, reqBuildings:{}},
+    {name:"小村落",   minLevel:2,  reqHouses:{cabin:2, wall:1},              reqBuildings:{well:1}},
+    {name:"聚居地",   minLevel:4,  reqHouses:{cabin:4, wall:3},              reqBuildings:{well:1}},
+    {name:"村莊",     minLevel:6,  reqHouses:{cabin:5, stoneHouse:1, wall:6},reqBuildings:{well:2}},
+    {name:"商業聚落", minLevel:8,  reqHouses:{stoneHouse:2, wall:8},         reqBuildings:{well:2, townCenter:1}},
+    {name:"城鎮",     minLevel:10, reqHouses:{stoneHouse:3, wall:12},        reqBuildings:{townCenter:1, smithy:1, library:1}},
+    {name:"商業中心", minLevel:13, reqHouses:{stoneHouse:4, wall:16},        reqBuildings:{townCenter:2, mill:1, waterChannel:1}}
   ];
   let stage = townStageDefs[0];
   for (const s of townStageDefs) {
