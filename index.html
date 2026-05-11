@@ -124,7 +124,16 @@
           </div>
 
           <h3 style="margin:12px 0 8px">手動工作</h3>
-          <div id="workButtons" class="compact-actions"></div>
+          <div class="compact-actions">
+            <button data-work="labor">村莊打工 <span class="small">(2體)</span></button>
+            <button data-work="lumber">伐木 <span class="small">(3體)</span></button>
+            <button data-work="mining">挖礦 <span class="small">(5體)</span></button>
+            <button data-work="fishing">釣魚 <span class="small">(2體)</span></button>
+            <button data-work="hunting">狩獵 <span class="small">(5體)</span></button>
+            <button data-work="forest">森林採集 <span class="small">(3體)</span></button>
+            <button data-work="shore">海邊採集 <span class="small">(3體)</span></button>
+            <button data-work="digging">挖掘 <span class="small">(4體)</span></button>
+          </div>
 
           <div class="small muted" style="margin-top:8px">
             點一次後會持續工作，直到你切換、停止、或體力不足。稀有掉落會提高本次工作與普通經驗。
@@ -132,7 +141,112 @@
 
           <h3 style="margin:16px 0 8px">製作與加工</h3>
           <div class="small muted">目前連作：<span id="autoCraftLabel">無</span></div>
-          <div id="craftList" class="recipe-list"></div>
+          <details open>
+            <summary>基礎加工</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-craft="plank">木板</button>
+              <button data-craft="stoneBrick">石磚</button>
+              <button data-craft="brickFirewood">磚塊(柴)</button>
+              <button data-craft="brickCoal">磚塊(煤)</button>
+              <button data-craft="glassFirewood">玻璃(柴)</button>
+              <button data-craft="glassCoal">玻璃(煤)</button>
+              <button data-craft="bottle">玻璃瓶</button>
+            </div>
+          </details>
+          <details>
+            <summary>烹飪</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-craft="grilledMeat">烤肉</button>
+              <button data-craft="grilledFish">烤魚</button>
+              <button data-craft="bread">麵包</button>
+              <button data-craft="grilledSausage">烤香腸</button>
+              <button data-craft="bearStew">燉熊掌</button>
+              <button data-craft="applePie">蘋果派</button>
+              <button data-craft="clamSoup">海鮮湯</button>
+            </div>
+          </details>
+          <details>
+            <summary>研磨</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-craft="flour">小麥粉</button>
+              <button data-craft="boneMeal">骨粉</button>
+              <button data-craft="compost">肥料堆</button>
+              <button data-craft="wheatSeedBundle">小麥種子</button>
+              <button data-craft="coalPowder">碳粉</button>
+              <button data-craft="copperPowder">銅粉</button>
+              <button data-craft="ironPowder">鐵粉</button>
+              <button data-craft="silverPowder">銀粉</button>
+              <button data-craft="goldPowder">金粉</button>
+              <button data-craft="magnetitePowder">磁石粉</button>
+              <button data-craft="crystalPowder">水晶粉</button>
+              <button data-craft="gemPowder">寶石粉</button>
+            </div>
+          </details>
+          <details>
+            <summary>冶煉與工具</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-craft="ironFirewood">鐵錠(柴)</button>
+              <button data-craft="ironCoal">鐵錠(煤)</button>
+              <button data-craft="copperFirewood">銅錠(柴)</button>
+              <button data-craft="copperCoal">銅錠(煤)</button>
+              <button data-craft="stoneAxeTool">石斧</button>
+              <button data-craft="stonePickTool">石鎬</button>
+              <button data-craft="shovelTool">石鏟</button>
+              <button data-craft="stoneCarvingKnifeTool">石刻木刀</button>
+              <button data-craft="stoneHammerTool">石鎚子</button>
+              <button data-craft="stonePotTool">石鍋子</button>
+              <button data-craft="stoneHoeTool">石鋤頭</button>
+              <button data-craft="stonePitchforkTool">石草叉</button>
+              <button data-craft="fishingRodTool">石釣竿</button>
+              <button data-craft="copperAxeTool">銅斧</button>
+              <button data-craft="copperPickTool">銅鎬</button>
+              <button data-craft="copperShovelTool">銅鏟</button>
+              <button data-craft="copperCarvingKnifeTool">銅刻木刀</button>
+              <button data-craft="copperHammerTool">銅鎚子</button>
+              <button data-craft="copperPotTool">銅鍋子</button>
+              <button data-craft="copperHoeTool">銅鋤頭</button>
+              <button data-craft="copperPitchforkTool">銅草叉</button>
+              <button data-craft="copperFishingRodTool">銅釣竿</button>
+              <button data-craft="ironFishingRodTool">鐵釣竿</button>
+            </div>
+          </details>
+          <details>
+            <summary>煉金與文具</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-craft="herbTonic">鞣劑</button>
+              <button data-craft="staminaPotion">體力藥劑</button>
+              <button data-craft="paper">紙張</button>
+              <button data-craft="ink">墨水</button>
+              <button data-craft="note">破舊筆記</button>
+              <button data-craft="manual">入門教程</button>
+            </div>
+          </details>
+          <details>
+            <summary>製革與裁縫</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-craft="cottonThread">棉線</button>
+              <button data-craft="cottonCloth">棉布</button>
+              <button data-craft="grassThread">草線</button>
+              <button data-craft="grassCloth">草布</button>
+              <button data-craft="clothes">衣服</button>
+              <button data-craft="fishNetTool">魚網</button>
+            </div>
+          </details>
+          <details>
+            <summary>獵物分解與開殼</summary>
+            <div class="row" style="margin-top:8px">
+              <button data-process="rabbit">兔子</button>
+              <button data-process="chicken">雞</button>
+              <button data-process="boar">野豬</button>
+              <button data-process="deer">鹿</button>
+              <button data-process="wolf">野狼</button>
+              <button data-process="brownBear">棕熊</button>
+              <button data-process="blackBear">黑熊</button>
+              <button data-process="dairyCow">乳牛</button>
+              <button data-process="bull">公牛</button>
+              <button data-process="shellfish">貝類</button>
+            </div>
+          </details>
         </section>
 
         <section class="panel main-page-panel" data-main-page="farm">

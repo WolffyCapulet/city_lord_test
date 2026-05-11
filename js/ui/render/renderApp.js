@@ -5,8 +5,6 @@ import { renderResearchLane } from "./renderResearchLane.js";
 import { renderLog } from "./renderLog.js";
 import { renderTopStats } from "./renderTopStats.js";
 import { renderResources } from "./renderResources.js";
-import { renderWorkButtons } from "./renderWorkButtons.js";
-import { renderCraftList } from "./renderCraftList.js";
 import { renderSkillPills } from "./renderSkillPills.js";
 import { renderWorkersArea } from "./renderWorkersArea.js";
 import { renderMerchantArea } from "./renderMerchantArea.js";
@@ -126,22 +124,7 @@ export function createAppRenderer({
       isResourceClickable, getResourceHint, onResourceClick
     });
 
-    renderWorkButtons({
-      workDefs, getWorkCost,
-      getWorkDuration: (def) => {
-        // Intelligence-based cycle time
-        const intel = Number(state?.intelligence || 0);
-        const raw = (1 + 0.02 * intel) / 10;
-        const capped = raw <= 1 ? raw : 1 + (raw - 1) * 0.35;
-        return Math.max(5, 1 / capped);
-      },
-      formatSeconds, onWorkClick
-    });
-
-    renderCraftList({
-      state, crafts, getResourceLabel, isCraftHidden, isCraftUnlocked,
-      onCraftClick, getCraftDuration, formatSeconds
-    });
+    // Work and craft buttons are static HTML wired in wireProductionButtons()
 
     renderResearchArea({
       state, books, researchDefs, formatSeconds, getMissingRequirementText,

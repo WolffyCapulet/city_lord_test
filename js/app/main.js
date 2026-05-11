@@ -315,6 +315,32 @@ function wireHousingButtons() {
   });
 }
 
+function wireProductionButtons() {
+  // Work buttons (static HTML)
+  document.querySelectorAll("[data-work]").forEach(btn => {
+    btn.addEventListener("click", () => openWorkActionModal(btn.dataset.work));
+  });
+
+  // Craft buttons (static HTML)
+  document.querySelectorAll("[data-craft]").forEach(btn => {
+    btn.addEventListener("click", () => openCraftActionModal(btn.dataset.craft));
+  });
+
+  // Process buttons (animal/shellfish processing - maps to craft IDs)
+  const processMap = {
+    rabbit:"processRabbit", chicken:"processChicken", boar:"processBoar",
+    deer:"processDeer", wolf:"processWolf", brownBear:"processBrownBear",
+    blackBear:"processBlackBear", dairyCow:"processDairyCow",
+    bull:"processBull", shellfish:"processShellfish"
+  };
+  document.querySelectorAll("[data-process]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const craftId = processMap[btn.dataset.process];
+      if (craftId) openCraftActionModal(craftId);
+    });
+  });
+}
+
 function wireModalButtons() {
   // Queue modal
   document.getElementById("queueModalCloseBtn")?.addEventListener("click", () => {
