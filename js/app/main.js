@@ -394,6 +394,8 @@ function init() {
   });
 
   wireHousingButtons();
+  wireModalButtons();
+  wireProductionButtons();
   setMainPage(state.ui?.mainPage || "production");
   renderAll();
   appLoop.start();
