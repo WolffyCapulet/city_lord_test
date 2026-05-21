@@ -30,8 +30,8 @@ export function renderCraftLane({
         return `<div class="queue-row">
           <span class="queue-pill">${i+1}. ${escapeHtml(name)} × ${label}</span>
           <div class="ops">
-            <button class="tiny-btn" data-up="${i}"   ${i===0            ? "disabled":""}>↑</button>
-            <button class="tiny-btn" data-dn="${i}"   ${i===arr.length-1 ? "disabled":""}>↓</button>
+            <button class="tiny-btn" data-up="${i}"   ${i===0             ? "disabled":""}>↑</button>
+            <button class="tiny-btn" data-dn="${i}"   ${i===arr.length-1  ? "disabled":""}>↓</button>
             <button class="tiny-btn" data-rm="${i}">×</button>
           </div>
         </div>`;
@@ -43,9 +43,9 @@ export function renderCraftLane({
     queueEl.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-rm], button[data-up], button[data-dn]");
       if (!btn) return;
-      if (btn.dataset.rm !== undefined) onRemoveQueuedCraft?.(Number(btn.dataset.rm));
-      if (btn.dataset.up !== undefined) onMoveQueuedCraft?.(Number(btn.dataset.up), -1);
-      if (btn.dataset.dn !== undefined) onMoveQueuedCraft?.(Number(btn.dataset.dn),  1);
+      if (btn.dataset.rm  !== undefined) onRemoveQueuedCraft?.(Number(btn.dataset.rm));
+      if (btn.dataset.up  !== undefined) onMoveQueuedCraft?.(Number(btn.dataset.up), -1);
+      if (btn.dataset.dn  !== undefined) onMoveQueuedCraft?.(Number(btn.dataset.dn),  1);
     });
   }
 }

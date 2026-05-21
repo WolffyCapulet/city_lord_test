@@ -115,10 +115,7 @@ export function createWorkQueueRuntime({
       return tryStartNextWork();
     }
 
-    if (state.stamina < getWorkCost(nextDef)) {
-      return false;
-    }
-
+    // Note: stamina is checked in startWorkAction (and deducted at completion)
     const ok = startWorkNow(nextId);
     if (!ok) return false;
 

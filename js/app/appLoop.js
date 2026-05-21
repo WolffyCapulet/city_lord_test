@@ -18,16 +18,17 @@ export function createAppLoop({
 }) {
   let lastFrameTime = performance.now();
   let rafId = 0;
+  let errorCount = 0;
 
   function tick(now) {
     rafId = requestAnimationFrame(tick);
 
-    try {
-      const raw = (now - lastFrameTime) / 1000;
-      const deltaSeconds = Math.min(maxDeltaSeconds, Math.max(0, raw));
-      lastFrameTime = now;
+    const raw = (now - lastFrameTime) / 1000;
+    const deltaSeconds = Math.min(maxDeltaSeconds, Math.max(0, raw));
+    lastFrameTime = now;
 
-      // Campfire countdown
+    // ── Game state updates ──────────────────────────────────
+    try {
       state.campfireSec = Math.max(0, Number(state.campfireSec || 0) - deltaSeconds);
 
       // Passive stamina regen
@@ -43,50 +44,63 @@ export function createAppLoop({
         );
       }
 
-      // Salary timer countdown
-      if (typeof state.salaryTimer === "number") {
-        state.salaryTimer = Math.max(0, state.salaryTimer - deltaSeconds);
-        if (state.salaryTimer <= 0) {
-          // Pay salary cycle
-          const workers = Array.isArray(state.workers) ? state.workers : [];
-          if (workers.length > 0) {
-            const mgDiscount = Math.min(0.5, (Number(state.managementLevel || 1) - 1) * 0.02);
-            const baseWage = 8;
-            const wage = Math.max(1, Math.round(baseWage * (1 - mgDiscount)));
-            const total = workers.length * wage;
-            if (Number(state.gold || 0) >= total) {
-              state.gold -= total;
-              state.managementExp = (state.managementExp || 0) + Math.max(1, Math.floor(total * 0.5));
-            } else {
-              state.salaryDebt = (state.salaryDebt || 0) + total;
-            }
-          }
-          state.salaryTimer = 300;
-        }
-      } else {
+      // Salary timer
+      if (typeof state.salaryTimer !== "number" || isNaN(state.salaryTimer)) {
         state.salaryTimer = 300;
       }
+      state.salaryTimer = Math.max(0, state.salaryTimer - deltaSeconds);
+      if (state.salaryTimer <= 0) {
+        const workers = Array.isArray(state.workers) ? state.workers : [];
+        if (workers.length > 0) {
+          const mgDiscount = Math.min(0.5, (Number(state.managementLevel || 1) - 1) * 0.02);
+          const wage = Math.max(1, Math.round(8 * (1 - mgDiscount)));
+          const total = workers.length * wage;
+          if (Number(state.gold || 0) >= total) {
+            state.gold -= total;
+            state.managementExp = (state.managementExp || 0) + Math.max(1, Math.floor(total * 0.5));
+          } else {
+            state.salaryDebt = (state.salaryDebt || 0) + total;
+          }
+        }
+        state.salaryTimer = 300;
+      }
+    } catch (e) {
+      if (errorCount++ < 5) console.error("[tick:state]", e);
+    }
 
-      // Update game systems
-      workSystem.updateAction(deltaSeconds);
-      updateCraft(deltaSeconds);
-      researchSystem.updateResearch(deltaSeconds);
-      merchantRuntime?.update?.(deltaSeconds);
-      workersRuntime?.update?.(deltaSeconds);
+    // ── System updates ──────────────────────────────────────
+    try { workSystem.updateAction(deltaSeconds); }
+    catch (e) { if (errorCount++ < 5) console.error("[tick:workSystem]", e); }
 
-      // Auto-start queued items
-      if (!state.currentAction && state.actionQueue?.length > 0) {
+    try { updateCraft(deltaSeconds); }
+    catch (e) { if (errorCount++ < 5) console.error("[tick:craft]", e); }
+
+    try { researchSystem.updateResearch(deltaSeconds); }
+    catch (e) { if (errorCount++ < 5) console.error("[tick:research]", e); }
+
+    try { merchantRuntime?.update?.(deltaSeconds); }
+    catch (e) { if (errorCount++ < 5) console.error("[tick:merchant]", e); }
+
+    try { workersRuntime?.update?.(deltaSeconds); }
+    catch (e) { if (errorCount++ < 5) console.error("[tick:workers]", e); }
+
+    // ── Auto-start queued items ─────────────────────────────
+    try {
+      if (!state.currentAction && (state.actionQueue?.length ?? 0) > 0) {
         tryStartNextWork();
       }
-      if (!state.currentCraft && state.craftQueue?.length > 0) {
+      if (!state.currentCraft && (state.craftQueue?.length ?? 0) > 0) {
         tryStartNextCraft();
       }
+    } catch (e) {
+      if (errorCount++ < 5) console.error("[tick:queue]", e);
+    }
 
-      // ★ Only update bars/numbers - NO innerHTML rebuild
+    // ── Render bars (fast, no DOM rebuild) ─────────────────
+    try {
       renderBars({ state, workDefs, crafts, formatSeconds });
-
-    } catch (err) {
-      console.error("[tick error]", err);
+    } catch (e) {
+      if (errorCount++ < 5) console.error("[tick:renderBars]", e);
     }
   }
 

@@ -9,7 +9,6 @@ function getQueuedCount(item) {
   return Math.max(1, Math.floor(Number(item?.count || 1)));
 }
 
-// Track whether delegation listeners are already attached
 const _bound = new WeakSet();
 
 export function renderActionLane({
@@ -17,12 +16,12 @@ export function renderActionLane({
   onRemoveQueuedAction = null,
   onMoveQueuedAction   = null
 }) {
+  // Update queue list HTML
   const queueEl = document.getElementById("productionQueue");
   if (!queueEl) return;
 
   const items = Array.isArray(state.actionQueue) ? state.actionQueue : [];
 
-  // Rebuild queue HTML
   queueEl.innerHTML = items.length
     ? items.map((item, i, arr) => {
         const id    = getQueuedId(item);
@@ -32,23 +31,23 @@ export function renderActionLane({
         return `<div class="queue-row">
           <span class="queue-pill">${i+1}. ${escapeHtml(name)} × ${label}</span>
           <div class="ops">
-            <button class="tiny-btn" data-up="${i}"   ${i===0            ? "disabled":""}>↑</button>
-            <button class="tiny-btn" data-dn="${i}"   ${i===arr.length-1 ? "disabled":""}>↓</button>
+            <button class="tiny-btn" data-up="${i}"   ${i===0             ? "disabled":""}>↑</button>
+            <button class="tiny-btn" data-dn="${i}"   ${i===arr.length-1  ? "disabled":""}>↓</button>
             <button class="tiny-btn" data-rm="${i}">×</button>
           </div>
         </div>`;
       }).join("")
     : `<span class="small muted">生產列為空</span>`;
 
-  // Attach delegation listener ONCE per element lifetime
+  // Delegation listener - attach once per element lifetime
   if (!_bound.has(queueEl)) {
     _bound.add(queueEl);
     queueEl.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-rm], button[data-up], button[data-dn]");
       if (!btn) return;
-      if (btn.dataset.rm !== undefined) onRemoveQueuedAction?.(Number(btn.dataset.rm));
-      if (btn.dataset.up !== undefined) onMoveQueuedAction?.(Number(btn.dataset.up), -1);
-      if (btn.dataset.dn !== undefined) onMoveQueuedAction?.(Number(btn.dataset.dn),  1);
+      if (btn.dataset.rm  !== undefined) onRemoveQueuedAction?.(Number(btn.dataset.rm));
+      if (btn.dataset.up  !== undefined) onMoveQueuedAction?.(Number(btn.dataset.up), -1);
+      if (btn.dataset.dn  !== undefined) onMoveQueuedAction?.(Number(btn.dataset.dn),  1);
     });
   }
 }

@@ -1,107 +1,73 @@
-// Fast updater - called every RAF frame
-// Updates bars, text labels, AND queue display (no event listeners - delegation handles those)
-
-function escapeHtml(v) {
-  return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-}
-
-function getQueuedId(item)    { return typeof item === "string" ? item : item?.id; }
-function getQueuedCount(item) {
-  if (typeof item === "string") return 1;
-  if (item?.infinite || Number(item?.count) < 0) return -1;
-  return Math.max(1, Math.floor(Number(item?.count || 1)));
-}
-
-function updateBar(barId, textId, pct, text) {
-  const bar = document.getElementById(barId);
-  const el  = document.getElementById(textId);
-  if (bar) bar.style.width = pct.toFixed(2) + "%";
-  if (el)  el.textContent  = text;
-}
-
-function renderQueueRows(containerId, items, nameMap) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (!items.length) {
-    el.innerHTML = `<span class="small muted">${containerId === "productionQueue" ? "生產" : "製作"}列為空</span>`;
-    return;
-  }
-  el.innerHTML = items.map((item, i, arr) => {
-    const id    = getQueuedId(item);
-    const count = getQueuedCount(item);
-    const label = count < 0 ? "∞" : String(count);
-    const name  = nameMap[id]?.name || id;
-    return `<div class="queue-row">
-      <span class="queue-pill">${i+1}. ${escapeHtml(name)} × ${label}</span>
-      <div class="ops">
-        <button class="tiny-btn" data-up="${i}"   ${i===0             ? "disabled":""}>↑</button>
-        <button class="tiny-btn" data-dn="${i}"   ${i===arr.length-1  ? "disabled":""}>↓</button>
-        <button class="tiny-btn" data-rm="${i}">×</button>
-      </div>
-    </div>`;
-  }).join("");
-}
+// Fast updater called every RAF frame.
+// ONLY updates widths and text content - NO innerHTML changes.
+// Queue display is handled by renderActionLane/renderCraftLane/renderResearchLane (on renderAll).
 
 export function renderBars({ state, workDefs, crafts, formatSeconds }) {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  const setW = (id, pct) => {
+    const el = document.getElementById(id);
+    if (el) el.style.width = pct.toFixed(2) + "%";
+  };
+
+  // Stamina bar
   const maxStamina = 100 + ((state.level || 1) - 1) * 10;
+  const stam = Math.max(0, Math.min(maxStamina, Number(state.stamina || 0)));
+  setW("staminaBar", (stam / maxStamina) * 100);
+  set("stamina", Math.floor(stam));
 
-  // ── Stamina ──────────────────────────────────────────────
-  const stamPct = Math.min(100, Math.max(0,
-    (Number(state.stamina || 0) / maxStamina) * 100));
-  const staminaBar = document.getElementById("staminaBar");
-  const staminaEl  = document.getElementById("stamina");
-  if (staminaBar) staminaBar.style.width = stamPct.toFixed(2) + "%";
-  if (staminaEl)  staminaEl.textContent  = Math.floor(state.stamina || 0);
-
-  // ── Production bar ────────────────────────────────────────
+  // Production bar
   if (state.currentAction && workDefs?.[state.currentAction.id]) {
-    const def       = workDefs[state.currentAction.id];
     const total     = Math.max(0.01, Number(state.currentAction.total    || 0.01));
     const remaining = Math.max(0,    Number(state.currentAction.remaining || 0));
-    const pct       = Math.min(100, ((total - remaining) / total) * 100);
-    updateBar("productionBar", "productionText", pct,
-      `生產中：${def.name}｜剩餘 ${formatSeconds(remaining)}`);
+    const pct = Math.min(100, ((total - remaining) / total) * 100);
+    setW("productionBar", pct);
+    set("productionText", `生產中：${workDefs[state.currentAction.id].name}｜剩餘 ${formatSeconds(remaining)}`);
   } else {
+    setW("productionBar", 0);
     const q = Array.isArray(state.actionQueue) ? state.actionQueue : [];
-    const nextName = q.length > 0 ? (workDefs?.[getQueuedId(q[0])]?.name || "?") : "";
-    updateBar("productionBar", "productionText", 0,
-      q.length > 0 ? `等待中：下一項 ${nextName}` : "生產線：目前沒有進行中的動作。");
+    if (q.length > 0) {
+      const nextId   = typeof q[0] === "string" ? q[0] : q[0]?.id;
+      const nextName = workDefs?.[nextId]?.name || nextId || "?";
+      set("productionText", `等待中：下一項 ${nextName}`);
+    } else {
+      set("productionText", "生產線：目前沒有進行中的動作。");
+    }
   }
 
-  // ── Production queue display ──────────────────────────────
-  const aq = Array.isArray(state.actionQueue) ? state.actionQueue : [];
-  renderQueueRows("productionQueue", aq, workDefs || {});
-
-  // ── Craft bar ─────────────────────────────────────────────
+  // Craft bar
   if (state.currentCraft && crafts?.[state.currentCraft.id]) {
-    const def       = crafts[state.currentCraft.id];
     const total     = Math.max(0.01, Number(state.currentCraft.total    || 0.01));
     const remaining = Math.max(0,    Number(state.currentCraft.remaining || 0));
-    const pct       = Math.min(100, ((total - remaining) / total) * 100);
-    updateBar("craftBar", "craftText", pct,
-      `製作中：${def.name}｜剩餘 ${formatSeconds(remaining)}`);
+    const pct = Math.min(100, ((total - remaining) / total) * 100);
+    setW("craftBar", pct);
+    set("craftText", `製作中：${crafts[state.currentCraft.id].name}｜剩餘 ${formatSeconds(remaining)}`);
   } else {
+    setW("craftBar", 0);
     const q = Array.isArray(state.craftQueue) ? state.craftQueue : [];
-    const nextName = q.length > 0 ? (crafts?.[getQueuedId(q[0])]?.name || "?") : "";
-    updateBar("craftBar", "craftText", 0,
-      q.length > 0 ? `等待中：下一項 ${nextName}` : "製作線：目前沒有進行中的動作。");
+    if (q.length > 0) {
+      const nextId   = typeof q[0] === "string" ? q[0] : q[0]?.id;
+      const nextName = crafts?.[nextId]?.name || nextId || "?";
+      set("craftText", `等待中：下一項 ${nextName}`);
+    } else {
+      set("craftText", "製作線：目前沒有進行中的動作。");
+    }
   }
 
-  // ── Craft queue display ───────────────────────────────────
-  const cq = Array.isArray(state.craftQueue) ? state.craftQueue : [];
-  renderQueueRows("craftQueueTop", cq, crafts || {});
-
-  // ── Research bar ──────────────────────────────────────────
+  // Research bar
   if (state.currentResearch) {
     const total     = Math.max(0.01, Number(state.currentResearch.total    || 0.01));
     const remaining = Math.max(0,    Number(state.currentResearch.remaining || 0));
-    const pct       = Math.min(100, ((total - remaining) / total) * 100);
-    updateBar("researchBar", "researchText", pct,
-      `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(remaining)}`);
+    const pct = Math.min(100, ((total - remaining) / total) * 100);
+    setW("researchBar", pct);
+    set("researchText", `研究中：${state.currentResearch.name}｜剩餘 ${formatSeconds(remaining)}`);
   } else {
+    setW("researchBar", 0);
     const rq = Array.isArray(state.researchQueue) ? state.researchQueue : [];
-    updateBar("researchBar", "researchText", 0,
-      rq.length > 0 ? `等待中：${rq[0]?.name || "?"}` : "研究線：目前沒有進行中的動作。");
+    set("researchText", rq.length > 0
+      ? `等待中：下一項 ${rq[0]?.name || "?"}`
+      : "研究線：目前沒有進行中的動作。");
   }
 }
