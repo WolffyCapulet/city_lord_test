@@ -70,4 +70,13 @@ export function renderBars({ state, workDefs, crafts, formatSeconds }) {
       ? `等待中：下一項 ${rq[0]?.name || "?"}`
       : "研究線：目前沒有進行中的動作。");
   }
+
+  // Salary timer countdown display
+  const salaryEl = document.getElementById("salaryTimer");
+  if (salaryEl) {
+    const t = Math.max(0, Number(state.salaryTimer || 300));
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    salaryEl.textContent = m > 0 ? `${m}m${String(s).padStart(2,"0")}s` : `${s}s`;
+  }
 }

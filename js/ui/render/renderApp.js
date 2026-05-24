@@ -53,6 +53,9 @@ export function createAppRenderer({
   onPayDebt = null,
   onSetWorkerJob = null,
   onAdjustWorkersForJob = null,
+  onSetWorkerFood = null,
+  onSetWorkerCraftRecipe = null,
+  onSetWorkerCookRecipe = null,
 
   onFulfillOrder = null,
   onCancelOrder = null,
@@ -146,8 +149,12 @@ export function createAppRenderer({
 
     if (workersRuntime) {
       renderWorkersArea({
-        state, workersRuntime, onRecruitWorker, onPayDebt,
-        onSetWorkerJob, onAdjustWorkersForJob
+        state, workersRuntime, crafts, getResourceLabel,
+        onRecruitWorker, onPayDebt,
+        onSetWorkerJob, onAdjustWorkersForJob,
+        onSetWorkerFood,
+        onSetWorkerCraftRecipe,
+        onSetWorkerCookRecipe
       });
     }
   }

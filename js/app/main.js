@@ -265,6 +265,18 @@ const appRenderer = createAppRenderer({
   onPayDebt: () => { workersRuntime.payDebt(); renderAll(); },
   onSetWorkerJob: (id, job) => { workersRuntime.setWorkerJob(id, job); renderAll(); },
   onAdjustWorkersForJob: (job, delta) => { workersRuntime.adjustWorkersForJob(job, delta); renderAll(); },
+  onSetWorkerFood: (workerId, foodId) => {
+    const w = state.workers.find(w => String(w.id) === String(workerId));
+    if (w) { w.foodPreference = foodId; renderAll(); }
+  },
+  onSetWorkerCraftRecipe: (workerId, craftId) => {
+    const w = state.workers.find(w => String(w.id) === String(workerId));
+    if (w) { w.craftRecipe = craftId; renderAll(); }
+  },
+  onSetWorkerCookRecipe: (workerId, cookId) => {
+    const w = state.workers.find(w => String(w.id) === String(workerId));
+    if (w) { w.cookRecipe = cookId; renderAll(); }
+  },
 
   onFulfillOrder: (id) => { merchantRuntime.fulfillOrder(id); renderAll(); },
   onCancelOrder: (id) => { merchantRuntime.cancelOrder(id); renderAll(); },
