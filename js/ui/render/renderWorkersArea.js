@@ -29,6 +29,7 @@ export function renderWorkersArea({
   const root = document.getElementById("workers");
   if (!root) return;
 
+  const WORKER_PAY_INTERVAL = 300;
   const workers   = Array.isArray(state.workers) ? state.workers : [];
   const counts    = workersRuntime.getJobCounts();
   const housingCap = workersRuntime.getHousingCapacity();
@@ -43,7 +44,7 @@ export function renderWorkersArea({
     <div class="row" style="margin:8px 0;gap:8px;flex-wrap:wrap;align-items:center;">
       <span class="pill">工人：${workers.length} / ${housingCap}</span>
       <span class="pill">空位：${avail}</span>
-      <span class="pill">薪資：${wage} 金 / 每 ${fmt(WORKER_PAY_INTERVAL)} 秒</span>
+      <span class="pill">薪資：${wage} 金 / 每 ${WORKER_PAY_INTERVAL} 秒</span>
       <span class="pill" id="salaryCountdown">下次結算：${fmtSec(salaryTimer)}</span>
       <span class="pill ${debt > 0 ? "bad" : ""}">欠薪：${debt}</span>
       <span class="pill">平均週期：${cycleTime.toFixed(2)} 秒</span>
@@ -53,8 +54,6 @@ export function renderWorkersArea({
     <div class="small muted" style="margin-bottom:8px;">
       工人需要住房空位才能招募；工匠製作、廚師烹飪自動選擇材料；農夫自動種植收成；牧場工自動餵養。
     </div>`;
-
-  const WORKER_PAY_INTERVAL = 300;
 
   // ── Quick assign grid ─────────────────────────────────────
   const jobKeys = ALL_JOBS.filter(j => j !== "idle");
