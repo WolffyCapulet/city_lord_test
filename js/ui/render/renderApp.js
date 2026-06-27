@@ -8,6 +8,8 @@ import { renderResources } from "./renderResources.js";
 import { renderSkillPills } from "./renderSkillPills.js";
 import { renderWorkersArea } from "./renderWorkersArea.js";
 import { renderMerchantArea } from "./renderMerchantArea.js";
+import { renderFarmArea } from "./renderFarmArea.js";
+import { renderRanchArea } from "./renderRanchArea.js";
 
 export function createAppRenderer({
   state,
@@ -56,6 +58,16 @@ export function createAppRenderer({
   onSetWorkerFood = null,
   onSetWorkerCraftRecipe = null,
   onSetWorkerCookRecipe = null,
+
+  onBuildPlot = null,
+  onSelectSeed = null,
+  onPlantSeed = null,
+  onHarvestPlot = null,
+  onFertilizePlot = null,
+  onToggleFarmerAuto = null,
+  onToggleAutoFertilize = null,
+  onFeedAnimal = null,
+  onToggleBreeding = null,
 
   onFulfillOrder = null,
   onCancelOrder = null,
@@ -135,6 +147,31 @@ export function createAppRenderer({
     });
 
     renderBuildingButtons();
+
+    if (workersRuntime?.farmSystem) {
+      renderFarmArea({
+        state,
+        farmSystem: workersRuntime.farmSystem,
+        getResourceLabel,
+        onBuildPlot,
+        onSelectSeed,
+        onPlantSeed,
+        onHarvestPlot,
+        onFertilize: onFertilizePlot,
+        onToggleFarmerAuto,
+        onToggleAutoFertilize
+      });
+    }
+
+    if (workersRuntime?.ranchSystem) {
+      renderRanchArea({
+        state,
+        ranchSystem: workersRuntime.ranchSystem,
+        getResourceLabel,
+        onFeedAnimal,
+        onToggleBreeding
+      });
+    }
 
     if (merchantRuntime) {
       renderMerchantArea({

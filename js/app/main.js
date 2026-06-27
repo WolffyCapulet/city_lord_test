@@ -3,6 +3,7 @@ import { workDefs } from "../data/dataWorks.js";
 import { crafts } from "../data/dataCrafts.js";
 import { books, researchDefs } from "../data/dataResearch.js";
 import { buildingDefs, buildingOrder, housingDefs } from "../data/dataBuildings.js";
+import { farmingDefs } from "../data/dataFarming.js";
 
 import { bindEvents } from "./bindEvents.js";
 import { createAppRenderer } from "../ui/render/renderApp.js";
@@ -278,6 +279,50 @@ const appRenderer = createAppRenderer({
     if (w) { w.cookRecipe = cookId; renderAll(); }
   },
 
+  onBuildPlot: () => {
+    const fs = workersRuntime.farmSystem;
+    if (fs) { fs.buildFarmPlot(); renderAll(); }
+  },
+  onSelectSeed: () => {
+    const seeds = Object.keys(farmingDefs);
+    const cur   = state.ui?.manualSeedSelection || seeds[0];
+    const next  = seeds[(seeds.indexOf(cur) + 1) % seeds.length];
+    if (!state.ui) state.ui = {};
+    state.ui.manualSeedSelection = next;
+    renderAll();
+  },
+  onPlantSeed: (plotIdx) => {
+    const fs = workersRuntime.farmSystem;
+    if (fs) { fs.plantSeed(state.ui?.manualSeedSelection || "wheatSeed", plotIdx); renderAll(); }
+  },
+  onHarvestPlot: (plotIdx) => {
+    const fs = workersRuntime.farmSystem;
+    if (fs) { fs.harvestPlot(plotIdx); renderAll(); }
+  },
+  onFertilizePlot: (plotIdx, fertType) => {
+    const fs = workersRuntime.farmSystem;
+    if (fs) { fs.applyFertilizer(plotIdx, fertType); renderAll(); }
+  },
+  onToggleFarmerAuto: () => {
+    if (!state.ui) state.ui = {};
+    state.ui.farmerAuto = !state.ui.farmerAuto;
+    renderAll();
+  },
+  onToggleAutoFertilize: () => {
+    if (!state.ui) state.ui = {};
+    state.ui.farmerAutoFertilize = !state.ui.farmerAutoFertilize;
+    renderAll();
+  },
+
+  onFeedAnimal: (animalId) => {
+    const rs = workersRuntime.ranchSystem;
+    if (rs) { rs.feedAnimal(animalId); renderAll(); }
+  },
+  onToggleBreeding: (animalId) => {
+    const rs = workersRuntime.ranchSystem;
+    if (rs) { rs.toggleAnimalBreeding(animalId); renderAll(); }
+  },
+
   onFulfillOrder: (id) => { merchantRuntime.fulfillOrder(id); renderAll(); },
   onCancelOrder: (id) => { merchantRuntime.cancelOrder(id); renderAll(); },
   onRefreshMerchant: () => { merchantRuntime.refreshMerchant(); renderAll(); },
@@ -399,10 +444,29 @@ function init() {
     },
     onPayDebt: () => { workersRuntime.payDebt(); renderAll(); },
     onRecruitWorker: () => { workersRuntime.recruitWorker(); syncHousingCap(); renderAll(); },
-    onOpenSeedSelect: () => { addLog("種子選擇功能開發中", "important"); renderAll(); },
-    onPlant: () => { addLog("種植功能請透過農夫工人自動進行", "important"); renderAll(); },
-    onToggleFarmerSeedMode: () => { addLog("農夫自動模式功能開發中", "important"); renderAll(); },
-    onToggleFarmerAutoFertilize: () => { addLog("自動施肥功能開發中", "important"); renderAll(); }
+    onOpenSeedSelect: () => {
+      const seeds = Object.keys(farmingDefs);
+      const cur   = state.ui?.manualSeedSelection || seeds[0];
+      const next  = seeds[(seeds.indexOf(cur) + 1) % seeds.length];
+      if (!state.ui) state.ui = {};
+      state.ui.manualSeedSelection = next;
+      renderAll();
+    },
+    onPlant: () => {
+      const fs = workersRuntime.farmSystem;
+      if (fs) fs.plantSeed(state.ui?.manualSeedSelection || "wheatSeed");
+      renderAll();
+    },
+    onToggleFarmerSeedMode: () => {
+      if (!state.ui) state.ui = {};
+      state.ui.farmerAuto = !state.ui.farmerAuto;
+      renderAll();
+    },
+    onToggleFarmerAutoFertilize: () => {
+      if (!state.ui) state.ui = {};
+      state.ui.farmerAutoFertilize = !state.ui.farmerAutoFertilize;
+      renderAll();
+    }
   });
 
   wireHousingButtons();
